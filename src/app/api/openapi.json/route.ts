@@ -30,6 +30,10 @@ const openApiSpec = {
       description: 'IIIF manifest endpoints',
     },
     {
+      name: 'IIIF',
+      description: 'IIIF Presentation API endpoints for collections and manifests',
+    },
+    {
       name: 'Authentication',
       description: 'Authentication and authorization endpoints',
     },
@@ -422,24 +426,24 @@ const openApiSpec = {
         },
       },
     },
-    '/api/manifests/{itemId}': {
+    '/api/iiif/3/{manifestId}/manifest': {
       get: {
         tags: ['Manifests'],
-        summary: 'Get IIIF manifest',
-        description: 'Retrieve the IIIF Presentation API 3.0 manifest for an item',
+        summary: 'Get IIIF Presentation API 3.0 manifest',
+        description: 'Retrieve the IIIF Presentation API 3.0 manifest for an item using combined ID format (userId_collectionId_itemId)',
         parameters: [
           {
-            name: 'itemId',
+            name: 'manifestId',
             in: 'path',
             required: true,
-            schema: { type: 'string', format: 'uuid' },
-            description: 'Item ID',
+            schema: { type: 'string' },
+            description: 'Combined manifest ID (format: userId_collectionId_itemId)',
+            example: '101172437055322427006_59bf8c5f-00db-4dc9-8aba-8552e2d2bb61_ab60b932-df0d-4a46-8e59-3e3306372ba9',
           },
         ],
-        security: [{ bearerAuth: [] }],
         responses: {
           200: {
-            description: 'IIIF Manifest',
+            description: 'IIIF Presentation API 3.0 Manifest',
             content: {
               'application/ld+json': {
                 schema: { $ref: '#/components/schemas/IIIFManifest' },
@@ -447,15 +451,7 @@ const openApiSpec = {
             },
           },
           401: {
-            description: 'Unauthorized (authentication required)',
-            content: {
-              'application/ld+json': {
-                schema: { $ref: '#/components/schemas/IIIFManifest' },
-              },
-            },
-          },
-          403: {
-            description: 'Access denied',
+            description: 'Authentication required',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Error' },
@@ -463,7 +459,50 @@ const openApiSpec = {
             },
           },
           404: {
-            description: 'Item not found',
+            description: 'Manifest not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/iiif/2/{manifestId}/manifest': {
+      get: {
+        tags: ['Manifests'],
+        summary: 'Get IIIF Presentation API 2.1 manifest',
+        description: 'Retrieve the IIIF Presentation API 2.1 manifest for an item using combined ID format (userId_collectionId_itemId)',
+        parameters: [
+          {
+            name: 'manifestId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Combined manifest ID (format: userId_collectionId_itemId)',
+            example: '101172437055322427006_59bf8c5f-00db-4dc9-8aba-8552e2d2bb61_ab60b932-df0d-4a46-8e59-3e3306372ba9',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'IIIF Presentation API 2.1 Manifest',
+            content: {
+              'application/ld+json': {
+                schema: { $ref: '#/components/schemas/IIIFV2Manifest' },
+              },
+            },
+          },
+          401: {
+            description: 'Authentication required',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Manifest not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Error' },
@@ -626,6 +665,345 @@ const openApiSpec = {
         },
       },
     },
+    '/api/iiif/collection/{id}': {
+      get: {
+        tags: ['IIIF'],
+        summary: 'Get IIIF Collection manifest (default v3)',
+        description: 'Retrieve IIIF Collection manifest using default version (v3.0). The ID should be in format: userId_collectionId',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Combined ID in format: userId_collectionId (e.g., 115311985812827452842_9b7999e8-5122-4994-bff2-7aa83583c9d3)',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'IIIF Collection manifest',
+            content: {
+              'application/json': {
+                schema: { 
+                  type: 'object',
+                  properties: {
+                    '@context': { type: 'string' },
+                    id: { type: 'string' },
+                    type: { type: 'string', enum: ['Collection'] },
+                    label: { type: 'object' },
+                    items: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Collection not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/iiif/2/collection/{id}': {
+      get: {
+        tags: ['IIIF'],
+        summary: 'Get IIIF Collection (v2.1)',
+        description: 'Retrieve IIIF Presentation API 2.1 collection manifest. The ID should be in format: userId_collectionId',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Combined ID in format: userId_collectionId',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'IIIF Collection v2.1',
+            content: {
+              'application/json': {
+                schema: { 
+                  type: 'object',
+                  properties: {
+                    '@context': { type: 'string' },
+                    '@id': { type: 'string' },
+                    '@type': { type: 'string', enum: ['sc:Collection'] },
+                    label: { 
+                      oneOf: [
+                        { type: 'string' },
+                        { type: 'object' }
+                      ]
+                    },
+                    description: { type: 'string' },
+                    manifests: { type: 'array' },
+                    collections: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized (requires authentication)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Collection not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/iiif/2/{id}/manifest': {
+      get: {
+        tags: ['IIIF'],
+        summary: 'Get IIIF Manifest (v2.1)',
+        description: 'Retrieve IIIF Presentation API 2.1 manifest. The ID should be in format: userId_collectionId_itemId',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Combined ID in format: userId_collectionId_itemId',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'IIIF Manifest v2.1',
+            content: {
+              'application/json': {
+                schema: { 
+                  type: 'object',
+                  properties: {
+                    '@context': { type: 'string' },
+                    '@id': { type: 'string' },
+                    '@type': { type: 'string', enum: ['sc:Manifest'] },
+                    label: { type: 'string' },
+                    sequences: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized (requires authentication)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Manifest not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/iiif/{id}/manifest': {
+      get: {
+        tags: ['IIIF'],
+        summary: 'Get IIIF Manifest (default v3)',
+        description: 'Retrieve IIIF manifest using default version (v3.0). The ID should be in format: userId_collectionId_itemId',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Combined ID in format: userId_collectionId_itemId',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'IIIF Manifest v3.0',
+            content: {
+              'application/json': {
+                schema: { 
+                  type: 'object',
+                  properties: {
+                    '@context': { type: 'array' },
+                    id: { type: 'string' },
+                    type: { type: 'string', enum: ['Manifest'] },
+                    label: { type: 'object' },
+                    items: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized (requires authentication)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Manifest not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/iiif/3/{id}/manifest': {
+      get: {
+        tags: ['IIIF'],
+        summary: 'Get IIIF Manifest (v3.0)',
+        description: 'Retrieve IIIF Presentation API 3.0 manifest. The ID should be in format: userId_collectionId_itemId',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Combined ID in format: userId_collectionId_itemId',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'IIIF Manifest v3.0',
+            content: {
+              'application/json': {
+                schema: { 
+                  type: 'object',
+                  properties: {
+                    '@context': { type: 'array' },
+                    id: { type: 'string' },
+                    type: { type: 'string', enum: ['Manifest'] },
+                    label: { type: 'object' },
+                    items: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized (requires authentication)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Manifest not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/iiif/3/collection/{id}': {
+      get: {
+        tags: ['IIIF'],
+        summary: 'Get IIIF Collection manifest (v3.0)',
+        description: 'Retrieve IIIF Collection manifest in Presentation API v3.0 format. The ID should be in format: userId_collectionId',
+        parameters: [
+          {
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Combined ID in format: userId_collectionId',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'IIIF Collection manifest v3.0',
+            content: {
+              'application/json': {
+                schema: { 
+                  type: 'object',
+                  properties: {
+                    '@context': { type: 'array' },
+                    id: { type: 'string' },
+                    type: { type: 'string', enum: ['Collection'] },
+                    label: { type: 'object' },
+                    items: { type: 'array' },
+                  },
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Collection not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/iiif/image/{path}': {
+      get: {
+        tags: ['IIIF'],
+        summary: 'Get image from S3 storage',
+        description: 'Proxy endpoint to retrieve images from S3 storage with proper authentication',
+        parameters: [
+          {
+            name: 'path',
+            in: 'path',
+            required: true,
+            description: 'S3 object path',
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Image file',
+            content: {
+              'image/jpeg': {},
+              'image/png': {},
+              'image/webp': {},
+            },
+          },
+          403: {
+            description: 'Access denied',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Image not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
   },
   components: {
     securitySchemes: {
@@ -690,6 +1068,7 @@ const openApiSpec = {
       },
       IIIFManifest: {
         type: 'object',
+        description: 'IIIF Presentation API 3.0 Manifest',
         properties: {
           '@context': {
             oneOf: [
@@ -704,6 +1083,55 @@ const openApiSpec = {
           thumbnail: { type: 'array' },
           items: { type: 'array' },
           services: { type: 'array' },
+        },
+      },
+      IIIFV2Manifest: {
+        type: 'object',
+        description: 'IIIF Presentation API 2.1 Manifest',
+        properties: {
+          '@context': { type: 'string' },
+          '@id': { type: 'string' },
+          '@type': { type: 'string', enum: ['sc:Manifest'] },
+          label: {
+            oneOf: [
+              { type: 'string' },
+              { type: 'object' },
+            ],
+          },
+          description: { type: 'string' },
+          attribution: { type: 'string' },
+          license: { type: 'string' },
+          metadata: { type: 'array' },
+          sequences: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                '@id': { type: 'string' },
+                '@type': { type: 'string', enum: ['sc:Sequence'] },
+                label: { type: 'string' },
+                canvases: {
+                  type: 'array',
+                  items: {
+                    type: 'object',
+                    properties: {
+                      '@id': { type: 'string' },
+                      '@type': { type: 'string', enum: ['sc:Canvas'] },
+                      label: {
+                        oneOf: [
+                          { type: 'string' },
+                          { type: 'object' },
+                        ],
+                      },
+                      height: { type: 'integer' },
+                      width: { type: 'integer' },
+                      images: { type: 'array' },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       },
       Error: {
