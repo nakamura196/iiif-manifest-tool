@@ -31,9 +31,25 @@ interface IIIFV2Collection {
   license?: string;
 }
 
+interface V3Collection {
+  id: string;
+  label: string | { [key: string]: string[] };
+  summary?: string | { [key: string]: string[] };
+  metadata?: Array<{
+    label: string | { [key: string]: string[] };
+    value: string | { [key: string]: string[] };
+  }>;
+  attribution?: string;
+  rights?: string;
+  items?: Array<{
+    id: string;
+    type: string;
+    label: string | { [key: string]: string[] };
+  }>;
+}
+
 // Convert IIIF v3 collection to v2 format
-function convertToV2Collection(v3Collection: any): IIIFV2Collection {
-  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+function convertToV2Collection(v3Collection: V3Collection): IIIFV2Collection {
   
   const v2Collection: IIIFV2Collection = {
     "@context": "http://iiif.io/api/presentation/2/context.json",
@@ -71,8 +87,8 @@ function convertToV2Collection(v3Collection: any): IIIFV2Collection {
   // Convert items to manifests
   if (v3Collection.items && v3Collection.items.length > 0) {
     v2Collection.manifests = v3Collection.items
-      .filter((item: any) => item.type === 'Manifest')
-      .map((item: any) => ({
+      .filter((item) => item.type === 'Manifest')
+      .map((item) => ({
         "@id": item.id.replace('/api/iiif/', '/api/iiif/2/'),
         "@type": "sc:Manifest",
         "label": item.label

@@ -138,19 +138,23 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
           };
 
           // Add image service if present
-          if ((annotation.body as any).service) {
-            const service = Array.isArray((annotation.body as any).service) 
-              ? (annotation.body as any).service[0] 
-              : (annotation.body as any).service;
+          const bodyWithService = annotation.body as { service?: unknown };
+          if (bodyWithService.service) {
+            const serviceArray = Array.isArray(bodyWithService.service) 
+              ? bodyWithService.service 
+              : [bodyWithService.service];
+            const service = serviceArray[0] as { '@id'?: string; id?: string } | undefined;
             
-            (image.resource as any).service = {
+            const resourceWithService = image.resource as { service?: unknown };
+            resourceWithService.service = {
               "@context": "http://iiif.io/api/image/2/context.json",
-              "@id": service['@id'] || (service as any).id || annotation.body.id.split('?')[0],
+              "@id": service?.['@id'] || service?.id || annotation.body.id.split('?')[0],
               "profile": "http://iiif.io/api/image/2/level2.json"
             };
           }
 
-          (v2Canvas.images as any[]).push(image);
+          const canvasImages = v2Canvas.images as unknown[];
+          canvasImages.push(image);
         }
       }
 
