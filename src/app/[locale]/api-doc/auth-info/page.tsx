@@ -11,7 +11,6 @@ export default function AuthInfoPage() {
   const router = useRouter();
   const params = useParams();
   const locale = params?.locale || 'ja';
-  const [sessionToken, setSessionToken] = useState<string>('');
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
@@ -20,20 +19,6 @@ export default function AuthInfoPage() {
     }
   }, [status, router]);
 
-  useEffect(() => {
-    // Get session token from cookie
-    if (typeof window !== 'undefined') {
-      const cookies = document.cookie.split(';');
-      const sessionCookie = cookies.find(c => 
-        c.trim().startsWith('next-auth.session-token=') || 
-        c.trim().startsWith('__Secure-next-auth.session-token=')
-      );
-      if (sessionCookie) {
-        const token = sessionCookie.split('=')[1];
-        setSessionToken(token);
-      }
-    }
-  }, [session]);
 
   const copyToClipboard = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
@@ -108,31 +93,38 @@ export default function AuthInfoPage() {
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <FiKey className="text-green-500" />
-          セッション認証
+          API認証方法
         </h2>
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-              セッショントークン（Cookie）
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={sessionToken || 'セッショントークンを取得中...'}
-                readOnly
-                className="flex-1 px-3 py-2 border rounded-lg bg-gray-50 dark:bg-gray-900 font-mono text-sm"
-              />
-              <button
-                onClick={() => copyToClipboard(sessionToken, 'sessionToken')}
-                disabled={!sessionToken}
-                className="px-3 py-2 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50"
-              >
-                {copiedField === 'sessionToken' ? <FiCheck className="text-green-500" /> : <FiCopy />}
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              このトークンはSwagger UIの「Authorize」ボタンから「sessionAuth (apiKey)」に設定してください
+        <div className="space-y-4">
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <h3 className="font-semibold text-green-800 dark:text-green-200 mb-2">
+              現在のセッション
+            </h3>
+            <p className="text-sm text-green-700 dark:text-green-300">
+              現在ログイン中のため、ブラウザから直接APIを呼び出せます。
+              Swagger UIの「Try it out」機能も、現在のセッションを使用して実行されます。
             </p>
+          </div>
+          
+          <div>
+            <h3 className="font-semibold mb-2">プログラムからのアクセス</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+              外部プログラムからAPIにアクセスする場合は、以下の方法を使用してください：
+            </p>
+            <ol className="space-y-2 text-sm">
+              <li className="flex gap-2">
+                <span className="font-bold">1.</span>
+                <div>
+                  <strong>Cookie認証:</strong> ブラウザのセッションCookieを含めてリクエストを送信
+                </div>
+              </li>
+              <li className="flex gap-2">
+                <span className="font-bold">2.</span>
+                <div>
+                  <strong>Bearer Token認証:</strong> IIIF Auth APIから取得したトークンを使用（非公開リソース用）
+                </div>
+              </li>
+            </ol>
           </div>
         </div>
       </div>
@@ -149,25 +141,25 @@ export default function AuthInfoPage() {
           <li className="flex gap-2">
             <span className="font-bold">2.</span>
             <div>
-              右上の「Authorize」ボタンをクリック
+              使用したいAPIエンドポイントを選択
             </div>
           </li>
           <li className="flex gap-2">
             <span className="font-bold">3.</span>
             <div>
-              <strong>sessionAuth (apiKey)</strong>フィールドに上記のセッショントークンを入力
+              「Try it out」ボタンをクリック
             </div>
           </li>
           <li className="flex gap-2">
             <span className="font-bold">4.</span>
             <div>
-              「Authorize」をクリックして認証を有効化
+              必要なパラメータを入力
             </div>
           </li>
           <li className="flex gap-2">
             <span className="font-bold">5.</span>
             <div>
-              APIエンドポイントの「Try it out」でテスト実行
+              「Execute」をクリックしてAPIを実行
             </div>
           </li>
         </ol>

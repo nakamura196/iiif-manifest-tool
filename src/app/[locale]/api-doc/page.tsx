@@ -3,11 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
-import 'swagger-ui-react/swagger-ui.css';
-
-const SwaggerUI = dynamic(() => import('swagger-ui-react'), { ssr: false });
+import SwaggerUIWrapper from '@/components/SwaggerUIWrapper';
 
 export default function ApiDocPage() {
   const { data: session, status } = useSession();
@@ -112,7 +109,7 @@ export default function ApiDocPage() {
           </div>
         </div>
       </div>
-      <SwaggerUI 
+      <SwaggerUIWrapper 
         spec={spec}
         requestInterceptor={requestInterceptor}
         withCredentials={true}
