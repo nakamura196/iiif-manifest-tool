@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IIIF Authentication Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+        }
+        .test-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .test-item h3 {
+            margin-top: 0;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin: 5px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+        }
+        .image-preview {
+            max-width: 300px;
+            margin-top: 10px;
+        }
+        .image-preview img {
+            width: 100%;
+            height: auto;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>IIIF Authentication Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Private Image Access</h2>
+        <p>Enter a manifest ID to test image access control:</p>
+        
+        <div class="test-item">
+            <h3>1. Enter Manifest ID</h3>
+            <input type="text" id="manifestId" placeholder="e.g., userId_collectionId_itemId" />
+            <button onclick="fetchManifest()">Fetch Manifest</button>
+            <button onclick="testAsGuest()">Test as Guest</button>
+            <div id="manifestResult" class="result" style="display:none;"></div>
+        </div>
+        
+        <div class="test-item" id="imageTestSection" style="display:none;">
+            <h3>2. Test Image Access</h3>
+            <div id="imageList"></div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Authentication Status</h2>
+        <div id="authStatus" class="result warning">Checking authentication status...</div>
+        <button onclick="checkAuth()">Refresh Status</button>
+    </div>
+
+    <script>
+        let currentManifest = null;
+        let currentManifestId = null;
+        
+        async function checkAuth() {
+            try {
+                const response = await fetch('/api/auth/session');
+                const session = await response.json();
+                
+                const statusDiv = document.getElementById('authStatus');
+                if (session && session.user) {
+                    statusDiv.className = 'result success';
+                    statusDiv.textContent = `Authenticated as: ${session.user.email || session.user.name}`;
+                } else {
+                    statusDiv.className = 'result warning';
+                    statusDiv.textContent = 'Not authenticated (guest user)';
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('authStatus');
+                statusDiv.className = 'result error';
+                statusDiv.textContent = `Error checking auth: ${error.message}`;
+            }
+        }
+        
+        async function fetchManifest() {
+            const manifestId = document.getElementById('manifestId').value;
+            if (!manifestId) {
+                alert('Please enter a manifest ID');
+                return;
+            }
+            
+            currentManifestId = manifestId;
+            const resultDiv = document.getElementById('manifestResult');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Fetching manifest...';
+            
+            try {
+                const response = await fetch(`/api/iiif/${manifestId}/manifest`);
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentManifest = data;
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `Manifest loaded successfully!
+Label: ${data.label?.ja?.[0] || data.label?.en?.[0] || 'Untitled'}
+Images: ${data.items?.length || 0}`;
+                    
+                    displayImages(data);
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `Error ${response.status}: ${data.error || 'Failed to fetch manifest'}
+${data.message || ''}`;
+                    document.getElementById('imageTestSection').style.display = 'none';
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Network error: ${error.message}`;
+                document.getElementById('imageTestSection').style.display = 'none';
+            }
+        }
+        
+        async function testAsGuest() {
+            const manifestId = document.getElementById('manifestId').value;
+            if (!manifestId) {
+                alert('Please enter a manifest ID');
+                return;
+            }
+            
+            // Open in new window to simulate guest access
+            window.open(`/test-auth.html?testManifest=${manifestId}`, '_blank');
+        }
+        
+        function displayImages(manifest) {
+            const imageSection = document.getElementById('imageTestSection');
+            const imageList = document.getElementById('imageList');
+            
+            if (!manifest.items || manifest.items.length === 0) {
+                imageSection.style.display = 'none';
+                return;
+            }
+            
+            imageSection.style.display = 'block';
+            imageList.innerHTML = '';
+            
+            manifest.items.forEach((canvas, index) => {
+                const imageUrl = canvas.items?.[0]?.items?.[0]?.body?.id;
+                if (!imageUrl) return;
+                
+                const imageDiv = document.createElement('div');
+                imageDiv.style.marginBottom = '20px';
+                imageDiv.innerHTML = `
+                    <h4>Image ${index + 1}</h4>
+                    <p style="font-size: 12px; word-break: break-all;">URL: ${imageUrl}</p>
+                    <button onclick="testImageAccess('${encodeURIComponent(imageUrl)}', ${index})">Test Access</button>
+                    <button onclick="viewImage('${encodeURIComponent(imageUrl)}', ${index})">View Image</button>
+                    <div id="imageResult${index}" class="result" style="display:none; margin-top:10px;"></div>
+                    <div id="imagePreview${index}" class="image-preview" style="display:none;"></div>
+                `;
+                imageList.appendChild(imageDiv);
+            });
+        }
+        
+        async function testImageAccess(encodedUrl, index) {
+            const url = decodeURIComponent(encodedUrl);
+            const resultDiv = document.getElementById(`imageResult${index}`);
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Testing image access...';
+            
+            try {
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Image accessible (Status: ${response.status})
+Content-Type: ${response.headers.get('content-type')}`;
+                } else {
+                    const errorData = await response.text();
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Access denied (Status: ${response.status})
+${errorData}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `Network error: ${error.message}`;
+            }
+        }
+        
+        async function viewImage(encodedUrl, index) {
+            const url = decodeURIComponent(encodedUrl);
+            const previewDiv = document.getElementById(`imagePreview${index}`);
+            const resultDiv = document.getElementById(`imageResult${index}`);
+            
+            previewDiv.style.display = 'block';
+            previewDiv.innerHTML = '<p>Loading image...</p>';
+            
+            const img = new Image();
+            img.onload = function() {
+                previewDiv.innerHTML = `<img src="${url}" alt="Image ${index + 1}" />`;
+                if (!resultDiv.textContent || resultDiv.textContent === 'Testing image access...') {
+                    resultDiv.style.display = 'block';
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = '✅ Image loaded successfully';
+                }
+            };
+            img.onerror = function() {
+                previewDiv.innerHTML = '<p style="color: red;">Failed to load image (authentication may be required)</p>';
+                if (!resultDiv.textContent || resultDiv.textContent === 'Testing image access...') {
+                    resultDiv.style.display = 'block';
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = '❌ Failed to load image';
+                }
+            };
+            img.src = url;
+        }
+        
+        // Check if we're testing a specific manifest from URL params
+        const urlParams = new URLSearchParams(window.location.search);
+        const testManifest = urlParams.get('testManifest');
+        if (testManifest) {
+            document.getElementById('manifestId').value = testManifest;
+            fetchManifest();
+        }
+        
+        // Check auth status on load
+        checkAuth();
+    </script>
+</body>
+</html>

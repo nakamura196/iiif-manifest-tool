@@ -1,0 +1,51 @@
+{
+  "Common": {
+    "title": "IIIF Manifest Tool",
+    "description": "IIIF（International Image Interoperability Framework）に準拠したマニフェストを生成・管理するツール",
+    "home": "ホーム"
+  },
+  "HomePage": {
+    "hero": {
+      "cta": "はじめる",
+      "secondary": "サンプルを見る"
+    }
+  },
+  "Header": {
+    "en": "English",
+    "ja": "日本語"
+  },
+  "Footer": {
+    "copyright": "© 2024 IIIF Manifest Tool",
+    "quickLinks": {
+      "title": "クイックリンク",
+      "about": "概要"
+    },
+    "resources": {
+      "title": "リソース",
+      "example": "サンプル"
+    },
+    "links": {
+      "title": "リンク"
+    }
+  },
+  "Example": {
+    "title": "サンプルページ",
+    "description": "このテンプレートで利用可能な主要機能をご紹介します。",
+    "feature1": {
+      "title": "多言語対応",
+      "description": "next-intlを使用した完全な国際化対応。複数の言語を簡単に追加・管理できます。"
+    },
+    "feature2": {
+      "title": "ダークモード",
+      "description": "next-themesによるシステム連動のダークモード。ユーザーの好みに応じて自動切り替え。"
+    },
+    "feature3": {
+      "title": "サーバーサイドレンダリング",
+      "description": "Next.jsのSSR機能により、ダイナミックなコンテンツを生成。リアルタイムデータとSEOに最適です。"
+    },
+    "feature4": {
+      "title": "レスポンシブデザイン",
+      "description": "Tailwind CSSを使用した完全レスポンシブ対応。あらゆるデバイスで美しく表示されます。"
+    }
+  }
+}

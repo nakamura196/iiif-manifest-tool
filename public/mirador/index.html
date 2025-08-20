@@ -1,0 +1,78 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, shrink-to-fit=no"
+    />
+    <meta name="theme-color" content="#000000" />
+    <title>Mirador</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500"
+    />
+  </head>
+  <body>
+    <div
+      id="mirador"
+      style="position: absolute; top: 0; bottom: 0; left: 0; right: 0"
+    ></div>
+    <script>
+      document.write(
+        "<script type='text/javascript' src='https://unpkg.com/mirador@latest/dist/mirador.min.js'><\/script>"
+      );
+    </script>
+    <script type="text/javascript">
+      var vars = {};
+      var param = location.search.substring(1).split("&");
+      for (var i = 0; i < param.length; i++) {
+        var keySearch = param[i].search(/=/);
+        var key = "";
+        if (keySearch != -1) key = param[i].slice(0, keySearch);
+        var val = param[i].slice(param[i].indexOf("=", 0) + 1);
+        if (key != "") vars[key] = decodeURI(val);
+      }
+
+      var windows = [];
+
+      if (vars["manifest"]) {
+        var manifests = vars["manifest"];
+        var array = manifests.split(";");
+
+        for (var i = 0; i < array.length; i++) {
+          var manifest = decodeURIComponent(array[i]);
+          var obj = new Object();
+          if (vars["canvas"]) {
+            obj["canvasId"] = vars["canvas"];
+          }
+          obj["manifestId"] = manifest;
+          obj["thumbnailNavigationPosition"] = "far-right";
+          windows.push(obj);
+        }
+      }
+
+      var windowSettings = {}
+      if(vars["annotationState"]){
+        windowSettings = {
+          highlightAllAnnotations : true,
+          sideBarOpen : true,
+          defaultSideBarPanel: 'annotations',
+        }
+      }
+
+      var miradorInstance = Mirador.viewer({
+        id: "mirador",
+        language : "ja",
+        theme: {
+          transitions:
+            window.location.port === "4488" ? { create: () => "none" } : {},
+        },
+        window : windowSettings,
+        windows,
+      });
+    </script>
+  </body>
+</html>

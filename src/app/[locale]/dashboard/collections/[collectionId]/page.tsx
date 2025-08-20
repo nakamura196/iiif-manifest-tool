@@ -1,0 +1,547 @@
+'use client';
+
+import { useSession } from 'next-auth/react';
+import { useState, useEffect, use, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
+import ImageUploader from '@/components/ImageUploader';
+import AuthTokenModal from '@/components/AuthTokenModal';
+import ItemEditModal from '@/components/ItemEditModal';
+import CollectionEditModal from '@/components/CollectionEditModal';
+import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings } from 'react-icons/fi';
+import Link from 'next/link';
+
+interface Item {
+  id: string;
+  title: string;
+  description: string | null;
+  isPublic: boolean;
+  thumbnail?: string;
+  images: Array<{
+    id: string;
+    url: string;
+    width: number;
+    height: number;
+  }>;
+}
+
+interface PageProps {
+  params: Promise<{ collectionId: string }>;
+}
+
+export default function CollectionPage({ params }: PageProps) {
+  const resolvedParams = use(params);
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [items, setItems] = useState<Item[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  interface UploadedImage {
+    url: string;
+    width: number;
+    height: number;
+    mimeType: string;
+    infoJson?: string;
+    isIIIF?: boolean;
+    iiifBaseUrl?: string;
+  }
+  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [itemTitle, setItemTitle] = useState('');
+  const [itemDescription, setItemDescription] = useState('');
+  const [itemIsPublic, setItemIsPublic] = useState(true);
+  const [uploading, setUploading] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [showCollectionEditModal, setShowCollectionEditModal] = useState(false);
+  const [collectionName, setCollectionName] = useState<string>('コレクション');
+  const [collectionDescription, setCollectionDescription] = useState<string>('');
+
+  const fetchCollectionData = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/collections/${resolvedParams.collectionId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setCollectionName(data.name || 'コレクション');
+        setCollectionDescription(data.description || '');
+      }
+    } catch (error) {
+      console.error('Error fetching collection:', error);
+    }
+  }, [resolvedParams.collectionId]);
+
+  const fetchItems = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items?userId=${session?.user?.id}`);
+      if (response.ok) {
+        const data = await response.json();
+        setItems(data);
+      }
+    } catch (error) {
+      console.error('Error fetching items:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [resolvedParams.collectionId, session?.user?.id]);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/');
+    }
+  }, [status, router]);
+
+  useEffect(() => {
+    if (session) {
+      fetchCollectionData();
+      fetchItems();
+    }
+  }, [session, fetchItems, fetchCollectionData]);
+
+  const handleUpload = async (files: File[]) => {
+    setUploading(true);
+    const uploadPromises = files.map(async (file) => {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (response.ok) {
+        return response.json();
+      }
+      throw new Error('Upload failed');
+    });
+
+    try {
+      const results = await Promise.all(uploadPromises);
+      setUploadedImages([...uploadedImages, ...results]);
+    } catch (error) {
+      console.error('Error uploading files:', error);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleUrlAdd = async (url: string) => {
+    try {
+      const response = await fetch(url, { method: 'HEAD' });
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      
+      const img = new Image();
+      img.onload = () => {
+        setUploadedImages([
+          ...uploadedImages,
+          {
+            url,
+            width: img.width,
+            height: img.height,
+            mimeType: contentType,
+          },
+        ]);
+      };
+      img.src = url;
+    } catch (error) {
+      console.error('Error adding URL:', error);
+    }
+  };
+
+  const handleInfoJsonAdd = async (infoJsonUrl: string) => {
+    try {
+      const response = await fetch(infoJsonUrl);
+      const infoJson = await response.json();
+      
+      // For IIIF images, construct the full image URL
+      const baseUrl = infoJson.id || infoJson['@id'];
+      // Remove trailing slash if present
+      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+      // Create the full IIIF image URL
+      const imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+      
+      setUploadedImages([
+        ...uploadedImages,
+        {
+          url: imageUrl,
+          width: infoJson.width,
+          height: infoJson.height,
+          mimeType: 'image/jpeg',
+          infoJson: JSON.stringify(infoJson),
+          isIIIF: true,  // Mark as IIIF image
+          iiifBaseUrl: cleanBaseUrl  // Store the base URL for service info
+        },
+      ]);
+    } catch (error) {
+      console.error('Error adding info.json:', error);
+    }
+  };
+
+  const createItem = async () => {
+    if (!itemTitle || uploadedImages.length === 0) return;
+
+    try {
+      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: itemTitle,
+          description: itemDescription,
+          images: uploadedImages,
+          isPublic: itemIsPublic,
+        }),
+      });
+
+      if (response.ok) {
+        const newItem = await response.json();
+        setItems([newItem, ...items]);
+        setShowCreateModal(false);
+        setItemTitle('');
+        setItemDescription('');
+        setItemIsPublic(true);
+        setUploadedImages([]);
+      }
+    } catch (error) {
+      console.error('Error creating item:', error);
+    }
+  };
+
+
+  const openInMirador = (item: Item) => {
+    // Generate manifest URL using new IIIF structure
+    const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
+    const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
+    const encodedUrl = encodeURIComponent(manifestUrl);
+    const miradorUrl = `/mirador/index.html?manifest=${encodedUrl}`;
+    window.open(miradorUrl, '_blank');
+  };
+
+  const handleDelete = async (itemId: string) => {
+    if (!confirm('このアイテムを削除してもよろしいですか？')) return;
+
+    try {
+      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${itemId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setItems(items.filter(item => item.id !== itemId));
+      }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+    }
+  };
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">読み込み中...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex items-center gap-4 mb-8">
+        <Link href="/ja/dashboard" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+          <FiArrowLeft className="text-xl" />
+        </Link>
+        <h1 className="text-3xl font-bold flex-1">{collectionName}</h1>
+        <button
+          onClick={() => {
+            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
+            const collectionUrl = `${window.location.origin}/api/iiif/collection/${combinedId}`;
+            const encodedUrl = encodeURIComponent(collectionUrl);
+            const miradorUrl = `/mirador/index.html?manifest=${encodedUrl}`;
+            window.open(miradorUrl, '_blank');
+          }}
+          className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+          title="Miradorで表示"
+        >
+          <FiBook />
+          Mirador
+        </button>
+        <button
+          onClick={() => {
+            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
+            const collectionUrl = `${window.location.origin}/api/iiif/collection/${combinedId}`;
+            window.open(collectionUrl, '_blank');
+          }}
+          className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          title="コレクションJSON"
+        >
+          <FiEye />
+          JSON
+        </button>
+        <button
+          onClick={() => setShowCollectionEditModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+        >
+          <FiSettings />
+          コレクション設定
+        </button>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+        >
+          <FiPlus />
+          新規アイテム
+        </button>
+      </div>
+
+      {collectionDescription && (
+        <div className="mb-6 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg">
+          <p className="text-gray-700 dark:text-gray-300">{collectionDescription}</p>
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            アイテムがまだありません
+          </p>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            最初のアイテムを作成
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+            >
+              {item.thumbnail && (
+                <img
+                  src={item.thumbnail}
+                  alt={item.title}
+                  className="w-full h-48 object-cover"
+                />
+              )}
+              <div className="p-4">
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="text-lg font-semibold">{item.title}</h3>
+                  {item.isPublic ? (
+                    <FiGlobe className="text-gray-500 text-sm" title="公開" />
+                  ) : (
+                    <FiLock className="text-gray-500 text-sm" title="非公開" />
+                  )}
+                </div>
+                {item.description && (
+                  <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
+                    {item.description}
+                  </p>
+                )}
+                <div className="flex gap-2 flex-wrap">
+                  <button
+                    onClick={() => openInMirador(item)}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800"
+                  >
+                    <FiBook />
+                    Mirador
+                  </button>
+                  <button
+                    onClick={() => {
+                      const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
+                      const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
+                      window.open(manifestUrl, '_blank');
+                    }}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    <FiEye />
+                    JSON
+                  </button>
+                  <button
+                    onClick={() => {
+                      const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
+                      const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
+                      navigator.clipboard.writeText(manifestUrl);
+                      // You can add a toast notification here
+                    }}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+                  >
+                    <FiCopy />
+                    URL
+                  </button>
+                  <button
+                    onClick={() => {
+                      setEditingItemId(item.id);
+                      setShowEditModal(true);
+                    }}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                  >
+                    <FiEdit2 />
+                    編集
+                  </button>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="flex items-center gap-1 px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
+                  >
+                    <FiTrash2 />
+                    削除
+                  </button>
+                  {!item.isPublic && (
+                    <button
+                      onClick={() => {
+                        setSelectedItem(item);
+                        setShowAuthModal(true);
+                      }}
+                      className="flex items-center gap-1 px-3 py-1 text-sm bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800"
+                    >
+                      <FiKey />
+                      認証
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">新規アイテム作成</h2>
+            
+            <div className="space-y-4 mb-6">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  タイトル *
+                </label>
+                <input
+                  type="text"
+                  value={itemTitle}
+                  onChange={(e) => setItemTitle(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  placeholder="アイテムのタイトル"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">説明</label>
+                <textarea
+                  value={itemDescription}
+                  onChange={(e) => setItemDescription(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  rows={3}
+                  placeholder="アイテムの説明（任意）"
+                />
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="isPublic"
+                  checked={itemIsPublic}
+                  onChange={(e) => setItemIsPublic(e.target.checked)}
+                  className="mr-2"
+                />
+                <label htmlFor="isPublic" className="text-sm">
+                  このアイテムを公開する
+                </label>
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">画像を追加</h3>
+              <ImageUploader
+                onUpload={handleUpload}
+                onUrlAdd={handleUrlAdd}
+                onInfoJsonAdd={handleInfoJsonAdd}
+              />
+            </div>
+
+            {uploadedImages.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3">
+                  アップロード済み画像 ({uploadedImages.length})
+                </h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {uploadedImages.map((img, index) => (
+                    <div key={index} className="relative group">
+                      <img
+                        src={img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/400,/0/default.jpg` : img.url}
+                        alt={`Uploaded ${index + 1}`}
+                        className="w-full h-24 object-cover rounded"
+                      />
+                      <button
+                        onClick={() => {
+                          setUploadedImages(uploadedImages.filter((_, i) => i !== index));
+                        }}
+                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <FiTrash2 className="text-sm" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setItemTitle('');
+                  setItemDescription('');
+                  setItemIsPublic(true);
+                  setUploadedImages([]);
+                }}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={createItem}
+                disabled={!itemTitle || uploadedImages.length === 0 || uploading}
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+              >
+                {uploading ? 'アップロード中...' : '作成'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAuthModal && selectedItem && (
+        <AuthTokenModal
+          itemId={`${session?.user?.id}_${resolvedParams.collectionId}_${selectedItem.id}`}
+          itemTitle={selectedItem.title}
+          onClose={() => {
+            setShowAuthModal(false);
+            setSelectedItem(null);
+          }}
+        />
+      )}
+
+      {showEditModal && editingItemId && (
+        <ItemEditModal
+          itemId={editingItemId}
+          collectionId={resolvedParams.collectionId}
+          ownerId={session?.user?.id}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingItemId(null);
+          }}
+          onUpdate={() => {
+            fetchItems();
+          }}
+        />
+      )}
+
+      {showCollectionEditModal && (
+        <CollectionEditModal
+          collectionId={resolvedParams.collectionId}
+          onClose={() => setShowCollectionEditModal(false)}
+          onUpdate={() => {
+            // Refresh collection data after editing
+            fetchCollectionData();
+          }}
+        />
+      )}
+    </div>
+  );
+}

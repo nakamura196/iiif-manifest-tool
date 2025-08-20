@@ -1,0 +1,51 @@
+{
+  "Common": {
+    "title": "IIIF Manifest Tool",
+    "description": "A tool for generating and managing IIIF (International Image Interoperability Framework) compliant manifests",
+    "home": "Home"
+  },
+  "HomePage": {
+    "hero": {
+      "cta": "Get Started",
+      "secondary": "View Example"
+    }
+  },
+  "Header": {
+    "en": "English",
+    "ja": "日本語"
+  },
+  "Footer": {
+    "copyright": "© 2024 IIIF Manifest Tool",
+    "quickLinks": {
+      "title": "Quick Links",
+      "about": "About"
+    },
+    "resources": {
+      "title": "Resources",
+      "example": "Example"
+    },
+    "links": {
+      "title": "Links"
+    }
+  },
+  "Example": {
+    "title": "Example Page",
+    "description": "Explore the main features available in this template.",
+    "feature1": {
+      "title": "Internationalization",
+      "description": "Full i18n support with next-intl. Easily add and manage multiple languages."
+    },
+    "feature2": {
+      "title": "Dark Mode",
+      "description": "System-aware dark mode with next-themes. Automatically switches based on user preference."
+    },
+    "feature3": {
+      "title": "Server Side Rendering",
+      "description": "Dynamic content with Next.js SSR. Optimized for SEO and real-time data."
+    },
+    "feature4": {
+      "title": "Responsive Design",
+      "description": "Fully responsive with Tailwind CSS. Beautiful on all devices and screen sizes."
+    }
+  }
+}

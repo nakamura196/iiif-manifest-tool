@@ -1,0 +1,114 @@
+# Dependencies
+# ============
+node_modules/
+.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing
+# =======
+coverage/
+.nyc_output/
+
+# Next.js
+# =======
+.next/
+out/
+build/
+dist/
+
+# Production
+# ==========
+*.production
+
+# Environment Variables
+# ====================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug & Logs
+# ============
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# OS Files
+# ========
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editors
+# =============
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.sublime-*
+*.swp
+*.swo
+*~
+
+# TypeScript
+# ==========
+*.tsbuildinfo
+next-env.d.ts
+
+# Database
+# ========
+prisma/dev.db
+prisma/dev.db-journal
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary Files
+# ===============
+tmp/
+temp/
+.cache/
+*.tmp
+*.temp
+
+# Build Outputs
+# =============
+out.zip
+*.zip
+*.tar.gz
+
+# Uploads & Media
+# ===============
+uploads/
+public/uploads/
+!public/uploads/.gitkeep
+
+# Generated Files
+# ===============
+/src/generated/
+
+# Vercel
+# ======
+.vercel
+
+# Security
+# ========
+*.pem
+*.key
+*.cert
+*.crt
+
+# Miscellaneous
+# =============
+.turbo/
+.docusaurus/
+.cache-loader/
