@@ -78,20 +78,6 @@ export function addAuthServicesToManifest(manifest: ManifestWithAuth, isPublic: 
   if (authServices) {
     // Add auth services to the manifest
     manifest.service = authServices;
-
-    // Also add to each canvas/image if needed
-    if (manifest.items) {
-      manifest.items = manifest.items.map((canvas) => {
-        if (canvas.items?.[0]?.items?.[0]?.body && authServices) {
-          // Add auth service to image body
-          if (!canvas.items[0].items[0].body.service) {
-            canvas.items[0].items[0].body.service = [];
-          }
-          canvas.items[0].items[0].body.service = authServices;
-        }
-        return canvas;
-      });
-    }
   }
 
   return manifest;
