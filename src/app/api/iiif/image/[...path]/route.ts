@@ -4,11 +4,11 @@ import { authOptions } from '@/lib/auth';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
-  region: process.env.MDX_S3_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 });
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             
             // If no canvas index provided, try to find it by matching the image URL
             if (targetCanvasIndex === null) {
-              const fullImagePath = `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/${decodedPath}`;
+              const fullImagePath = `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET_NAME}/${decodedPath}`;
               for (let i = 0; i < manifest.items.length; i++) {
                 const canvas = manifest.items[i];
                 const imageUrl = canvas.items?.[0]?.items?.[0]?.body?.id;
@@ -232,7 +232,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Fetch the image from S3
     const command = new GetObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: decodedPath,
     });
 

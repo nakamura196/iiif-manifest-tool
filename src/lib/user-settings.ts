@@ -1,11 +1,11 @@
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
-  region: process.env.MDX_S3_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 });
@@ -41,7 +41,7 @@ export async function getUserSettings(userId: string): Promise<UserSettings> {
   try {
     const key = `users/${userId}/settings.json`;
     const command = new GetObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: key,
     });
 
@@ -67,7 +67,7 @@ export async function saveUserSettings(userId: string, settings: UserSettings): 
     };
     
     const command = new PutObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: key,
       Body: JSON.stringify(updatedSettings, null, 2),
       ContentType: 'application/json',

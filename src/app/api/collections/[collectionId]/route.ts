@@ -23,7 +23,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     try {
       const command = new GetObjectCommand({
-        Bucket: process.env.MDX_S3_BUCKET_NAME!,
+        Bucket: process.env.S3_BUCKET_NAME!,
         Key: metadataKey,
       });
       
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     try {
       const command = new GetObjectCommand({
-        Bucket: process.env.MDX_S3_BUCKET_NAME!,
+        Bucket: process.env.S3_BUCKET_NAME!,
         Key: collectionKey,
       });
       
@@ -124,7 +124,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     };
     
     const command = new PutObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: metadataKey,
       Body: JSON.stringify(collectionData, null, 2),
       ContentType: 'application/json'
@@ -137,7 +137,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     
     try {
       const getCommand = new GetObjectCommand({
-        Bucket: process.env.MDX_S3_BUCKET_NAME!,
+        Bucket: process.env.S3_BUCKET_NAME!,
         Key: collectionManifestKey,
       });
       
@@ -210,7 +210,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         
         // Save updated collection manifest
         const updateCommand = new PutObjectCommand({
-          Bucket: process.env.MDX_S3_BUCKET_NAME!,
+          Bucket: process.env.S3_BUCKET_NAME!,
           Key: collectionManifestKey,
           Body: JSON.stringify(collectionManifest, null, 2),
           ContentType: 'application/json'
@@ -251,7 +251,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     
     // List all objects in the collection folder
     const listCommand = new ListObjectsV2Command({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Prefix: `collections/${session.user.id}/${collectionId}/`,
     });
     
@@ -262,7 +262,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       for (const object of listResponse.Contents) {
         if (object.Key) {
           const deleteCommand = new DeleteObjectCommand({
-            Bucket: process.env.MDX_S3_BUCKET_NAME!,
+            Bucket: process.env.S3_BUCKET_NAME!,
             Key: object.Key,
           });
           await s3Client.send(deleteCommand);

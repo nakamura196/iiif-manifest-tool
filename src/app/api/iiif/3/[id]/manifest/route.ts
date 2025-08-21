@@ -6,11 +6,11 @@ import { authOptions } from '@/lib/auth';
 import { IIIFManifest } from '@/lib/iiif-manifest';
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
-  region: process.env.MDX_S3_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 });
@@ -22,7 +22,7 @@ interface RouteParams {
 async function getManifestFromS3(manifestPath: string) {
   try {
     const command = new GetObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: manifestPath,
     });
     
@@ -67,9 +67,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Process manifest-level thumbnail
     if (manifest.thumbnail && manifest.thumbnail.length > 0) {
       manifest.thumbnail = manifest.thumbnail.map((thumb: { id: string; type: 'Image'; format: string; width?: number; height?: number }) => {
-        if (thumb.id && process.env.MDX_S3_ENDPOINT && thumb.id.includes(process.env.MDX_S3_ENDPOINT)) {
+        if (thumb.id && process.env.S3_ENDPOINT && thumb.id.includes(process.env.S3_ENDPOINT)) {
           const thumbnailPath = thumb.id.replace(
-            `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/`,
+            `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET_NAME}/`,
             ''
           );
           return {
@@ -92,16 +92,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         const canvasNumber = index + 1;
         
         // Update canvas ID
-        if (canvas.id && process.env.MDX_S3_ENDPOINT && canvas.id.includes(process.env.MDX_S3_ENDPOINT)) {
+        if (canvas.id && process.env.S3_ENDPOINT && canvas.id.includes(process.env.S3_ENDPOINT)) {
           canvas.id = `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}`;
         }
         
         // Process canvas-level thumbnail
         if (canvas.thumbnail && canvas.thumbnail.length > 0) {
           canvas.thumbnail = canvas.thumbnail.map((thumb: { id: string; type: 'Image'; format: string; width?: number; height?: number }) => {
-            if (thumb.id && process.env.MDX_S3_ENDPOINT && thumb.id.includes(process.env.MDX_S3_ENDPOINT)) {
+            if (thumb.id && process.env.S3_ENDPOINT && thumb.id.includes(process.env.S3_ENDPOINT)) {
               const thumbnailPath = thumb.id.replace(
-                `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/`,
+                `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET_NAME}/`,
                 ''
               );
               return {
@@ -116,25 +116,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         // Update annotation page and annotation IDs
         if (canvas.items?.[0]) {
           const annotationPage = canvas.items[0];
-          if (annotationPage.id && process.env.MDX_S3_ENDPOINT && annotationPage.id.includes(process.env.MDX_S3_ENDPOINT)) {
+          if (annotationPage.id && process.env.S3_ENDPOINT && annotationPage.id.includes(process.env.S3_ENDPOINT)) {
             annotationPage.id = `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}/page`;
           }
           
           if (annotationPage.items?.[0]) {
             const annotation = annotationPage.items[0];
-            if (annotation.id && process.env.MDX_S3_ENDPOINT && annotation.id.includes(process.env.MDX_S3_ENDPOINT)) {
+            if (annotation.id && process.env.S3_ENDPOINT && annotation.id.includes(process.env.S3_ENDPOINT)) {
               annotation.id = `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}/annotation`;
             }
             
             // Update target
-            if (annotation.target && process.env.MDX_S3_ENDPOINT && annotation.target.includes(process.env.MDX_S3_ENDPOINT)) {
+            if (annotation.target && process.env.S3_ENDPOINT && annotation.target.includes(process.env.S3_ENDPOINT)) {
               annotation.target = `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}`;
             }
             
             // Update image body URL
-            if (annotation.body?.id && process.env.MDX_S3_ENDPOINT && annotation.body.id.includes(process.env.MDX_S3_ENDPOINT)) {
+            if (annotation.body?.id && process.env.S3_ENDPOINT && annotation.body.id.includes(process.env.S3_ENDPOINT)) {
               const imagePath = annotation.body.id.replace(
-                `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/`,
+                `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET_NAME}/`,
                 ''
               );
               const imageUrl = `${baseUrl}/api/iiif/image/${encodeURIComponent(imagePath)}`;

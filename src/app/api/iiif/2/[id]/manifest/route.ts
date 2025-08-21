@@ -6,11 +6,11 @@ import { authOptions } from '@/lib/auth';
 import { IIIFManifest } from '@/lib/iiif-manifest';
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
-  region: process.env.MDX_S3_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 });
@@ -263,7 +263,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     // Get manifest from S3 to check access control
     const command = new GetObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: manifestPath,
     });
     

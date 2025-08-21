@@ -36,11 +36,11 @@ interface IIIFV2Collection {
 }
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
-  region: process.env.MDX_S3_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 });
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Get all collections for the user from S3
     const collectionsPrefix = `collections/${userId}/`;
     const listCommand = new ListObjectsV2Command({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Prefix: collectionsPrefix,
       Delimiter: '/'
     });
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         try {
           const collectionKey = `${prefix.Prefix}collection.json`;
           const getCommand = new GetObjectCommand({
-            Bucket: process.env.MDX_S3_BUCKET_NAME!,
+            Bucket: process.env.S3_BUCKET_NAME!,
             Key: collectionKey,
           });
           

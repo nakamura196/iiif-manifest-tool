@@ -4,11 +4,11 @@ import { addItemToCollection, updateItemInCollection } from './iiif-collection';
 import { v4 as uuidv4 } from 'uuid';
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
-  region: process.env.MDX_S3_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 });
@@ -308,7 +308,7 @@ export async function getIIIFManifest(
   try {
     const manifestKey = `collections/${userId}/${collectionId}/items/${manifestId}/manifest.json`;
     const command = new GetObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: manifestKey,
     });
 
@@ -345,7 +345,7 @@ export async function listCollectionItems(
   try {
     const prefix = `collections/${userId}/${collectionId}/items/`;
     const command = new ListObjectsV2Command({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Prefix: prefix,
       Delimiter: '/'
     });
@@ -381,9 +381,9 @@ export async function listCollectionItems(
           const manifestUrl = `${process.env.NEXTAUTH_URL}/api/iiif/${combinedId}/manifest`;
           
           // Always use API proxy URL for thumbnail
-          if (thumbnail && process.env.MDX_S3_ENDPOINT && thumbnail.includes(process.env.MDX_S3_ENDPOINT)) {
+          if (thumbnail && process.env.S3_ENDPOINT && thumbnail.includes(process.env.S3_ENDPOINT)) {
             const thumbPath = thumbnail.replace(
-              `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/`,
+              `${process.env.S3_ENDPOINT}/${process.env.S3_BUCKET_NAME}/`,
               ''
             );
             thumbnail = `${process.env.NEXTAUTH_URL}/api/iiif/image/${encodeURIComponent(thumbPath)}`;
@@ -688,7 +688,7 @@ export async function deleteIIIFManifest(
     
     // List all objects with this prefix
     const listCommand = new ListObjectsV2Command({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Prefix: prefix
     });
     
@@ -697,7 +697,7 @@ export async function deleteIIIFManifest(
     if (listResponse.Contents && listResponse.Contents.length > 0) {
       // Delete all objects
       const deleteCommand = new DeleteObjectsCommand({
-        Bucket: process.env.MDX_S3_BUCKET_NAME!,
+        Bucket: process.env.S3_BUCKET_NAME!,
         Delete: {
           Objects: listResponse.Contents.map(obj => ({ Key: obj.Key }))
         }

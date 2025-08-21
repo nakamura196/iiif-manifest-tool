@@ -2,11 +2,11 @@ import { uploadToS3, getS3Url } from './s3';
 import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
-  region: process.env.MDX_S3_REGION || 'us-east-1',
+  endpoint: process.env.S3_ENDPOINT,
+  region: process.env.S3_REGION || 'us-east-1',
   credentials: {
-    accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
   forcePathStyle: true,
 });
@@ -125,7 +125,7 @@ export async function getIIIFCollection(userId: string, collectionId: string): P
   try {
     const collectionKey = `collections/${userId}/${collectionId}/collection.json`;
     const command = new GetObjectCommand({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Key: collectionKey,
     });
 
@@ -228,7 +228,7 @@ export async function listUserCollections(userId: string): Promise<Array<{
   try {
     const prefix = `collections/${userId}/`;
     const command = new ListObjectsV2Command({
-      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Bucket: process.env.S3_BUCKET_NAME!,
       Prefix: prefix,
       Delimiter: '/'
     });
