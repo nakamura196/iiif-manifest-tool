@@ -384,20 +384,20 @@ export default function CollectionPage({ params }: PageProps) {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
           {items.map((item) => (
             <div
               key={item.id}
-              className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-lg shadow"
             >
               {item.thumbnail && (
                 <img
                   src={item.thumbnail}
                   alt={item.title}
-                  className="w-full h-48 object-cover"
+                  className="w-full h-48 object-cover rounded-t-lg"
                 />
               )}
-              <div className="p-4">
+              <div className="p-4 relative">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-lg font-semibold">{item.title}</h3>
                   {item.isPublic ? (
@@ -431,7 +431,7 @@ export default function CollectionPage({ params }: PageProps) {
                       <FiMoreVertical />
                     </button>
                     {showItemDropdown === item.id && (
-                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50 max-w-[calc(100vw-2rem)]">
+                      <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-[100] max-w-[calc(100vw-2rem)]">
                         <button
                           onClick={() => {
                             openInMirador(item);

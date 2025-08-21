@@ -118,9 +118,9 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6">
+        <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-bold">コレクションを編集</h2>
+            <h2 className="text-xl sm:text-2xl font-bold">コレクション設定</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
@@ -130,11 +130,11 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 sm:p-6 space-y-6">
           {/* 基本情報 */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">基本情報</h3>
-            <div className="space-y-4">
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">基本情報</h3>
+            <div className="space-y-3 sm:space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">
                   コレクション名 *
@@ -143,7 +143,7 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
                   type="text"
                   value={collection.name}
                   onChange={(e) => setCollection({ ...collection, name: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
                 />
               </div>
               <div>
@@ -151,7 +151,7 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
                 <textarea
                   value={collection.description}
                   onChange={(e) => setCollection({ ...collection, description: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
                   rows={3}
                 />
               </div>
@@ -170,173 +170,12 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
             </div>
           </div>
 
-          {/* メタデータ */}
+          {/* カスタム情報 */}
           <div>
-            <h3 className="text-lg font-semibold mb-4">IIIFメタデータ</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  帰属表示 (Attribution)
-                </label>
-                <input
-                  type="text"
-                  value={collection.metadata?.attribution || ''}
-                  onChange={(e) => setCollection({
-                    ...collection,
-                    metadata: { ...collection.metadata, attribution: e.target.value }
-                  })}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="例: 国立図書館所蔵"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  権利情報 (Rights)
-                </label>
-                <input
-                  type="text"
-                  value={collection.metadata?.rights || ''}
-                  onChange={(e) => setCollection({
-                    ...collection,
-                    metadata: { ...collection.metadata, rights: e.target.value }
-                  })}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="例: https://creativecommons.org/licenses/by/4.0/"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  必須記載事項 (Required Statement)
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={collection.metadata?.requiredStatement?.label?.ja?.[0] || ''}
-                    onChange={(e) => {
-                      const currentStatement = collection.metadata?.requiredStatement || {
-                        label: { ja: [] },
-                        value: { ja: [] }
-                      };
-                      setCollection({
-                        ...collection,
-                        metadata: {
-                          ...collection.metadata,
-                          requiredStatement: {
-                            ...currentStatement,
-                            label: { ja: [e.target.value] }
-                          }
-                        }
-                      });
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                    placeholder="ラベル（例: 利用条件）"
-                  />
-                  <textarea
-                    value={collection.metadata?.requiredStatement?.value?.ja?.[0] || ''}
-                    onChange={(e) => {
-                      const currentStatement = collection.metadata?.requiredStatement || {
-                        label: { ja: [] },
-                        value: { ja: [] }
-                      };
-                      setCollection({
-                        ...collection,
-                        metadata: {
-                          ...collection.metadata,
-                          requiredStatement: {
-                            ...currentStatement,
-                            value: { ja: [e.target.value] }
-                          }
-                        }
-                      });
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                    rows={2}
-                    placeholder="値（例: このコレクションの利用にあたっては、所蔵機関の利用規程に従ってください。）"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  ホームページ
-                </label>
-                <input
-                  type="url"
-                  value={collection.metadata?.homepage?.[0]?.id || ''}
-                  onChange={(e) => {
-                    const homepage = e.target.value ? [{
-                      id: e.target.value,
-                      type: 'Text',
-                      label: { ja: ['ホームページ'] }
-                    }] : undefined;
-                    setCollection({
-                      ...collection,
-                      metadata: { ...collection.metadata, homepage }
-                    });
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="https://example.org"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  関連資料 (See Also)
-                </label>
-                <input
-                  type="url"
-                  value={collection.metadata?.seeAlso?.[0]?.id || ''}
-                  onChange={(e) => {
-                    const seeAlso = e.target.value ? [{
-                      id: e.target.value,
-                      type: 'Dataset',
-                      format: 'application/json',
-                      label: { ja: ['関連データ'] }
-                    }] : undefined;
-                    setCollection({
-                      ...collection,
-                      metadata: { ...collection.metadata, seeAlso }
-                    });
-                  }}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="https://example.org/data.json"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  提供者 (Provider)
-                </label>
-                <div className="space-y-2">
-                  <input
-                    type="text"
-                    value={collection.metadata?.provider?.[0]?.label?.ja?.[0] || ''}
-                    onChange={(e) => {
-                      const provider = e.target.value ? [{
-                        type: 'Agent',
-                        label: { ja: [e.target.value] }
-                      }] : undefined;
-                      setCollection({
-                        ...collection,
-                        metadata: { ...collection.metadata, provider }
-                      });
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                    placeholder="提供機関名"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* カスタムメタデータフィールド */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4">カスタムメタデータ</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">追加情報</h3>
             <div className="space-y-3">
               {collection.metadata?.customFields?.map((field, index) => (
-                <div key={index} className="flex gap-2">
+                <div key={index} className="flex flex-col sm:flex-row gap-2">
                   <input
                     type="text"
                     value={field.label}
@@ -348,8 +187,8 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
                         metadata: { ...collection.metadata, customFields: newFields }
                       });
                     }}
-                    className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                    placeholder="ラベル（例: 所蔵番号）"
+                    className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                    placeholder="項目名（例: 所蔵番号）"
                   />
                   <input
                     type="text"
@@ -362,8 +201,8 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
                         metadata: { ...collection.metadata, customFields: newFields }
                       });
                     }}
-                    className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                    placeholder="値（例: ABC-123）"
+                    className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                    placeholder="内容（例: ABC-123）"
                   />
                   <button
                     onClick={() => {
@@ -387,27 +226,186 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
                     metadata: { ...collection.metadata, customFields: newFields }
                   });
                 }}
-                className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
+                className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
               >
                 <FiPlus />
-                メタデータフィールドを追加
+                情報を追加
               </button>
+            </div>
+          </div>
+
+          {/* 詳細設定 */}
+          <div>
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">詳細設定</h3>
+            <div className="space-y-3 sm:space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  所蔵・提供機関
+                </label>
+                <input
+                  type="text"
+                  value={collection.metadata?.attribution || ''}
+                  onChange={(e) => setCollection({
+                    ...collection,
+                    metadata: { ...collection.metadata, attribution: e.target.value }
+                  })}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                  placeholder="例: 国立図書館"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  提供者名
+                </label>
+                <input
+                  type="text"
+                  value={collection.metadata?.provider?.[0]?.label?.ja?.[0] || ''}
+                  onChange={(e) => {
+                    const provider = e.target.value ? [{
+                      type: 'Agent',
+                      label: { ja: [e.target.value] }
+                    }] : undefined;
+                    setCollection({
+                      ...collection,
+                      metadata: { ...collection.metadata, provider }
+                    });
+                  }}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                  placeholder="例: 〇〇大学図書館"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  利用条件
+                </label>
+                <div className="space-y-2">
+                  <input
+                    type="text"
+                    value={collection.metadata?.requiredStatement?.label?.ja?.[0] || ''}
+                    onChange={(e) => {
+                      const currentStatement = collection.metadata?.requiredStatement || {
+                        label: { ja: [] },
+                        value: { ja: [] }
+                      };
+                      setCollection({
+                        ...collection,
+                        metadata: {
+                          ...collection.metadata,
+                          requiredStatement: {
+                            ...currentStatement,
+                            label: { ja: [e.target.value] }
+                          }
+                        }
+                      });
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                    placeholder="項目名（例: 利用にあたって）"
+                  />
+                  <textarea
+                    value={collection.metadata?.requiredStatement?.value?.ja?.[0] || ''}
+                    onChange={(e) => {
+                      const currentStatement = collection.metadata?.requiredStatement || {
+                        label: { ja: [] },
+                        value: { ja: [] }
+                      };
+                      setCollection({
+                        ...collection,
+                        metadata: {
+                          ...collection.metadata,
+                          requiredStatement: {
+                            ...currentStatement,
+                            value: { ja: [e.target.value] }
+                          }
+                        }
+                      });
+                    }}
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                    rows={2}
+                    placeholder="説明（例: 画像の二次利用については事前にご相談ください）"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  ライセンス情報
+                </label>
+                <input
+                  type="text"
+                  value={collection.metadata?.rights || ''}
+                  onChange={(e) => setCollection({
+                    ...collection,
+                    metadata: { ...collection.metadata, rights: e.target.value }
+                  })}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                  placeholder="例: https://creativecommons.org/licenses/by/4.0/"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  関連ウェブサイト
+                </label>
+                <input
+                  type="url"
+                  value={collection.metadata?.homepage?.[0]?.id || ''}
+                  onChange={(e) => {
+                    const homepage = e.target.value ? [{
+                      id: e.target.value,
+                      type: 'Text',
+                      label: { ja: ['ホームページ'] }
+                    }] : undefined;
+                    setCollection({
+                      ...collection,
+                      metadata: { ...collection.metadata, homepage }
+                    });
+                  }}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                  placeholder="https://example.org"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  関連資料URL
+                </label>
+                <input
+                  type="url"
+                  value={collection.metadata?.seeAlso?.[0]?.id || ''}
+                  onChange={(e) => {
+                    const seeAlso = e.target.value ? [{
+                      id: e.target.value,
+                      type: 'Dataset',
+                      format: 'application/json',
+                      label: { ja: ['関連データ'] }
+                    }] : undefined;
+                    setCollection({
+                      ...collection,
+                      metadata: { ...collection.metadata, seeAlso }
+                    });
+                  }}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                  placeholder="https://example.org/data.json"
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-6">
+        <div className="sticky bottom-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6">
           <div className="flex justify-end gap-3">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
             >
               キャンセル
             </button>
             <button
               onClick={handleSave}
               disabled={saving || !collection.name}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
             >
               {saving ? '保存中...' : '保存'}
             </button>

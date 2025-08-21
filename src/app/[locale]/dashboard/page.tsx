@@ -259,11 +259,11 @@ export default function DashboardPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
           {collections.map((collection) => (
             <div
               key={collection.id}
-              className="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow"
+              className="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow relative"
             >
               <div className="flex items-start justify-between mb-4">
                 <FiFolder className="text-3xl text-blue-500" />
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                     <FiMoreVertical />
                   </button>
                   {showCollectionDropdown === collection.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50 max-w-[calc(100vw-2rem)]">
+                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-[100] max-w-[calc(100vw-2rem)]">
                       <button
                         onClick={() => {
                           openCollectionInMirador(collection.id);

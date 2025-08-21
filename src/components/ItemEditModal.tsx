@@ -304,12 +304,15 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                     <img
                       src={img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/400,/0/default.jpg` : img.url}
                       alt={`Image ${index + 1}`}
-                      className="w-full h-32 object-cover rounded"
+                      className="w-full h-32 object-cover rounded pointer-events-none select-none"
                     />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded">
                       {index > 0 && (
                         <button
-                          onClick={() => moveImage(index, 'up')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveImage(index, 'up');
+                          }}
                           className="p-1 bg-white text-black rounded hover:bg-gray-200"
                           title="前へ移動"
                         >
@@ -318,7 +321,10 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                       )}
                       {index < images.length - 1 && (
                         <button
-                          onClick={() => moveImage(index, 'down')}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            moveImage(index, 'down');
+                          }}
                           className="p-1 bg-white text-black rounded hover:bg-gray-200"
                           title="次へ移動"
                         >
@@ -326,14 +332,17 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                         </button>
                       )}
                       <button
-                        onClick={() => removeImage(index)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage(index);
+                        }}
                         className="p-1 bg-red-500 text-white rounded hover:bg-red-600"
                         title="削除"
                       >
                         <FiTrash2 />
                       </button>
                     </div>
-                    <div className="absolute top-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded">
+                    <div className="absolute top-1 left-1 bg-black bg-opacity-50 text-white text-xs px-1 rounded pointer-events-none">
                       {index + 1}
                     </div>
                   </div>
