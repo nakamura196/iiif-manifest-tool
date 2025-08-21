@@ -13,7 +13,7 @@ import dynamic from 'next/dynamic';
 // Dynamic import for map component to avoid SSR issues
 const ItemLocationMap = dynamic(() => import('@/components/ItemLocationMap'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center h-64 bg-gray-100 dark:bg-gray-800 rounded-lg">地図を読み込み中...</div>
+  loading: () => <div className="flex items-center justify-center h-64 bg-gray-100 dark:bg-gray-800 rounded-lg">Loading map...</div>
 });
 
 interface ItemEditPageProps {
