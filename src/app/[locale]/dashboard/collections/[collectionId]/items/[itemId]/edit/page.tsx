@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { FiArrowLeft, FiSave, FiTrash2, FiPlus, FiSettings, FiImage, FiMapPin, FiInfo, FiLock } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiTrash2, FiPlus, FiSettings, FiImage, FiMapPin, FiInfo, FiLock, FiLoader } from 'react-icons/fi';
 import ImageUploader from '@/components/ImageUploader';
 import ImageAccessControl from '@/components/ImageAccessControl';
 import Link from 'next/link';
@@ -287,7 +287,11 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                 disabled={!title || images.length === 0 || saving || uploading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
-                <FiSave />
+                {saving ? (
+                  <FiLoader className="animate-spin" />
+                ) : (
+                  <FiSave />
+                )}
                 <span className="hidden sm:inline">{saving ? t('ItemEditPage.saving') : t('ItemEditPage.save')}</span>
               </button>
             </div>

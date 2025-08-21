@@ -3,7 +3,8 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiInfo, FiSettings, FiGlobe, FiUsers } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
+import { FiArrowLeft, FiSave, FiPlus, FiTrash2, FiInfo, FiSettings, FiGlobe, FiUsers, FiLoader } from 'react-icons/fi';
 import Link from 'next/link';
 
 interface CollectionEditPageProps {
@@ -64,6 +65,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
   const resolvedParams = use(params);
   const { status } = useSession();
   const router = useRouter();
+  const t = useTranslations();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -170,8 +172,12 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                 disabled={!collection.name || saving}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
-                <FiSave />
-                <span className="hidden sm:inline">{saving ? '保存中...' : '保存'}</span>
+                {saving ? (
+                  <FiLoader className="animate-spin" />
+                ) : (
+                  <FiSave />
+                )}
+                <span className="hidden sm:inline">{saving ? t('CollectionEdit.saving') : t('CollectionEdit.save')}</span>
               </button>
             </div>
           </div>

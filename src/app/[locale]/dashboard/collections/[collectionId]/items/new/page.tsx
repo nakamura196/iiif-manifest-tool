@@ -3,7 +3,8 @@
 import { useState, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { FiArrowLeft, FiUpload, FiInfo } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
+import { FiArrowLeft, FiUpload, FiInfo, FiLoader } from 'react-icons/fi';
 import Link from 'next/link';
 import ImageUploader from '@/components/ImageUploader';
 
@@ -28,6 +29,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
   const resolvedParams = use(params);
   const { status } = useSession();
   const router = useRouter();
+  const t = useTranslations();
   const [creating, setCreating] = useState(false);
   const [creatingMessage, setCreatingMessage] = useState('');
   const [title, setTitle] = useState('');
@@ -194,8 +196,12 @@ export default function NewItemPage({ params }: NewItemPageProps) {
                 disabled={!title.trim() || uploadedImages.length === 0 || creating || uploading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
-                <FiUpload />
-                <span className="hidden sm:inline">{creating ? creatingMessage || '作成中...' : '作成して編集'}</span>
+                {creating ? (
+                  <FiLoader className="animate-spin" />
+                ) : (
+                  <FiUpload />
+                )}
+                <span className="hidden sm:inline">{creating ? creatingMessage || t('NewItem.creating') : t('NewItem.create')}</span>
               </button>
             </div>
           </div>
