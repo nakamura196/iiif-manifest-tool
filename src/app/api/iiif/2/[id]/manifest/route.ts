@@ -81,6 +81,18 @@ interface IIIFV2Manifest {
 
 // Convert IIIF v3 to v2 format
 function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
+  const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  
+  // Helper function to ensure absolute URL
+  const makeAbsoluteUrl = (url: string): string => {
+    if (!url) return url;
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Remove leading slash if present
+    const cleanUrl = url.startsWith('/') ? url : '/' + url;
+    return `${baseUrl}${cleanUrl}`;
+  };
   
   // Convert v3 label format to v2 format
   const convertLabel = (v3Label: string | { [key: string]: string[] }): IIIFV2Label => {
@@ -99,14 +111,16 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
     return result.length > 0 ? result : "";
   };
   
+  const v2ManifestId = makeAbsoluteUrl(v3Manifest.id.replace('/api/iiif/3/', '/api/iiif/2/'));
+  
   const v2Manifest: IIIFV2Manifest = {
     "@context": "http://iiif.io/api/presentation/2/context.json",
-    "@id": v3Manifest.id.replace('/api/iiif/3/', '/api/iiif/2/'),
+    "@id": v2ManifestId,
     "@type": "sc:Manifest",
     "label": convertLabel(v3Manifest.label),
     "sequences": [
       {
-        "@id": `${v3Manifest.id.replace('/api/iiif/3/', '/api/iiif/2/')}/sequence/normal`,
+        "@id": `${v2ManifestId}/sequence/normal`,
         "@type": "sc:Sequence",
         "label": "Current Page Order",
         "canvases": []
@@ -147,7 +161,7 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
   if (v3Manifest.thumbnail && v3Manifest.thumbnail.length > 0) {
     const thumb = v3Manifest.thumbnail[0];
     v2Manifest.thumbnail = {
-      "@id": thumb.id,
+      "@id": makeAbsoluteUrl(thumb.id),
       "@type": "dctypes:Image",
       "format": thumb.format || "image/jpeg",
       "height": thumb.height,
@@ -158,8 +172,9 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
   // Convert canvases
   if (v3Manifest.items && v3Manifest.items.length > 0) {
     v2Manifest.sequences[0].canvases = v3Manifest.items.map((canvas) => {
+      const v2CanvasId = makeAbsoluteUrl(canvas.id.replace('/api/iiif/3/', '/api/iiif/2/'));
       const v2Canvas: IIIFV2Manifest['sequences'][0]['canvases'][0] = {
-        "@id": canvas.id.replace('/api/iiif/3/', '/api/iiif/2/'),
+        "@id": v2CanvasId,
         "@type": "sc:Canvas",
         "label": convertLabel(canvas.label),
         "height": canvas.height,
@@ -171,7 +186,7 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
       if (canvas.thumbnail && canvas.thumbnail.length > 0) {
         const thumb = canvas.thumbnail[0];
         v2Canvas.thumbnail = {
-          "@id": thumb.id,
+          "@id": makeAbsoluteUrl(thumb.id),
           "@type": "dctypes:Image",
           "format": thumb.format || "image/jpeg",
           "height": thumb.height,
@@ -184,17 +199,17 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
         const annotation = canvas.items[0].items[0];
         if (annotation.body) {
           const image = {
-            "@id": `${v2Canvas["@id"]}/annotation/painting`,
+            "@id": `${v2CanvasId}/annotation/painting`,
             "@type": "oa:Annotation",
             "motivation": "sc:painting",
             "resource": {
-              "@id": annotation.body.id,
+              "@id": makeAbsoluteUrl(annotation.body.id),
               "@type": "dctypes:Image",
               "format": annotation.body.format || "image/jpeg",
               "height": annotation.body.height,
               "width": annotation.body.width
             },
-            "on": v2Canvas["@id"]
+            "on": v2CanvasId
           };
 
           // Add image service if present
@@ -208,7 +223,7 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
             const resourceWithService = image.resource as { service?: unknown };
             resourceWithService.service = {
               "@context": "http://iiif.io/api/image/2/context.json",
-              "@id": service?.['@id'] || service?.id || annotation.body.id.split('?')[0],
+              "@id": makeAbsoluteUrl(service?.['@id'] || service?.id || annotation.body.id.split('?')[0]),
               "profile": "http://iiif.io/api/image/2/level2.json"
             };
           }
