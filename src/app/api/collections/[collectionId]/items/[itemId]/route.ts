@@ -173,6 +173,35 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Get old images to detect removals
+    const oldImages: string[] = [];
+    if (existingManifest.items) {
+      existingManifest.items.forEach((canvas: { items?: Array<{ items?: Array<{ body?: { id: string } }> }>; thumbnail?: Array<{ id: string }> }) => {
+        if (canvas.items?.[0]?.items?.[0]?.body?.id) {
+          oldImages.push(canvas.items[0].items[0].body.id);
+        }
+        // Also collect thumbnails
+        if (canvas.thumbnail?.[0]?.id) {
+          oldImages.push(canvas.thumbnail[0].id);
+        }
+      });
+    }
+
+    // Find images that were removed
+    const newImageUrls = images.flatMap((img: { url: string; thumbnailUrl?: string }) => [img.url, img.thumbnailUrl].filter(Boolean));
+    const imagesToDelete = oldImages.filter(oldUrl => !newImageUrls.includes(oldUrl));
+
+    // Delete removed images from S3
+    if (imagesToDelete.length > 0) {
+      fetch('/api/images/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrls: imagesToDelete })
+      }).catch(error => {
+        console.error('Failed to cleanup old images:', error);
+      });
+    }
+
     // Update manifest in S3
     const success = await updateIIIFManifest(
       userId,
@@ -227,7 +256,32 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Item not found or unauthorized' }, { status: 404 });
     }
 
-    // Delete from S3
+    // Collect all image URLs to delete
+    const imagesToDelete: string[] = [];
+    if (existingManifest.items) {
+      existingManifest.items.forEach((canvas: { items?: Array<{ items?: Array<{ body?: { id: string } }> }>; thumbnail?: Array<{ id: string }> }) => {
+        if (canvas.items?.[0]?.items?.[0]?.body?.id) {
+          imagesToDelete.push(canvas.items[0].items[0].body.id);
+        }
+        // Also collect thumbnails
+        if (canvas.thumbnail?.[0]?.id) {
+          imagesToDelete.push(canvas.thumbnail[0].id);
+        }
+      });
+    }
+
+    // Delete all images from S3
+    if (imagesToDelete.length > 0) {
+      fetch('/api/images/cleanup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageUrls: imagesToDelete })
+      }).catch(error => {
+        console.error('Failed to cleanup images:', error);
+      });
+    }
+
+    // Delete manifest from S3
     const success = await deleteIIIFManifest(userId, collectionId, itemId);
 
     if (success) {

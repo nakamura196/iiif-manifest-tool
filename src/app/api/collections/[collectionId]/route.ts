@@ -18,7 +18,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const { collectionId } = await params;
     
-    // Try to get collection metadata from S3
+    // First try to get collection metadata from S3
     const metadataKey = `collections/${session.user.id}/${collectionId}/metadata.json`;
     
     try {
@@ -34,10 +34,59 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         return NextResponse.json(JSON.parse(bodyString));
       }
     } catch {
-      // If file doesn't exist, return mock data
+      // If metadata.json doesn't exist, try to get collection.json
     }
     
-    // Return mock collection data
+    // Try to get collection manifest from S3
+    const collectionKey = `collections/${session.user.id}/${collectionId}/collection.json`;
+    
+    try {
+      const command = new GetObjectCommand({
+        Bucket: process.env.MDX_S3_BUCKET_NAME!,
+        Key: collectionKey,
+      });
+      
+      const response = await s3Client.send(command);
+      const bodyString = await response.Body?.transformToString();
+      
+      if (bodyString) {
+        const collection = JSON.parse(bodyString);
+        
+        // Extract metadata from IIIF collection
+        const isPublic = collection.metadata?.find(
+          (m: { label: { ja?: string[]; en?: string[] }; value: { ja?: string[]; en?: string[] } }) => 
+            m.label.ja?.[0] === '公開設定' || m.label.en?.[0] === 'Visibility'
+        )?.value.ja?.[0] === '公開' || collection['x-access']?.isPublic || true;
+        
+        return NextResponse.json({
+          id: collectionId,
+          name: collection.label?.ja?.[0] || collection.label?.en?.[0] || 'Collection',
+          description: collection.summary?.ja?.[0] || collection.summary?.en?.[0] || '',
+          label: {
+            ja: collection.label?.ja?.[0] || '',
+            en: collection.label?.en?.[0] || ''
+          },
+          summary: {
+            ja: collection.summary?.ja?.[0] || '',
+            en: collection.summary?.en?.[0] || ''
+          },
+          isPublic,
+          metadata: {
+            attribution: collection.attribution,
+            rights: collection.rights,
+            requiredStatement: collection.requiredStatement,
+            homepage: collection.homepage,
+            seeAlso: collection.seeAlso,
+            provider: collection.provider,
+            customFields: []
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching collection manifest:', error);
+    }
+    
+    // Return default data if nothing found
     return NextResponse.json({
       id: collectionId,
       name: 'Collection',
@@ -99,13 +148,21 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         const collectionManifest = JSON.parse(bodyString);
         
         // Update collection manifest with new metadata
-        collectionManifest.label = {
+        // Use provided label or fallback to name
+        collectionManifest.label = data.label ? {
+          ja: [data.label.ja || data.name],
+          en: [data.label.en || data.name]
+        } : {
           ja: [data.name],
           en: [data.name]
         };
         
-        if (data.description) {
-          collectionManifest.summary = {
+        // Use provided summary or fallback to description
+        if (data.summary || data.description) {
+          collectionManifest.summary = data.summary ? {
+            ja: [data.summary.ja || data.description || ''],
+            en: [data.summary.en || data.description || '']
+          } : {
             ja: [data.description],
             en: [data.description]
           };

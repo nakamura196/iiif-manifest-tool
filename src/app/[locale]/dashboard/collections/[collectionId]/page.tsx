@@ -4,7 +4,6 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import ImageUploader from '@/components/ImageUploader';
 import AuthTokenModal from '@/components/AuthTokenModal';
 import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid, FiImage } from 'react-icons/fi';
 import Link from 'next/link';
@@ -44,24 +43,6 @@ export default function CollectionPage({ params }: PageProps) {
   const router = useRouter();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  interface UploadedImage {
-    url: string;
-    thumbnailUrl?: string;
-    width: number;
-    height: number;
-    thumbnailWidth?: number;
-    thumbnailHeight?: number;
-    mimeType: string;
-    infoJson?: string;
-    isIIIF?: boolean;
-    iiifBaseUrl?: string;
-  }
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [itemTitle, setItemTitle] = useState('');
-  const [itemDescription, setItemDescription] = useState('');
-  const [itemIsPublic, setItemIsPublic] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
   const [collectionName, setCollectionName] = useState<string>('コレクション');
@@ -145,112 +126,6 @@ export default function CollectionPage({ params }: PageProps) {
     }
   }, [showItemDropdown]);
 
-  const handleUpload = async (files: File[]) => {
-    setUploading(true);
-    const uploadPromises = files.map(async (file) => {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        return response.json();
-      }
-      throw new Error('Upload failed');
-    });
-
-    try {
-      const results = await Promise.all(uploadPromises);
-      setUploadedImages([...uploadedImages, ...results]);
-    } catch (error) {
-      console.error('Error uploading files:', error);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleUrlAdd = async (url: string) => {
-    try {
-      const response = await fetch(url, { method: 'HEAD' });
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
-      
-      const img = new Image();
-      img.onload = () => {
-        setUploadedImages([
-          ...uploadedImages,
-          {
-            url,
-            width: img.width,
-            height: img.height,
-            mimeType: contentType,
-          },
-        ]);
-      };
-      img.src = url;
-    } catch (error) {
-      console.error('Error adding URL:', error);
-    }
-  };
-
-  const handleInfoJsonAdd = async (infoJsonUrl: string) => {
-    try {
-      const response = await fetch(infoJsonUrl);
-      const infoJson = await response.json();
-      
-      // For IIIF images, construct the full image URL
-      const baseUrl = infoJson.id || infoJson['@id'];
-      // Remove trailing slash if present
-      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      // Create the full IIIF image URL
-      const imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
-      
-      setUploadedImages([
-        ...uploadedImages,
-        {
-          url: imageUrl,
-          width: infoJson.width,
-          height: infoJson.height,
-          mimeType: 'image/jpeg',
-          infoJson: JSON.stringify(infoJson),
-          isIIIF: true,  // Mark as IIIF image
-          iiifBaseUrl: cleanBaseUrl  // Store the base URL for service info
-        },
-      ]);
-    } catch (error) {
-      console.error('Error adding info.json:', error);
-    }
-  };
-
-  const createItem = async () => {
-    if (!itemTitle || uploadedImages.length === 0) return;
-
-    try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          title: itemTitle,
-          description: itemDescription,
-          images: uploadedImages,
-          isPublic: itemIsPublic,
-        }),
-      });
-
-      if (response.ok) {
-        const newItem = await response.json();
-        // 編集ページへ遷移
-        const locale = window.location.pathname.split('/')[1] || 'ja';
-        router.push(`/${locale}/dashboard/collections/${resolvedParams.collectionId}/items/${newItem.id}/edit`);
-      }
-    } catch (error) {
-      console.error('Error creating item:', error);
-    }
-  };
 
 
   const openInMirador = (item: Item) => {
@@ -310,14 +185,14 @@ export default function CollectionPage({ params }: PageProps) {
             <span className="hidden sm:inline">Self Museum</span>
             <span className="sm:hidden">Museum</span>
           </button>
-          <button
-            onClick={() => setShowCreateModal(true)}
+          <Link
+            href={`/ja/dashboard/collections/${resolvedParams.collectionId}/items/new`}
             className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
           >
             <FiPlus className="text-base sm:text-lg" />
             <span className="hidden sm:inline">新規アイテム</span>
             <span className="sm:hidden">新規</span>
-          </button>
+          </Link>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
@@ -412,12 +287,12 @@ export default function CollectionPage({ params }: PageProps) {
           <p className="text-gray-600 dark:text-gray-400 mb-4">
             アイテムがまだありません
           </p>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          <Link
+            href={`/ja/dashboard/collections/${resolvedParams.collectionId}/items/new`}
+            className="inline-block px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
           >
             最初のアイテムを作成
-          </button>
+          </Link>
         </div>
       ) : viewMode === 'map' ? (
         <div className="h-[600px]">
@@ -560,108 +435,6 @@ export default function CollectionPage({ params }: PageProps) {
         </div>
       )}
 
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-4">新規アイテム作成</h2>
-            
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  タイトル *
-                </label>
-                <input
-                  type="text"
-                  value={itemTitle}
-                  onChange={(e) => setItemTitle(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  placeholder="アイテムのタイトル"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">説明</label>
-                <textarea
-                  value={itemDescription}
-                  onChange={(e) => setItemDescription(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  rows={3}
-                  placeholder="アイテムの説明（任意）"
-                />
-              </div>
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="isPublic"
-                  checked={itemIsPublic}
-                  onChange={(e) => setItemIsPublic(e.target.checked)}
-                  className="mr-2"
-                />
-                <label htmlFor="isPublic" className="text-sm">
-                  このアイテムを公開する
-                </label>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h3 className="text-lg font-semibold mb-3">画像を追加</h3>
-              <ImageUploader
-                onUpload={handleUpload}
-                onUrlAdd={handleUrlAdd}
-                onInfoJsonAdd={handleInfoJsonAdd}
-              />
-            </div>
-
-            {uploadedImages.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">
-                  アップロード済み画像 ({uploadedImages.length})
-                </h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {uploadedImages.map((img, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/400,/0/default.jpg` : img.url}
-                        alt={`Uploaded ${index + 1}`}
-                        className="w-full h-24 object-cover rounded"
-                      />
-                      <button
-                        onClick={() => {
-                          setUploadedImages(uploadedImages.filter((_, i) => i !== index));
-                        }}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <FiTrash2 className="text-sm" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setItemTitle('');
-                  setItemDescription('');
-                  setItemIsPublic(true);
-                  setUploadedImages([]);
-                }}
-                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
-              >
-                キャンセル
-              </button>
-              <button
-                onClick={createItem}
-                disabled={!itemTitle || uploadedImages.length === 0 || uploading}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
-              >
-                {uploading ? 'アップロード中...' : '作成'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {showAuthModal && selectedItem && (
         <AuthTokenModal

@@ -506,7 +506,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                 <div className="space-y-4">
                   <div className="space-y-3">
                     {metadata.customFields?.map((field, index) => (
-                      <div key={index} className="flex gap-2">
+                      <div key={index} className="flex flex-col sm:flex-row gap-2">
                         <input
                           type="text"
                           value={field.label}
@@ -534,7 +534,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                             const newFields = metadata.customFields?.filter((_, i) => i !== index) || [];
                             setMetadata({ ...metadata, customFields: newFields });
                           }}
-                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg shrink-0"
                         >
                           <FiTrash2 />
                         </button>
@@ -590,6 +590,21 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                       />
                     </div>
                   </div>
+                  {(latitude || longitude) && (
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLatitude('');
+                          setLongitude('');
+                          setLocationLabel('');
+                        }}
+                        className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        位置情報をクリア
+                      </button>
+                    </div>
+                  )}
                   <div>
                     <label className="block text-sm font-medium mb-2">場所の名前（任意）</label>
                     <input
@@ -600,14 +615,20 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                       placeholder="例: 東京タワー"
                     />
                   </div>
-                  {latitude && longitude && (
-                    <div className="h-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
-                      <ItemLocationMap
-                        latitude={parseFloat(latitude)}
-                        longitude={parseFloat(longitude)}
-                        label={locationLabel || title}
-                        onChange={handleLocationChange}
-                      />
+                  <div className="h-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
+                    <ItemLocationMap
+                      latitude={latitude ? parseFloat(latitude) : 35.6762}
+                      longitude={longitude ? parseFloat(longitude) : 139.6503}
+                      label={locationLabel || title}
+                      onChange={handleLocationChange}
+                      showDefault={!latitude || !longitude}
+                    />
+                  </div>
+                  {(!latitude || !longitude) && (
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <p className="text-sm text-blue-800 dark:text-blue-300">
+                        地図をクリックして位置を設定してください。デフォルトで東京が表示されています。
+                      </p>
                     </div>
                   )}
                 </div>

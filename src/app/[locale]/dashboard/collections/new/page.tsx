@@ -17,6 +17,7 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
   const { status } = useSession();
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [creatingMessage, setCreatingMessage] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(false);
@@ -25,6 +26,7 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
     if (!name.trim()) return;
 
     setCreating(true);
+    setCreatingMessage('コレクションを作成中...');
     try {
       const response = await fetch('/api/collections', {
         method: 'POST',
@@ -40,8 +42,25 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
 
       if (response.ok) {
         const collection = await response.json();
-        // 作成したコレクションのページへ遷移
-        router.push(`/${resolvedParams.locale}/dashboard/collections/${collection.id}`);
+        setCreatingMessage('作成を確認中...');
+        
+        // 作成が完了したことを確認するために少し待機
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 作成されたことを確認
+        const checkResponse = await fetch(`/api/collections/${collection.id}`);
+        if (checkResponse.ok) {
+          setCreatingMessage('ページへ移動中...');
+          // 作成が確認できたらページへ遷移
+          router.push(`/${resolvedParams.locale}/dashboard/collections/${collection.id}`);
+        } else {
+          console.error('Collection created but not found immediately');
+          setCreatingMessage('もう少しお待ちください...');
+          // 少し待ってから遷移
+          setTimeout(() => {
+            router.push(`/${resolvedParams.locale}/dashboard/collections/${collection.id}`);
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error('Error creating collection:', error);
@@ -85,7 +104,7 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
                 <FiSave />
-                <span className="hidden sm:inline">{creating ? '作成中...' : '作成'}</span>
+                <span className="hidden sm:inline">{creating ? creatingMessage || '作成中...' : '作成'}</span>
               </button>
             </div>
           </div>

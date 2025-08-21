@@ -16,6 +16,14 @@ interface CollectionEditPageProps {
 interface CollectionData {
   name: string;
   description: string;
+  label?: {
+    ja: string;
+    en: string;
+  };
+  summary?: {
+    ja: string;
+    en: string;
+  };
   isPublic: boolean;
   metadata?: {
     attribution?: string;
@@ -62,6 +70,14 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
   const [collection, setCollection] = useState<CollectionData>({
     name: '',
     description: '',
+    label: {
+      ja: '',
+      en: ''
+    },
+    summary: {
+      ja: '',
+      en: ''
+    },
     isPublic: true,
     metadata: {}
   });
@@ -75,6 +91,14 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
         setCollection({
           name: data.name || '',
           description: data.description || '',
+          label: data.label || {
+            ja: data.name || '',
+            en: data.name || ''
+          },
+          summary: data.summary || {
+            ja: data.description || '',
+            en: data.description || ''
+          },
           isPublic: data.isPublic ?? true,
           metadata: data.metadata || {}
         });
@@ -218,27 +242,94 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                   基本情報
                 </h2>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      コレクション名 *
-                    </label>
-                    <input
-                      type="text"
-                      value={collection.name}
-                      onChange={(e) => setCollection({ ...collection, name: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      placeholder="コレクションの名前を入力"
-                    />
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      多言語対応：日本語と英語でコレクションのタイトルと説明を設定できます。
+                    </p>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">説明</label>
-                    <textarea
-                      value={collection.description}
-                      onChange={(e) => setCollection({ ...collection, description: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      rows={5}
-                      placeholder="コレクションの説明を入力（任意）"
-                    />
+                  
+                  <div className="space-y-6">
+                    {/* 日本語設定 */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">日本語</h3>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          タイトル *
+                        </label>
+                        <input
+                          type="text"
+                          value={collection.label?.ja || collection.name}
+                          onChange={(e) => setCollection({ 
+                            ...collection, 
+                            name: e.target.value,
+                            label: { 
+                              ja: e.target.value,
+                              en: collection.label?.en || '' 
+                            } 
+                          })}
+                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          placeholder="コレクションのタイトル（日本語）"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">説明</label>
+                        <textarea
+                          value={collection.summary?.ja || collection.description}
+                          onChange={(e) => setCollection({ 
+                            ...collection, 
+                            description: e.target.value,
+                            summary: { 
+                              ja: e.target.value,
+                              en: collection.summary?.en || '' 
+                            } 
+                          })}
+                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          rows={3}
+                          placeholder="コレクションの説明（日本語）"
+                        />
+                      </div>
+                    </div>
+
+                    <hr className="border-gray-200 dark:border-gray-700" />
+
+                    {/* 英語設定 */}
+                    <div className="space-y-4">
+                      <h3 className="font-medium text-gray-900 dark:text-gray-100">English</h3>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          Title *
+                        </label>
+                        <input
+                          type="text"
+                          value={collection.label?.en || collection.name}
+                          onChange={(e) => setCollection({ 
+                            ...collection, 
+                            label: { 
+                              ja: collection.label?.ja || '',
+                              en: e.target.value 
+                            } 
+                          })}
+                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          placeholder="Collection title (English)"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">Description</label>
+                        <textarea
+                          value={collection.summary?.en || collection.description}
+                          onChange={(e) => setCollection({ 
+                            ...collection, 
+                            summary: { 
+                              ja: collection.summary?.ja || '',
+                              en: e.target.value 
+                            } 
+                          })}
+                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          rows={3}
+                          placeholder="Collection description (English)"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -9,9 +9,10 @@ interface ItemLocationMapProps {
   longitude: number;
   label?: string;
   onChange?: (lat: number, lng: number) => void;
+  showDefault?: boolean;
 }
 
-export default function ItemLocationMap({ latitude, longitude, label, onChange }: ItemLocationMapProps) {
+export default function ItemLocationMap({ latitude, longitude, label, onChange, showDefault }: ItemLocationMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -46,22 +47,24 @@ export default function ItemLocationMap({ latitude, longitude, label, onChange }
           ]
         },
         center: [longitude, latitude],
-        zoom: 13,
+        zoom: showDefault ? 10 : 13, // Zoom out more for default view
       });
 
       // Add navigation controls
       mapRef.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
-      // Add marker
-      markerRef.current = new maplibregl.Marker({
-        draggable: !!onChange,
-        color: '#3B82F6', // Blue color
-      })
-        .setLngLat([longitude, latitude])
-        .addTo(mapRef.current);
+      // Add marker only if not showing default
+      if (!showDefault) {
+        markerRef.current = new maplibregl.Marker({
+          draggable: !!onChange,
+          color: '#3B82F6', // Blue color
+        })
+          .setLngLat([longitude, latitude])
+          .addTo(mapRef.current);
+      }
 
-      // Add popup if label exists
-      if (label) {
+      // Add popup if label exists and not showing default
+      if (label && markerRef.current) {
         const popup = new maplibregl.Popup({ offset: 25 })
           .setText(label);
         markerRef.current.setPopup(popup);
@@ -77,14 +80,33 @@ export default function ItemLocationMap({ latitude, longitude, label, onChange }
         });
       }
 
-      // Handle map click to move marker
+      // Handle map click to create or move marker
       if (onChange) {
         mapRef.current.on('click', (e) => {
           const { lng, lat } = e.lngLat;
-          if (markerRef.current) {
+          
+          // Create marker if it doesn't exist (first click when showing default)
+          if (!markerRef.current) {
+            markerRef.current = new maplibregl.Marker({
+              draggable: true,
+              color: '#3B82F6',
+            })
+              .setLngLat([lng, lat])
+              .addTo(mapRef.current!);
+            
+            // Add drag event listener
+            markerRef.current.on('dragend', () => {
+              if (markerRef.current) {
+                const lngLat = markerRef.current.getLngLat();
+                onChange(lngLat.lat, lngLat.lng);
+              }
+            });
+          } else {
+            // Move existing marker
             markerRef.current.setLngLat([lng, lat]);
-            onChange(lat, lng);
           }
+          
+          onChange(lat, lng);
         });
       }
     } else {

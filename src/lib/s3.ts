@@ -2,13 +2,13 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const s3Client = new S3Client({
-  endpoint: process.env.MDX_S3_ENDPOINT,
+  endpoint: process.env.MDX_S3_ENDPOINT || undefined,
   region: process.env.MDX_S3_REGION || 'us-east-1',
   credentials: {
     accessKeyId: process.env.MDX_S3_ACCESS_KEY_ID!,
     secretAccessKey: process.env.MDX_S3_SECRET_ACCESS_KEY!,
   },
-  forcePathStyle: true,
+  forcePathStyle: process.env.MDX_S3_ENDPOINT ? true : false,
 });
 
 export async function uploadToS3(
@@ -21,12 +21,13 @@ export async function uploadToS3(
     Key: key,
     Body: body,
     ContentType: contentType,
-    ACL: 'public-read',
+    // ACL removed as modern S3 buckets don't support ACLs by default
   });
 
   await s3Client.send(command);
   
-  return `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/${key}`;
+  // Return proxied URL to hide S3 bucket details
+  return `/api/proxy/s3/${key}`;
 }
 
 export async function getSignedUploadUrl(key: string, contentType: string) {
@@ -49,7 +50,8 @@ export async function deleteFromS3(key: string) {
 }
 
 export function getS3Url(key: string) {
-  return `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/${key}`;
+  // Return proxied URL to hide S3 bucket details
+  return `/api/proxy/s3/${key}`;
 }
 
 export { s3Client };

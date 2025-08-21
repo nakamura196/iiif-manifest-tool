@@ -29,6 +29,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
   const { status } = useSession();
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [creatingMessage, setCreatingMessage] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [isPublic, setIsPublic] = useState(true);
@@ -115,6 +116,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
     if (!title.trim() || uploadedImages.length === 0) return;
 
     setCreating(true);
+    setCreatingMessage('アイテムを作成中...');
     try {
       const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items`, {
         method: 'POST',
@@ -131,8 +133,22 @@ export default function NewItemPage({ params }: NewItemPageProps) {
 
       if (response.ok) {
         const newItem = await response.json();
-        // 作成したアイテムの編集ページへ遷移
-        router.push(`/${resolvedParams.locale}/dashboard/collections/${resolvedParams.collectionId}/items/${newItem.id}/edit`);
+        
+        // 作成が完了したことを確認するために少し待機
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // 作成されたことを確認
+        const checkResponse = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${newItem.id}`);
+        if (checkResponse.ok) {
+          // 作成が確認できたら編集ページへ遷移
+          router.push(`/${resolvedParams.locale}/dashboard/collections/${resolvedParams.collectionId}/items/${newItem.id}/edit`);
+        } else {
+          console.error('Item created but not found immediately');
+          // 少し待ってから遷移
+          setTimeout(() => {
+            router.push(`/${resolvedParams.locale}/dashboard/collections/${resolvedParams.collectionId}/items/${newItem.id}/edit`);
+          }, 1000);
+        }
       }
     } catch (error) {
       console.error('Error creating item:', error);
