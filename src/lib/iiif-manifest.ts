@@ -297,7 +297,7 @@ export async function createIIIFManifest(
   // Add item reference to collection (use public URL for collection reference)
   await addItemToCollection(userId, collectionId, publicManifestUrl, manifestId, title);
 
-  return { manifestId, manifestUrl: publicManifestUrl };
+  return { manifestId: itemId, manifestUrl: publicManifestUrl };
 }
 
 export async function getIIIFManifest(
