@@ -7,7 +7,7 @@ import ImageUploader from '@/components/ImageUploader';
 import AuthTokenModal from '@/components/AuthTokenModal';
 import ItemEditModal from '@/components/ItemEditModal';
 import CollectionEditModal from '@/components/CollectionEditModal';
-import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink } from 'react-icons/fi';
 import Link from 'next/link';
 
 interface Item {
@@ -251,6 +251,19 @@ export default function CollectionPage({ params }: PageProps) {
           <FiArrowLeft className="text-xl" />
         </Link>
         <h1 className="text-3xl font-bold flex-1">{collectionName}</h1>
+        <button
+          onClick={() => {
+            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
+            const collectionUrl = `${window.location.origin}/api/iiif/collection/${combinedId}`;
+            const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(collectionUrl)}`;
+            window.open(selfMuseumUrl, '_blank');
+          }}
+          className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+          title="Self Museumで表示"
+        >
+          <FiExternalLink />
+          Self Museum
+        </button>
         <button
           onClick={() => {
             const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;

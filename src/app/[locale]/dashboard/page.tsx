@@ -97,13 +97,28 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">マイコレクション</h1>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          <FiPlus />
-          新規コレクション
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              // Create a collection URL that includes all user's collections
+              const baseUrl = `${window.location.origin}/api/iiif/collection`;
+              const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(baseUrl)}`;
+              window.open(selfMuseumUrl, '_blank');
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+            title="Self Museumで全コレクションを表示"
+          >
+            <FiExternalLink />
+            Self Museum
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+          >
+            <FiPlus />
+            新規コレクション
+          </button>
+        </div>
       </div>
 
       {collections.length === 0 ? (
