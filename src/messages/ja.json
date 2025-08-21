@@ -256,5 +256,83 @@
   "CollectionMap": {
     "loading": "地図を読み込み中...",
     "clickToSetLocation": "地図をクリックして位置を設定"
+  },
+  "ItemEditPage": {
+    "title": "アイテムを編集",
+    "loading": "読み込み中...",
+    "save": "保存",
+    "saving": "保存中...",
+    "basicInfo": "基本情報",
+    "imageManagement": "画像管理",
+    "additionalInfo": "追加情報",
+    "location": "位置情報",
+    "detailedSettings": "詳細設定",
+    "itemTitle": "タイトル",
+    "itemTitlePlaceholder": "アイテムのタイトルを入力",
+    "description": "説明",
+    "descriptionPlaceholder": "アイテムの説明を入力（任意）",
+    "makePublic": "このアイテムを公開する",
+    "currentImages": "現在の画像",
+    "addNewImages": "新しい画像を追加",
+    "imageAccessSettings": "画像ごとのアクセス設定",
+    "movePrevious": "前へ移動",
+    "moveNext": "次へ移動",
+    "delete": "削除",
+    "latitude": "緯度",
+    "latitudePlaceholder": "例: 35.6762",
+    "longitude": "経度",
+    "longitudePlaceholder": "例: 139.6503",
+    "locationName": "場所の名前（任意）",
+    "locationNamePlaceholder": "例: 東京タワー",
+    "clearLocation": "位置情報をクリア",
+    "clickMapToSetLocation": "地図をクリックして位置を設定してください。デフォルトで東京が表示されています。",
+    "fieldLabel": "項目名（例: 作成年）",
+    "fieldValue": "内容（例: 1850年）",
+    "addInfo": "情報を追加",
+    "additionalInfoNote": "ここで追加した情報は、作品の詳細情報として表示されます。\n作成年、作者、技法、サイズなど、作品に関する様々な情報を自由に追加できます。",
+    "attribution": "所蔵・提供機関",
+    "attributionPlaceholder": "例: 国立図書館",
+    "license": "ライセンス情報",
+    "licensePlaceholder": "例: https://creativecommons.org/licenses/by/4.0/",
+    "usageTerms": "利用条件",
+    "usageTermsLabel": "項目名（例: 利用にあたって）",
+    "usageTermsDescription": "説明（例: 画像の二次利用については事前にご相談ください）"
+  },
+  "ApiAuth": {
+    "title": "API認証情報",
+    "loading": "読み込み中...",
+    "userInfo": {
+      "title": "ユーザー情報",
+      "userId": "ユーザーID",
+      "email": "メールアドレス"
+    },
+    "authMethod": {
+      "title": "API認証方法",
+      "currentSession": "現在のセッション",
+      "sessionDescription": "現在ログイン中のため、ブラウザから直接APIを呼び出せます。Swagger UIの「Try it out」機能も、現在のセッションを使用して実行されます。",
+      "programmaticAccess": "プログラムからのアクセス",
+      "programmaticDescription": "外部プログラムからAPIにアクセスする場合は、以下の方法を使用してください：",
+      "cookieAuth": "Cookie認証",
+      "cookieAuthDescription": "ブラウザのセッションCookieを含めてリクエストを送信",
+      "bearerToken": "Bearer Token認証",
+      "bearerTokenDescription": "IIIF Auth APIから取得したトークンを使用（非公開リソース用）"
+    },
+    "usage": {
+      "title": "使用方法",
+      "step1": "を開く",
+      "step2": "使用したいAPIエンドポイントを選択",
+      "step3": "「Try it out」ボタンをクリック",
+      "step4": "必要なパラメータを入力",
+      "step5": "「Execute」をクリックしてAPIを実行"
+    },
+    "notes": {
+      "title": "注意事項",
+      "note1": "Swagger UIからのリクエストは現在のブラウザセッションを使用します",
+      "note2": "ログアウトするとAPIへのアクセスができなくなります",
+      "note3": "非公開アイテムへのアクセスには所有者権限が必要です",
+      "note4": "IIIF画像の認証には別途Bearer tokenが必要な場合があります"
+    },
+    "openSwagger": "Swagger UIを開く",
+    "backToDashboard": "ダッシュボードに戻る"
   }
 }

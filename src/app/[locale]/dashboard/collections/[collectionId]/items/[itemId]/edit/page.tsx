@@ -3,6 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { FiArrowLeft, FiSave, FiTrash2, FiPlus, FiSettings, FiImage, FiMapPin, FiInfo, FiLock } from 'react-icons/fi';
 import ImageUploader from '@/components/ImageUploader';
 import ImageAccessControl from '@/components/ImageAccessControl';
@@ -72,6 +73,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const resolvedParams = use(params);
   const { status } = useSession();
   const router = useRouter();
+  const t = useTranslations();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -259,7 +261,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">読み込み中...</div>
+        <div className="text-lg">{t('ItemEditPage.loading')}</div>
       </div>
     );
   }
@@ -277,7 +279,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
               >
                 <FiArrowLeft className="text-xl" />
               </Link>
-              <h1 className="text-xl sm:text-2xl font-bold">アイテムを編集</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">{t('ItemEditPage.title')}</h1>
             </div>
             <div className="flex items-center gap-2">
               <button
@@ -286,7 +288,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
                 <FiSave />
-                <span className="hidden sm:inline">{saving ? '保存中...' : '保存'}</span>
+                <span className="hidden sm:inline">{saving ? t('ItemEditPage.saving') : t('ItemEditPage.save')}</span>
               </button>
             </div>
           </div>
@@ -309,7 +311,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   }`}
                 >
                   <FiInfo className="text-lg" />
-                  <span>基本情報</span>
+                  <span>{t('ItemEditPage.basicInfo')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('images')}
@@ -320,7 +322,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   }`}
                 >
                   <FiImage className="text-lg" />
-                  <span>画像管理</span>
+                  <span>{t('ItemEditPage.imageManagement')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('additional')}
@@ -331,7 +333,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   }`}
                 >
                   <FiPlus className="text-lg" />
-                  <span>追加情報</span>
+                  <span>{t('ItemEditPage.additionalInfo')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('location')}
@@ -342,7 +344,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   }`}
                 >
                   <FiMapPin className="text-lg" />
-                  <span>位置情報</span>
+                  <span>{t('ItemEditPage.location')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('settings')}
@@ -353,7 +355,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   }`}
                 >
                   <FiSettings className="text-lg" />
-                  <span>詳細設定</span>
+                  <span>{t('ItemEditPage.detailedSettings')}</span>
                 </button>
               </nav>
             </div>
@@ -365,29 +367,29 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <FiInfo />
-                  基本情報
+                  {t('ItemEditPage.basicInfo')}
                 </h2>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      タイトル *
+                      {t('ItemEditPage.itemTitle')} *
                     </label>
                     <input
                       type="text"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      placeholder="アイテムのタイトルを入力"
+                      placeholder={t('ItemEditPage.itemTitlePlaceholder')}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-2">説明</label>
+                    <label className="block text-sm font-medium mb-2">{t('ItemEditPage.description')}</label>
                     <textarea
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
                       rows={5}
-                      placeholder="アイテムの説明を入力（任意）"
+                      placeholder={t('ItemEditPage.descriptionPlaceholder')}
                     />
                   </div>
                   <div className="flex items-center gap-3">
@@ -400,7 +402,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                     />
                     <label htmlFor="isPublic" className="flex items-center gap-2">
                       {isPublic ? <FiLock className="text-green-500" /> : <FiLock className="text-gray-400" />}
-                      このアイテムを公開する
+                      {t('ItemEditPage.makePublic')}
                     </label>
                   </div>
                 </div>
@@ -414,7 +416,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
                     <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                       <FiImage />
-                      現在の画像 ({images.length})
+                      {t('ItemEditPage.currentImages')} ({images.length})
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {images.map((img, index) => (
@@ -435,7 +437,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                               <button
                                 onClick={() => moveImage(index, 'up')}
                                 className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-                                title="前へ移動"
+                                title={t('ItemEditPage.movePrevious')}
                               >
                                 ←
                               </button>
@@ -443,7 +445,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                             <button
                               onClick={() => removeImage(index)}
                               className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600"
-                              title="削除"
+                              title={t('ItemEditPage.delete')}
                             >
                               <FiTrash2 className="w-4 h-4" />
                             </button>
@@ -451,7 +453,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                               <button
                                 onClick={() => moveImage(index, 'down')}
                                 className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
-                                title="次へ移動"
+                                title={t('ItemEditPage.moveNext')}
                               >
                                 →
                               </button>
@@ -465,7 +467,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
 
                 {/* Image Uploader */}
                 <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">新しい画像を追加</h3>
+                  <h3 className="text-lg font-semibold mb-4">{t('ItemEditPage.addNewImages')}</h3>
                   <ImageUploader
                     onUpload={handleUpload}
                     onUrlAdd={handleUrlAdd}
@@ -481,7 +483,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                       className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800"
                     >
                       <FiSettings />
-                      画像ごとのアクセス設定
+                      {t('ItemEditPage.imageAccessSettings')}
                     </button>
                     
                     {showAccessControl && (
@@ -501,7 +503,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <FiPlus />
-                  追加情報
+                  {t('ItemEditPage.additionalInfo')}
                 </h2>
                 <div className="space-y-4">
                   <div className="space-y-3">
@@ -516,7 +518,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                             setMetadata({ ...metadata, customFields: newFields });
                           }}
                           className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder="項目名（例: 作成年）"
+                          placeholder={t('ItemEditPage.fieldLabel')}
                         />
                         <input
                           type="text"
@@ -527,7 +529,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                             setMetadata({ ...metadata, customFields: newFields });
                           }}
                           className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder="内容（例: 1850年）"
+                          placeholder={t('ItemEditPage.fieldValue')}
                         />
                         <button
                           onClick={() => {
@@ -548,13 +550,12 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                       className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
                     >
                       <FiPlus />
-                      情報を追加
+                      {t('ItemEditPage.addInfo')}
                     </button>
                   </div>
                   <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      ここで追加した情報は、作品の詳細情報として表示されます。
-                      作成年、作者、技法、サイズなど、作品に関する様々な情報を自由に追加できます。
+                      {t('ItemEditPage.additionalInfoNote')}
                     </p>
                   </div>
                 </div>
@@ -565,28 +566,28 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <FiMapPin />
-                  位置情報
+                  {t('ItemEditPage.location')}
                 </h2>
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-2">緯度</label>
+                      <label className="block text-sm font-medium mb-2">{t('ItemEditPage.latitude')}</label>
                       <input
                         type="text"
                         value={latitude}
                         onChange={(e) => setLatitude(e.target.value)}
                         className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder="例: 35.6762"
+                        placeholder={t('ItemEditPage.latitudePlaceholder')}
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-2">経度</label>
+                      <label className="block text-sm font-medium mb-2">{t('ItemEditPage.longitude')}</label>
                       <input
                         type="text"
                         value={longitude}
                         onChange={(e) => setLongitude(e.target.value)}
                         className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder="例: 139.6503"
+                        placeholder={t('ItemEditPage.longitudePlaceholder')}
                       />
                     </div>
                   </div>
@@ -601,18 +602,18 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                         }}
                         className="px-3 py-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                       >
-                        位置情報をクリア
+                        {t('ItemEditPage.clearLocation')}
                       </button>
                     </div>
                   )}
                   <div>
-                    <label className="block text-sm font-medium mb-2">場所の名前（任意）</label>
+                    <label className="block text-sm font-medium mb-2">{t('ItemEditPage.locationName')}</label>
                     <input
                       type="text"
                       value={locationLabel}
                       onChange={(e) => setLocationLabel(e.target.value)}
                       className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      placeholder="例: 東京タワー"
+                      placeholder={t('ItemEditPage.locationNamePlaceholder')}
                     />
                   </div>
                   <div className="h-96 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700">
@@ -627,7 +628,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   {(!latitude || !longitude) && (
                     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                       <p className="text-sm text-blue-800 dark:text-blue-300">
-                        地図をクリックして位置を設定してください。デフォルトで東京が表示されています。
+                        {t('ItemEditPage.clickMapToSetLocation')}
                       </p>
                     </div>
                   )}
@@ -639,41 +640,41 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <FiSettings />
-                  詳細設定
+                  {t('ItemEditPage.detailedSettings')}
                 </h2>
                 <div className="space-y-4">
                   {/* Attribution */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      所蔵・提供機関
+                      {t('ItemEditPage.attribution')}
                     </label>
                     <input
                       type="text"
                       value={metadata.attribution || ''}
                       onChange={(e) => setMetadata({ ...metadata, attribution: e.target.value })}
                       className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      placeholder="例: 国立図書館"
+                      placeholder={t('ItemEditPage.attributionPlaceholder')}
                     />
                   </div>
 
                   {/* Rights */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      ライセンス情報
+                      {t('ItemEditPage.license')}
                     </label>
                     <input
                       type="text"
                       value={metadata.rights || ''}
                       onChange={(e) => setMetadata({ ...metadata, rights: e.target.value })}
                       className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      placeholder="例: https://creativecommons.org/licenses/by/4.0/"
+                      placeholder={t('ItemEditPage.licensePlaceholder')}
                     />
                   </div>
 
                   {/* Required Statement */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      利用条件
+                      {t('ItemEditPage.usageTerms')}
                     </label>
                     <div className="space-y-2">
                       <input
@@ -693,7 +694,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                           });
                         }}
                         className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder="項目名（例: 利用にあたって）"
+                        placeholder={t('ItemEditPage.usageTermsLabel')}
                       />
                       <textarea
                         value={metadata.requiredStatement?.value?.ja?.[0] || ''}
@@ -712,7 +713,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                         }}
                         className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
                         rows={3}
-                        placeholder="説明（例: 画像の二次利用については事前にご相談ください）"
+                        placeholder={t('ItemEditPage.usageTermsDescription')}
                       />
                     </div>
                   </div>

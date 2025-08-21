@@ -297,5 +297,42 @@
     "usageTerms": "Terms of Use",
     "usageTermsLabel": "Label (e.g. Usage Notice)",
     "usageTermsDescription": "Description (e.g. Please contact us before secondary use)"
+  },
+  "ApiAuth": {
+    "title": "API Authentication Info",
+    "loading": "Loading...",
+    "userInfo": {
+      "title": "User Information",
+      "userId": "User ID",
+      "email": "Email Address"
+    },
+    "authMethod": {
+      "title": "API Authentication Methods",
+      "currentSession": "Current Session",
+      "sessionDescription": "You are currently logged in, so you can call APIs directly from your browser. The 'Try it out' feature in Swagger UI also executes using your current session.",
+      "programmaticAccess": "Programmatic Access",
+      "programmaticDescription": "To access the API from external programs, use the following methods:",
+      "cookieAuth": "Cookie Authentication",
+      "cookieAuthDescription": "Include browser session cookies in your requests",
+      "bearerToken": "Bearer Token Authentication",
+      "bearerTokenDescription": "Use tokens obtained from IIIF Auth API (for private resources)"
+    },
+    "usage": {
+      "title": "How to Use",
+      "step1": " to open the API documentation",
+      "step2": "Select the API endpoint you want to use",
+      "step3": "Click the 'Try it out' button",
+      "step4": "Enter required parameters",
+      "step5": "Click 'Execute' to run the API"
+    },
+    "notes": {
+      "title": "Important Notes",
+      "note1": "Requests from Swagger UI use your current browser session",
+      "note2": "API access will be disabled after logging out",
+      "note3": "Owner permissions are required to access private items",
+      "note4": "IIIF image authentication may require a separate Bearer token"
+    },
+    "openSwagger": "Open Swagger UI",
+    "backToDashboard": "Back to Dashboard"
   }
 }

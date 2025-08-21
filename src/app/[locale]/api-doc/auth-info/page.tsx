@@ -136,6 +136,7 @@ export default function AuthInfoPage() {
           <li className="flex gap-2">
             <span className="font-bold">1.</span>
             <div>
+              <Link href={`/${locale}/api-doc`} className="text-blue-500 hover:underline">Swagger UI</Link>
               {t('usage.step1')}
             </div>
           </li>
