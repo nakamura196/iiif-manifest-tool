@@ -49,9 +49,9 @@ const Header = () => {
 
   return (
     <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-3 sm:px-6 justify-between sticky top-0 z-50">
-      <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
+      <div className="flex items-center min-w-0 flex-1">
         <Link href="/" className="hover:opacity-80 transition-opacity shrink-0 flex items-center">
-          <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-gray-100 leading-none">
+          <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 leading-none truncate">
             画像コレクション管理
           </h1>
         </Link>
@@ -171,32 +171,32 @@ const Header = () => {
             )}
           </div>
         ) : (
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             <button
               onClick={() => signIn('google')}
-              className="flex items-center space-x-2 px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
             >
-              <FiLogIn />
-              <span className="text-sm">ログイン</span>
+              <FiLogIn className="w-4 h-4 sm:w-5 sm:h-5" />
+              <span className="text-xs sm:text-sm hidden sm:inline">ログイン</span>
             </button>
             
             {/* ログイン前は外に表示 */}
             {mounted && (
               <button
                 onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                 aria-label="テーマ切り替え"
               >
-                {theme === 'dark' ? <FiSun className="w-5 h-5" /> : <FiMoon className="w-5 h-5" />}
+                {theme === 'dark' ? <FiSun className="w-4 h-4 sm:w-5 sm:h-5" /> : <FiMoon className="w-4 h-4 sm:w-5 sm:h-5" />}
               </button>
             )}
             
             <button
               onClick={toggleLanguage}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+              className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
               aria-label="言語切り替え"
             >
-              <FiGlobe className="w-5 h-5" />
+              <FiGlobe className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
         )}

@@ -45,11 +45,11 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-      <div className="flex space-x-4 mb-6">
+    <div className="w-full">
+      <div className="flex flex-wrap gap-2 mb-4">
         <button
           onClick={() => setActiveTab('upload')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`px-3 py-2 text-sm sm:text-base rounded-lg transition-colors ${
             activeTab === 'upload'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -60,7 +60,7 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
         </button>
         <button
           onClick={() => setActiveTab('url')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`px-3 py-2 text-sm sm:text-base rounded-lg transition-colors ${
             activeTab === 'url'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
@@ -71,21 +71,22 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
         </button>
         <button
           onClick={() => setActiveTab('iiif')}
-          className={`px-4 py-2 rounded-lg transition-colors ${
+          className={`px-3 py-2 text-sm sm:text-base rounded-lg transition-colors ${
             activeTab === 'iiif'
               ? 'bg-blue-500 text-white'
               : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
           }`}
         >
           <FiImage className="inline mr-2" />
-          IIIF info.json
+          <span className="hidden sm:inline">IIIF info.json</span>
+          <span className="sm:hidden">IIIF</span>
         </button>
       </div>
 
       {activeTab === 'upload' && (
         <div
           {...getRootProps()}
-          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+          className={`border-2 border-dashed rounded-lg p-6 sm:p-8 text-center cursor-pointer transition-colors ${
             isDragActive
               ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
               : 'border-gray-300 dark:border-gray-600 hover:border-blue-400'
@@ -97,7 +98,7 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
             <p className="text-blue-500">ドロップして画像をアップロード</p>
           ) : (
             <div>
-              <p className="text-gray-600 dark:text-gray-400">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
                 画像をドラッグ&ドロップ、またはクリックして選択
               </p>
               <p className="text-sm text-gray-500 mt-2">
@@ -117,18 +118,18 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
 
       {activeTab === 'url' && (
         <div className="space-y-4">
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="url"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
               placeholder="画像のURLを入力"
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <button
               onClick={handleUrlAdd}
               disabled={!urlInput.trim()}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               追加
             </button>
@@ -141,24 +142,24 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
 
       {activeTab === 'iiif' && (
         <div className="space-y-4">
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="url"
               value={infoJsonInput}
               onChange={(e) => setInfoJsonInput(e.target.value)}
-              placeholder="IIIF info.jsonのURLを入力"
-              className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              placeholder="info.jsonのURLを入力"
+              className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <button
               onClick={handleInfoJsonAdd}
               disabled={!infoJsonInput.trim()}
-              className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+              className="px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               追加
             </button>
           </div>
-          <p className="text-sm text-gray-500">
-            IIIF Image APIのinfo.jsonエンドポイントを追加できます
+          <p className="text-xs sm:text-sm text-gray-500">
+            高品質画像配信サービスのinfo.jsonを追加できます
           </p>
         </div>
       )}

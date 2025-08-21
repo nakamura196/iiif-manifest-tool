@@ -3,12 +3,19 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import ImageUploader from '@/components/ImageUploader';
 import AuthTokenModal from '@/components/AuthTokenModal';
 import ItemEditModal from '@/components/ItemEditModal';
 import CollectionEditModal from '@/components/CollectionEditModal';
-import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid } from 'react-icons/fi';
 import Link from 'next/link';
+
+// Dynamic import for map component to avoid SSR issues
+const CollectionMap = dynamic(() => import('@/components/CollectionMap'), {
+  ssr: false,
+  loading: () => <div className="flex items-center justify-center h-96">地図を読み込み中...</div>
+});
 
 interface Item {
   id: string;
@@ -16,6 +23,11 @@ interface Item {
   description: string | null;
   isPublic: boolean;
   thumbnail?: string;
+  location?: {
+    latitude: number;
+    longitude: number;
+    label?: string;
+  };
   images: Array<{
     id: string;
     url: string;
@@ -63,6 +75,7 @@ export default function CollectionPage({ params }: PageProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showItemDropdown, setShowItemDropdown] = useState<string | null>(null);
   const itemDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
 
   const fetchCollectionData = useCallback(async () => {
     try {
@@ -371,6 +384,36 @@ export default function CollectionPage({ params }: PageProps) {
         </div>
       )}
 
+      {/* ビュー切り替えボタン */}
+      {items.length > 0 && (
+        <div className="flex justify-end mb-4">
+          <div className="inline-flex rounded-lg border border-gray-300 dark:border-gray-600">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`px-3 py-2 flex items-center gap-2 rounded-l-lg transition-colors ${
+                viewMode === 'grid'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <FiGrid />
+              <span className="hidden sm:inline">グリッド</span>
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              className={`px-3 py-2 flex items-center gap-2 rounded-r-lg transition-colors ${
+                viewMode === 'map'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              <FiMap />
+              <span className="hidden sm:inline">地図</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {items.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -382,6 +425,24 @@ export default function CollectionPage({ params }: PageProps) {
           >
             最初のアイテムを作成
           </button>
+        </div>
+      ) : viewMode === 'map' ? (
+        <div className="h-[600px]">
+          <CollectionMap
+            items={items.map(item => ({
+              id: item.id,
+              title: item.title,
+              description: item.description || undefined,
+              thumbnail: item.thumbnail,
+              latitude: item.location?.latitude || 0,
+              longitude: item.location?.longitude || 0,
+              label: item.location?.label
+            }))}
+            onItemClick={(itemId) => {
+              setEditingItemId(itemId);
+              setShowEditModal(true);
+            }}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">

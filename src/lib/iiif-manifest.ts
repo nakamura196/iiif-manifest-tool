@@ -19,6 +19,21 @@ export interface IIIFManifest {
   type: 'Manifest';
   label: { [key: string]: string[] };
   summary?: { [key: string]: string[] };
+  navPlace?: {
+    id?: string;
+    type: 'FeatureCollection';
+    features: Array<{
+      id?: string;
+      type: 'Feature';
+      properties?: {
+        label?: { [key: string]: string[] };
+      };
+      geometry: {
+        type: 'Point';
+        coordinates: [number, number]; // [longitude, latitude]
+      };
+    }>;
+  };
   thumbnail?: Array<{
     id: string;
     type: 'Image';
@@ -127,7 +142,12 @@ export async function createIIIFManifest(
   canvasAccess?: Array<{
     isPublic: boolean;
     allowedUsers: string[];
-  }>
+  }>,
+  location?: {
+    latitude: number;
+    longitude: number;
+    label?: string;
+  }
 ): Promise<{ manifestId: string; manifestUrl: string }> {
   const itemId = uuidv4();
   const manifestKey = `collections/${userId}/${collectionId}/items/${itemId}/manifest.json`;
@@ -140,14 +160,37 @@ export async function createIIIFManifest(
   const manifestId = `${userId}_${collectionId}_${itemId}`;
   const publicManifestUrl = `${baseUrl}/api/iiif/${manifestId}/manifest`;
 
+  const contexts: string[] = ['http://iiif.io/api/presentation/3/context.json'];
+  if (location) {
+    contexts.push('http://iiif.io/api/extension/navplace/context.json');
+  }
+
   const manifest: IIIFManifest = {
-    '@context': 'http://iiif.io/api/presentation/3/context.json',
+    '@context': contexts.length === 1 ? contexts[0] : contexts,
     id: s3ManifestUrl,  // Store with S3 URL
     type: 'Manifest',
     label: {
       ja: [title],
       en: [title]
     },
+    ...(location ? {
+      navPlace: {
+        type: 'FeatureCollection',
+        features: [{
+          type: 'Feature',
+          properties: {
+            label: {
+              ja: [location.label || title],
+              en: [location.label || title]
+            }
+          },
+          geometry: {
+            type: 'Point',
+            coordinates: [location.longitude, location.latitude]
+          }
+        }]
+      }
+    } : {}),
     thumbnail: images[0] ? [
       {
         id: images[0].thumbnailUrl || images[0].url,
@@ -293,6 +336,11 @@ export async function listCollectionItems(
   manifestUrl: string;
   thumbnail?: string;
   isPublic?: boolean;
+  location?: {
+    latitude: number;
+    longitude: number;
+    label?: string;
+  };
 }>> {
   try {
     const prefix = `collections/${userId}/${collectionId}/items/`;
@@ -341,6 +389,19 @@ export async function listCollectionItems(
             thumbnail = `${process.env.NEXTAUTH_URL}/api/iiif/image/${encodeURIComponent(thumbPath)}`;
           }
 
+          // Extract location from navPlace extension
+          let location = undefined;
+          if (manifest.navPlace && manifest.navPlace.features && manifest.navPlace.features.length > 0) {
+            const feature = manifest.navPlace.features[0];
+            if (feature.geometry && feature.geometry.type === 'Point') {
+              location = {
+                latitude: feature.geometry.coordinates[1],
+                longitude: feature.geometry.coordinates[0],
+                label: feature.properties?.label?.ja?.[0] || feature.properties?.label?.en?.[0] || ''
+              };
+            }
+          }
+
           items.push({
             id: manifestId,
             title: manifest.label.ja?.[0] || manifest.label.en?.[0] || 'Untitled',
@@ -349,7 +410,8 @@ export async function listCollectionItems(
             createdAt,
             manifestUrl,
             thumbnail,
-            isPublic
+            isPublic,
+            location
           });
         }
       }
@@ -390,6 +452,11 @@ export async function updateIIIFManifest(
     isPublic: boolean;
     allowedUsers: string[];
   }>,
+  location?: {
+    latitude: number;
+    longitude: number;
+    label?: string;
+  },
   metadata?: {
     attribution?: string;
     rights?: string;
@@ -432,14 +499,37 @@ export async function updateIIIFManifest(
     // Always use S3 URL for storage
     const s3ManifestUrl = getS3Url(manifestKey);
     
+    const contexts: string[] = ['http://iiif.io/api/presentation/3/context.json'];
+    if (location) {
+      contexts.push('http://iiif.io/api/extension/navplace/context.json');
+    }
+    
     const manifest: IIIFManifest = {
-      '@context': 'http://iiif.io/api/presentation/3/context.json',
+      '@context': contexts.length === 1 ? contexts[0] : contexts,
       id: s3ManifestUrl,
       type: 'Manifest',
       label: {
         ja: [title],
         en: [title]
       },
+      ...(location ? {
+        navPlace: {
+          type: 'FeatureCollection',
+          features: [{
+            type: 'Feature',
+            properties: {
+              label: {
+                ja: [location.label || title],
+                en: [location.label || title]
+              }
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: [location.longitude, location.latitude]
+            }
+          }]
+        }
+      } : {}),
       thumbnail: images[0] ? [
         {
           id: images[0].thumbnailUrl || images[0].url,

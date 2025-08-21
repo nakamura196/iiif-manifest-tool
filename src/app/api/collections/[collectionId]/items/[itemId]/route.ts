@@ -115,13 +115,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         }));
     }
 
+    // Extract location from navPlace extension
+    let location = undefined;
+    if (manifest.navPlace && manifest.navPlace.features && manifest.navPlace.features.length > 0) {
+      const feature = manifest.navPlace.features[0];
+      if (feature.geometry && feature.geometry.type === 'Point') {
+        location = {
+          latitude: feature.geometry.coordinates[1],
+          longitude: feature.geometry.coordinates[0],
+          label: feature.properties?.label?.ja?.[0] || feature.properties?.label?.en?.[0] || ''
+        };
+      }
+    }
+
     return NextResponse.json({
       id: itemId,
       title: manifest.label.ja?.[0] || manifest.label.en?.[0] || 'Untitled',
       description: manifest.summary?.ja?.[0] || manifest.summary?.en?.[0] || '',
       isPublic,
       images,
-      metadata
+      metadata,
+      location
     });
   } catch (error) {
     console.error('Error fetching item:', error);
@@ -150,7 +164,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { title, description, images, isPublic, metadata, canvasAccess } = body;
+    const { title, description, images, isPublic, metadata, canvasAccess, location } = body;
 
     if (!title || !images || images.length === 0) {
       return NextResponse.json(
@@ -169,6 +183,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       images,
       isPublic,
       canvasAccess,
+      location,
       metadata
     );
 

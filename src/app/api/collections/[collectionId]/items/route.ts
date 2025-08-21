@@ -65,7 +65,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { title, description, images, isPublic = true } = body;
+    const { title, description, images, isPublic = true, location } = body;
 
     if (!title || !images || images.length === 0) {
       return NextResponse.json(
@@ -81,7 +81,9 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       title,
       description,
       images,
-      isPublic
+      isPublic,
+      undefined,
+      location
     );
 
     return NextResponse.json({
