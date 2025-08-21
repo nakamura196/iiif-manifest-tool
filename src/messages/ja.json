@@ -1,8 +1,13 @@
 {
   "Common": {
-    "title": "IIIF Manifest Tool",
+    "title": "画像コレクション管理",
     "description": "IIIF（International Image Interoperability Framework）に準拠したマニフェストを生成・管理するツール",
-    "home": "ホーム"
+    "home": "ホーム",
+    "loading": "読み込み中...",
+    "cancel": "キャンセル",
+    "back": "戻る",
+    "required": "必須",
+    "optional": "任意"
   },
   "HomePage": {
     "hero": {
@@ -12,7 +17,16 @@
   },
   "Header": {
     "en": "English",
-    "ja": "日本語"
+    "ja": "日本語",
+    "home": "ホーム",
+    "dashboard": "ダッシュボード",
+    "apiAuth": "API認証情報",
+    "lightMode": "ライトモード",
+    "darkMode": "ダークモード",
+    "login": "ログイン",
+    "logout": "ログアウト",
+    "menu": "メニュー",
+    "settingsMenu": "設定メニュー"
   },
   "Footer": {
     "copyright": "© 2024 IIIF Manifest Tool",
@@ -75,7 +89,10 @@
     "grid": "グリッド",
     "map": "地図",
     "public": "公開",
-    "private": "非公開"
+    "private": "非公開",
+    "moreOptions": "その他のオプション",
+    "confirmDelete": "「{title}」を削除してもよろしいですか？",
+    "mapLoading": "地図を読み込み中..."
   },
   "CollectionEdit": {
     "title": "コレクション設定",
@@ -155,12 +172,5 @@
     "titleLabel": "タイトル",
     "descriptionLabel": "説明",
     "note": "この設定は、公開コレクション全体のIIIFマニフェストに反映されます。個別のコレクションの設定は、各コレクションの編集画面から変更できます。"
-  },
-  "Common": {
-    "loading": "読み込み中...",
-    "cancel": "キャンセル",
-    "back": "戻る",
-    "required": "必須",
-    "optional": "任意"
   }
 }

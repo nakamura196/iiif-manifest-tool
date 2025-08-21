@@ -3,15 +3,21 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import dynamic from 'next/dynamic';
 import AuthTokenModal from '@/components/AuthTokenModal';
 import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid, FiImage } from 'react-icons/fi';
 import Link from 'next/link';
 
 // Dynamic import for map component to avoid SSR issues
+const LoadingComponent = () => {
+  const t = useTranslations();
+  return <div className="flex items-center justify-center h-96">{t('Collection.mapLoading')}</div>;
+};
+
 const CollectionMap = dynamic(() => import('@/components/CollectionMap'), {
   ssr: false,
-  loading: () => <div className="flex items-center justify-center h-96">地図を読み込み中...</div>
+  loading: LoadingComponent
 });
 
 interface Item {
@@ -41,6 +47,7 @@ export default function CollectionPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useTranslations();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -156,7 +163,7 @@ export default function CollectionPage({ params }: PageProps) {
   if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">読み込み中...</div>
+        <div className="text-lg">{t('Common.loading')}</div>
       </div>
     );
   }
@@ -179,7 +186,7 @@ export default function CollectionPage({ params }: PageProps) {
               window.open(selfMuseumUrl, '_blank');
             }}
             className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm sm:text-base"
-            title="Self Museumで表示"
+            title={t('Dashboard.viewInSelfMuseum')}
           >
             <FiExternalLink className="text-base sm:text-lg" />
             <span className="hidden sm:inline">Self Museum</span>
@@ -190,14 +197,14 @@ export default function CollectionPage({ params }: PageProps) {
             className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
           >
             <FiPlus className="text-base sm:text-lg" />
-            <span className="hidden sm:inline">新規アイテム</span>
-            <span className="sm:hidden">新規</span>
+            <span className="hidden sm:inline">{t('Collection.newItem')}</span>
+            <span className="sm:hidden">{t('Dashboard.new')}</span>
           </Link>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              title="その他のオプション"
+              title={t('Collection.moreOptions')}
             >
               <FiMoreVertical className="text-xl" />
             </button>
@@ -215,7 +222,7 @@ export default function CollectionPage({ params }: PageProps) {
                 className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
               >
                 <FiBook />
-                ビューアで見る
+                {t('Dashboard.viewInViewer')}
               </button>
               <button
                 onClick={() => {
@@ -227,7 +234,7 @@ export default function CollectionPage({ params }: PageProps) {
                 className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
               >
                 <FiEye />
-                データをエクスポート
+                {t('Dashboard.exportData')}
               </button>
               <button
                 onClick={() => {
@@ -238,7 +245,7 @@ export default function CollectionPage({ params }: PageProps) {
                 className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
               >
                 <FiSettings />
-                コレクション設定
+                {t('Collection.collectionSettings')}
               </button>
             </div>
           )}
@@ -285,13 +292,13 @@ export default function CollectionPage({ params }: PageProps) {
       {items.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            アイテムがまだありません
+            {t('Collection.noItems')}
           </p>
           <Link
             href={`/ja/dashboard/collections/${resolvedParams.collectionId}/items/new`}
             className="inline-block px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
           >
-            最初のアイテムを作成
+            {t('Collection.createFirstItem')}
           </Link>
         </div>
       ) : viewMode === 'map' ? (
@@ -354,7 +361,7 @@ export default function CollectionPage({ params }: PageProps) {
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     <FiEdit2 />
-                    編集
+                    {t('Collection.edit')}
                   </button>
                   <div className="relative" ref={el => { itemDropdownRefs.current[item.id] = el; }}>
                     <button
@@ -374,7 +381,7 @@ export default function CollectionPage({ params }: PageProps) {
                           className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
                         >
                           <FiBook />
-                          ビューアで見る
+                          {t('Dashboard.viewInViewer')}
                         </button>
                         <button
                           onClick={() => {
@@ -386,7 +393,7 @@ export default function CollectionPage({ params }: PageProps) {
                           className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
                         >
                           <FiEye />
-                          データをエクスポート
+                          {t('Dashboard.exportData')}
                         </button>
                         <button
                           onClick={() => {
@@ -398,7 +405,7 @@ export default function CollectionPage({ params }: PageProps) {
                           className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
                         >
                           <FiCopy />
-                          URLをコピー
+                          {t('Collection.copyUrl')}
                         </button>
                         {!item.isPublic && (
                           <button
@@ -410,12 +417,12 @@ export default function CollectionPage({ params }: PageProps) {
                             className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
                           >
                             <FiKey />
-                            認証設定
+                            {t('Collection.authSettings')}
                           </button>
                         )}
                         <button
                           onClick={() => {
-                            if (confirm(`「${item.title}」を削除してもよろしいですか？`)) {
+                            if (confirm(t('Collection.confirmDelete', { title: item.title }))) {
                               handleDelete(item.id);
                               setShowItemDropdown(null);
                             }
@@ -423,7 +430,7 @@ export default function CollectionPage({ params }: PageProps) {
                           className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm text-red-600 dark:text-red-400"
                         >
                           <FiTrash2 />
-                          削除
+                          {t('Collection.delete')}
                         </button>
                       </div>
                     )}

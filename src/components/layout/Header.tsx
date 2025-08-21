@@ -6,7 +6,7 @@ import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlob
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter, usePathname } from 'next/navigation';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 const Header = () => {
   const { data: session, status } = useSession();
@@ -19,6 +19,7 @@ const Header = () => {
   const router = useRouter();
   const pathname = usePathname();
   const locale = useLocale();
+  const t = useTranslations();
 
   // マウント状態を管理（ハイドレーションエラー回避）
   useEffect(() => {
@@ -57,7 +58,7 @@ const Header = () => {
       <div className="flex items-center min-w-0 flex-1">
         <Link href="/" className="hover:opacity-80 transition-opacity shrink-0 flex items-center">
           <h1 className="text-base sm:text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 leading-none truncate">
-            画像コレクション管理
+            {t('Common.title')}
           </h1>
         </Link>
       </div>
@@ -69,7 +70,7 @@ const Header = () => {
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              aria-label="メニュー"
+              aria-label={t('Header.menu')}
             >
               {session.user?.image ? (
                 <img
@@ -112,7 +113,7 @@ const Header = () => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <FiHome className="w-4 h-4" />
-                  <span>ホーム</span>
+                  <span>{t('Header.home')}</span>
                 </Link>
 
                 <Link
@@ -121,7 +122,7 @@ const Header = () => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <FiGrid className="w-4 h-4" />
-                  <span>ダッシュボード</span>
+                  <span>{t('Header.dashboard')}</span>
                 </Link>
 
                 <Link
@@ -130,7 +131,7 @@ const Header = () => {
                   onClick={() => setIsMenuOpen(false)}
                 >
                   <FiKey className="w-4 h-4" />
-                  <span>API認証情報</span>
+                  <span>{t('Header.apiAuth')}</span>
                 </Link>
 
                 <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
@@ -148,7 +149,7 @@ const Header = () => {
                     ) : (
                       <FiMoon className="w-4 h-4" />
                     )}
-                    <span>{theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
+                    <span>{theme === 'dark' ? t('Header.lightMode') : t('Header.darkMode')}</span>
                   </button>
                 )}
 
@@ -157,7 +158,7 @@ const Header = () => {
                   className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
                 >
                   <FiGlobe className="w-4 h-4" />
-                  <span>{locale === 'ja' ? 'English' : '日本語'}</span>
+                  <span>{locale === 'ja' ? t('Header.en') : t('Header.ja')}</span>
                 </button>
 
                 <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
@@ -170,7 +171,7 @@ const Header = () => {
                   className="flex items-center space-x-3 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
                 >
                   <FiLogOut className="w-4 h-4" />
-                  <span>ログアウト</span>
+                  <span>{t('Header.logout')}</span>
                 </button>
               </div>
             )}
@@ -182,7 +183,7 @@ const Header = () => {
               className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
             >
               <FiLogIn className="w-5 h-5" />
-              <span className="text-sm">ログイン</span>
+              <span className="text-sm">{t('Header.login')}</span>
             </button>
             
             {/* 設定メニュー（ハンバーガー） */}
@@ -190,7 +191,7 @@ const Header = () => {
               <button
                 onClick={() => setIsSettingsOpen(!isSettingsOpen)}
                 className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-                aria-label="設定メニュー"
+                aria-label={t('Header.settingsMenu')}
               >
                 <FiMenu className="w-5 h-5" />
               </button>
@@ -210,7 +211,7 @@ const Header = () => {
                       ) : (
                         <FiMoon className="w-4 h-4" />
                       )}
-                      <span>{theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
+                      <span>{theme === 'dark' ? t('Header.lightMode') : t('Header.darkMode')}</span>
                     </button>
                   )}
                   
@@ -222,7 +223,7 @@ const Header = () => {
                     className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
                   >
                     <FiGlobe className="w-4 h-4" />
-                    <span>{locale === 'ja' ? 'English' : '日本語'}</span>
+                    <span>{locale === 'ja' ? t('Header.en') : t('Header.ja')}</span>
                   </button>
                 </div>
               )}

@@ -1,8 +1,13 @@
 {
   "Common": {
-    "title": "IIIF Manifest Tool",
+    "title": "Image Collection Manager",
     "description": "A tool for generating and managing IIIF (International Image Interoperability Framework) compliant manifests",
-    "home": "Home"
+    "home": "Home",
+    "loading": "Loading...",
+    "cancel": "Cancel",
+    "back": "Back",
+    "required": "Required",
+    "optional": "Optional"
   },
   "HomePage": {
     "hero": {
@@ -12,7 +17,16 @@
   },
   "Header": {
     "en": "English",
-    "ja": "日本語"
+    "ja": "日本語",
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "apiAuth": "API Auth Info",
+    "lightMode": "Light Mode",
+    "darkMode": "Dark Mode",
+    "login": "Login",
+    "logout": "Logout",
+    "menu": "Menu",
+    "settingsMenu": "Settings Menu"
   },
   "Footer": {
     "copyright": "© 2024 IIIF Manifest Tool",
@@ -75,7 +89,10 @@
     "grid": "Grid",
     "map": "Map",
     "public": "Public",
-    "private": "Private"
+    "private": "Private",
+    "moreOptions": "More Options",
+    "confirmDelete": "Are you sure you want to delete \"{title}\"?",
+    "mapLoading": "Loading map..."
   },
   "CollectionEdit": {
     "title": "Collection Settings",
@@ -155,12 +172,5 @@
     "titleLabel": "Title",
     "descriptionLabel": "Description",
     "note": "These settings will be reflected in the IIIF manifest for your entire public collection. Individual collection settings can be changed from each collection's edit page."
-  },
-  "Common": {
-    "loading": "Loading...",
-    "cancel": "Cancel",
-    "back": "Back",
-    "required": "Required",
-    "optional": "Optional"
   }
 }
