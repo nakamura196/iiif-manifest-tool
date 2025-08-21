@@ -267,7 +267,7 @@ export default function CollectionPage({ params }: PageProps) {
         <button
           onClick={() => {
             const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
-            const collectionUrl = `${window.location.origin}/api/iiif/collection/${combinedId}`;
+            const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
             const encodedUrl = encodeURIComponent(collectionUrl);
             const miradorUrl = `/mirador/index.html?manifest=${encodedUrl}`;
             window.open(miradorUrl, '_blank');
@@ -281,7 +281,7 @@ export default function CollectionPage({ params }: PageProps) {
         <button
           onClick={() => {
             const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
-            const collectionUrl = `${window.location.origin}/api/iiif/collection/${combinedId}`;
+            const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
             window.open(collectionUrl, '_blank');
           }}
           className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"

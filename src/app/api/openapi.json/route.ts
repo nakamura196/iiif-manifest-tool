@@ -665,7 +665,7 @@ const openApiSpec = {
         },
       },
     },
-    '/api/iiif/collection/{id}': {
+    '/api/iiif/3/collection/{id}': {
       get: {
         tags: ['IIIF'],
         summary: 'Get IIIF Collection manifest (default v3)',
@@ -910,49 +910,6 @@ const openApiSpec = {
           },
           404: {
             description: 'Manifest not found',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/Error' },
-              },
-            },
-          },
-        },
-      },
-    },
-    '/api/iiif/3/collection/{id}': {
-      get: {
-        tags: ['IIIF'],
-        summary: 'Get IIIF Collection manifest (v3.0)',
-        description: 'Retrieve IIIF Collection manifest in Presentation API v3.0 format. The ID should be in format: userId_collectionId',
-        parameters: [
-          {
-            name: 'id',
-            in: 'path',
-            required: true,
-            description: 'Combined ID in format: userId_collectionId',
-            schema: { type: 'string' },
-          },
-        ],
-        responses: {
-          200: {
-            description: 'IIIF Collection manifest v3.0',
-            content: {
-              'application/json': {
-                schema: { 
-                  type: 'object',
-                  properties: {
-                    '@context': { type: 'array' },
-                    id: { type: 'string' },
-                    type: { type: 'string', enum: ['Collection'] },
-                    label: { type: 'object' },
-                    items: { type: 'array' },
-                  },
-                },
-              },
-            },
-          },
-          404: {
-            description: 'Collection not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Error' },

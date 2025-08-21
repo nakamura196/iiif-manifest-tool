@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getUserSettings } from '@/lib/user-settings';
 
 interface RouteParams {
   params: Promise<{ userId: string }>;
@@ -48,6 +49,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { userId } = await params;
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    
+    // Get user settings
+    const userSettings = await getUserSettings(userId);
     
     // Get all collections for the user from S3
     const collectionsPrefix = `collections/${userId}/`;
@@ -131,14 +135,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       "label": [
         {
           "@language": "ja",
-          "@value": `公開コレクション`
+          "@value": userSettings.publicCollectionTitle?.ja || '公開コレクション'
         },
         {
           "@language": "en",
-          "@value": `Public Collections`
+          "@value": userSettings.publicCollectionTitle?.en || 'Public Collections'
         }
       ],
-      "description": "公開されているコレクションとマニフェスト / Public collections and manifests",
+      "description": `${userSettings.publicCollectionDescription?.ja || '公開されているコレクションとマニフェスト'} / ${userSettings.publicCollectionDescription?.en || 'Public collections and manifests'}`,
       "collections": publicCollections,
       "metadata": [
         {
