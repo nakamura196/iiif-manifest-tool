@@ -64,6 +64,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     manifest.id = `${baseUrl}/api/iiif/3/${id}/manifest`;
     
+    // Process manifest-level thumbnail
+    if (manifest.thumbnail && manifest.thumbnail.length > 0) {
+      manifest.thumbnail = manifest.thumbnail.map((thumb: { id: string; type: 'Image'; format: string; width?: number; height?: number }) => {
+        if (thumb.id && process.env.MDX_S3_ENDPOINT && thumb.id.includes(process.env.MDX_S3_ENDPOINT)) {
+          const thumbnailPath = thumb.id.replace(
+            `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/`,
+            ''
+          );
+          return {
+            ...thumb,
+            id: `${baseUrl}/api/iiif/image/${encodeURIComponent(thumbnailPath)}`
+          };
+        }
+        return thumb;
+      });
+    }
+    
     // Process manifest to update all S3 URLs to proxy URLs
     if (manifest.items) {
       manifest.items = manifest.items.map((canvas: IIIFManifest['items'][0] & { 'x-canvas-access'?: { isPublic?: boolean; allowedUsers?: string[]; allowedGroups?: string[] } }, index: number) => {
@@ -77,6 +94,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         // Update canvas ID
         if (canvas.id && process.env.MDX_S3_ENDPOINT && canvas.id.includes(process.env.MDX_S3_ENDPOINT)) {
           canvas.id = `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}`;
+        }
+        
+        // Process canvas-level thumbnail
+        if (canvas.thumbnail && canvas.thumbnail.length > 0) {
+          canvas.thumbnail = canvas.thumbnail.map((thumb: { id: string; type: 'Image'; format: string; width?: number; height?: number }) => {
+            if (thumb.id && process.env.MDX_S3_ENDPOINT && thumb.id.includes(process.env.MDX_S3_ENDPOINT)) {
+              const thumbnailPath = thumb.id.replace(
+                `${process.env.MDX_S3_ENDPOINT}/${process.env.MDX_S3_BUCKET_NAME}/`,
+                ''
+              );
+              return {
+                ...thumb,
+                id: `${baseUrl}/api/iiif/image/${encodeURIComponent(thumbnailPath)}`
+              };
+            }
+            return thumb;
+          });
         }
         
         // Update annotation page and annotation IDs

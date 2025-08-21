@@ -19,11 +19,20 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+type IIIFV2Label = string | Array<{ "@language": string; "@value": string }>;
+
 interface IIIFV2Manifest {
   "@context": string;
   "@id": string;
   "@type": string;
-  label: string | { [key: string]: string[] };
+  label: IIIFV2Label;
+  thumbnail?: string | {
+    "@id": string;
+    "@type": string;
+    format?: string;
+    height?: number;
+    width?: number;
+  };
   sequences: Array<{
     "@id": string;
     "@type": string;
@@ -31,9 +40,16 @@ interface IIIFV2Manifest {
     canvases: Array<{
       "@id": string;
       "@type": string;
-      label: string | { [key: string]: string[] };
+      label: IIIFV2Label;
       height: number;
       width: number;
+      thumbnail?: {
+        "@id": string;
+        "@type": string;
+        format?: string;
+        height?: number;
+        width?: number;
+      };
       images: Array<{
         "@id": string;
         "@type": string;
@@ -55,8 +71,8 @@ interface IIIFV2Manifest {
     }>;
   }>;
   metadata?: Array<{
-    label: string | { [key: string]: string[] };
-    value: string | { [key: string]: string[] };
+    label: IIIFV2Label;
+    value: IIIFV2Label;
   }>;
   attribution?: string;
   license?: string;
@@ -66,11 +82,28 @@ interface IIIFV2Manifest {
 // Convert IIIF v3 to v2 format
 function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
   
+  // Convert v3 label format to v2 format
+  const convertLabel = (v3Label: string | { [key: string]: string[] }): IIIFV2Label => {
+    if (typeof v3Label === 'string') {
+      return v3Label;
+    }
+    const result = [];
+    for (const [lang, values] of Object.entries(v3Label)) {
+      if (values && values.length > 0) {
+        result.push({
+          "@language": lang,
+          "@value": values[0]
+        });
+      }
+    }
+    return result.length > 0 ? result : "";
+  };
+  
   const v2Manifest: IIIFV2Manifest = {
     "@context": "http://iiif.io/api/presentation/2/context.json",
     "@id": v3Manifest.id.replace('/api/iiif/3/', '/api/iiif/2/'),
     "@type": "sc:Manifest",
-    "label": v3Manifest.label,
+    "label": convertLabel(v3Manifest.label),
     "sequences": [
       {
         "@id": `${v3Manifest.id.replace('/api/iiif/3/', '/api/iiif/2/')}/sequence/normal`,
@@ -83,7 +116,10 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
 
   // Add metadata if present
   if (v3Manifest.metadata) {
-    v2Manifest.metadata = v3Manifest.metadata;
+    v2Manifest.metadata = v3Manifest.metadata.map(item => ({
+      label: convertLabel(item.label),
+      value: convertLabel(item.value)
+    }));
   }
 
   // Add attribution if present
@@ -107,17 +143,41 @@ function convertToV2Manifest(v3Manifest: IIIFManifest): IIIFV2Manifest {
     }
   }
 
+  // Add thumbnail if present
+  if (v3Manifest.thumbnail && v3Manifest.thumbnail.length > 0) {
+    const thumb = v3Manifest.thumbnail[0];
+    v2Manifest.thumbnail = {
+      "@id": thumb.id,
+      "@type": "dctypes:Image",
+      "format": thumb.format || "image/jpeg",
+      "height": thumb.height,
+      "width": thumb.width
+    };
+  }
+
   // Convert canvases
   if (v3Manifest.items && v3Manifest.items.length > 0) {
     v2Manifest.sequences[0].canvases = v3Manifest.items.map((canvas) => {
-      const v2Canvas = {
+      const v2Canvas: IIIFV2Manifest['sequences'][0]['canvases'][0] = {
         "@id": canvas.id.replace('/api/iiif/3/', '/api/iiif/2/'),
         "@type": "sc:Canvas",
-        "label": canvas.label,
+        "label": convertLabel(canvas.label),
         "height": canvas.height,
         "width": canvas.width,
         "images": []
       };
+
+      // Add canvas thumbnail if present
+      if (canvas.thumbnail && canvas.thumbnail.length > 0) {
+        const thumb = canvas.thumbnail[0];
+        v2Canvas.thumbnail = {
+          "@id": thumb.id,
+          "@type": "dctypes:Image",
+          "format": thumb.format || "image/jpeg",
+          "height": thumb.height,
+          "width": thumb.width
+        };
+      }
 
       // Convert painting annotations to images
       if (canvas.items?.[0]?.items?.[0]) {

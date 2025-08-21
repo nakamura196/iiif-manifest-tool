@@ -19,12 +19,26 @@ export interface IIIFManifest {
   type: 'Manifest';
   label: { [key: string]: string[] };
   summary?: { [key: string]: string[] };
+  thumbnail?: Array<{
+    id: string;
+    type: 'Image';
+    format: string;
+    width?: number;
+    height?: number;
+  }>;
   items: Array<{
     id: string;
     type: 'Canvas';
     label: { [key: string]: string[] };
     height: number;
     width: number;
+    thumbnail?: Array<{
+      id: string;
+      type: 'Image';
+      format: string;
+      width?: number;
+      height?: number;
+    }>;
     items: Array<{
       id: string;
       type: 'AnnotationPage';
@@ -96,8 +110,11 @@ export async function createIIIFManifest(
   description: string | undefined,
   images: Array<{
     url: string;
+    thumbnailUrl?: string;
     width: number;
     height: number;
+    thumbnailWidth?: number;
+    thumbnailHeight?: number;
     mimeType?: string;
     isIIIF?: boolean;
     iiifBaseUrl?: string;
@@ -131,6 +148,15 @@ export async function createIIIFManifest(
       ja: [title],
       en: [title]
     },
+    thumbnail: images[0] ? [
+      {
+        id: images[0].thumbnailUrl || images[0].url,
+        type: 'Image' as const,
+        format: images[0].mimeType || 'image/jpeg',
+        width: images[0].thumbnailWidth || images[0].width,
+        height: images[0].thumbnailHeight || images[0].height
+      }
+    ] : undefined,
     items: images.map((img, index) => {
       const canvasId = `${s3ManifestUrl}/canvas/${index}`;
       
@@ -146,6 +172,15 @@ export async function createIIIFManifest(
         },
         height: img.height,
         width: img.width,
+        thumbnail: [
+          {
+            id: img.thumbnailUrl || img.url,
+            type: 'Image' as const,
+            format: img.mimeType || 'image/jpeg',
+            width: img.thumbnailWidth || img.width,
+            height: img.thumbnailHeight || img.height
+          }
+        ],
         items: [
           {
             id: `${canvasId}/page`,
@@ -282,8 +317,15 @@ export async function listCollectionItems(
             m => m.label.ja?.[0] === '作成日' || m.label.en?.[0] === 'Created'
           )?.value.ja?.[0] || new Date().toISOString();
 
-          // Get thumbnail from first image
-          let thumbnail = manifest.items[0]?.items[0]?.items[0]?.body?.id;
+          // Get thumbnail from manifest or first canvas thumbnail or first image
+          let thumbnail: string | undefined;
+          if (manifest.thumbnail && manifest.thumbnail.length > 0) {
+            thumbnail = manifest.thumbnail[0].id;
+          } else if (manifest.items[0]?.thumbnail && manifest.items[0].thumbnail.length > 0) {
+            thumbnail = manifest.items[0].thumbnail[0].id;
+          } else {
+            thumbnail = manifest.items[0]?.items[0]?.items[0]?.body?.id;
+          }
           const isPublic = manifest['x-access']?.isPublic ?? true;
           
           // Use new IIIF URL structure for manifest
@@ -330,8 +372,11 @@ export async function updateIIIFManifest(
   description: string | undefined,
   images: Array<{
     url: string;
+    thumbnailUrl?: string;
     width: number;
     height: number;
+    thumbnailWidth?: number;
+    thumbnailHeight?: number;
     mimeType?: string;
     isIIIF?: boolean;
     iiifBaseUrl?: string;
@@ -395,6 +440,15 @@ export async function updateIIIFManifest(
         ja: [title],
         en: [title]
       },
+      thumbnail: images[0] ? [
+        {
+          id: images[0].thumbnailUrl || images[0].url,
+          type: 'Image' as const,
+          format: images[0].mimeType || 'image/jpeg',
+          width: images[0].thumbnailWidth || images[0].width,
+          height: images[0].thumbnailHeight || images[0].height
+        }
+      ] : undefined,
       items: images.map((img, index) => {
         const canvasId = `${s3ManifestUrl}/canvas/${index}`;
         
@@ -407,6 +461,15 @@ export async function updateIIIFManifest(
           },
           height: img.height,
           width: img.width,
+          thumbnail: [
+            {
+              id: img.thumbnailUrl || img.url,
+              type: 'Image' as const,
+              format: img.mimeType || 'image/jpeg',
+              width: img.thumbnailWidth || img.width,
+              height: img.thumbnailHeight || img.height
+            }
+          ],
           items: [
             {
               id: `${canvasId}/page`,

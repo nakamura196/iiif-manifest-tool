@@ -31,16 +31,35 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split('.').pop();
     const fileName = `${uuidv4()}.${fileExtension}`;
     const key = `images/${session.user.id}/${fileName}`;
+    const thumbnailKey = `images/${session.user.id}/thumbnails/${fileName}`;
 
-    // Upload to S3
-    const url = await uploadToS3(key, buffer, file.type);
+    // Create thumbnail (max 400px on longest side, maintaining aspect ratio)
+    const thumbnailBuffer = await sharp(buffer)
+      .resize(400, 400, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+    
+    const thumbnailMetadata = await sharp(thumbnailBuffer).metadata();
+
+    // Upload both original and thumbnail to S3
+    const [url, thumbnailUrl] = await Promise.all([
+      uploadToS3(key, buffer, file.type),
+      uploadToS3(thumbnailKey, thumbnailBuffer, 'image/jpeg')
+    ]);
 
     return NextResponse.json({
       url,
+      thumbnailUrl,
       width: metadata.width,
       height: metadata.height,
+      thumbnailWidth: thumbnailMetadata.width,
+      thumbnailHeight: thumbnailMetadata.height,
       mimeType: file.type,
       key,
+      thumbnailKey,
     });
   } catch (error) {
     console.error('Upload error:', error);

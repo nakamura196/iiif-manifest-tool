@@ -37,8 +37,11 @@ export default function CollectionPage({ params }: PageProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   interface UploadedImage {
     url: string;
+    thumbnailUrl?: string;
     width: number;
     height: number;
+    thumbnailWidth?: number;
+    thumbnailHeight?: number;
     mimeType: string;
     infoJson?: string;
     isIIIF?: boolean;

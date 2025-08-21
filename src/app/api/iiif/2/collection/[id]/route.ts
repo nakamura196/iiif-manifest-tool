@@ -7,25 +7,27 @@ interface RouteParams {
   params: Promise<{ id: string }>;
 }
 
+type IIIFV2Label = string | Array<{ "@language": string; "@value": string }>;
+
 interface IIIFV2Collection {
   "@context": string;
   "@id": string;
   "@type": string;
-  label: string | { [key: string]: string[] };
+  label: IIIFV2Label;
   description?: string;
   manifests?: Array<{
     "@id": string;
     "@type": string;
-    label: string | { [key: string]: string[] };
+    label: IIIFV2Label;
   }>;
   collections?: Array<{
     "@id": string;
     "@type": string;
-    label: string | { [key: string]: string[] };
+    label: IIIFV2Label;
   }>;
   metadata?: Array<{
-    label: string | { [key: string]: string[] };
-    value: string | { [key: string]: string[] };
+    label: IIIFV2Label;
+    value: IIIFV2Label;
   }>;
   attribution?: string;
   license?: string;
@@ -51,11 +53,28 @@ interface V3Collection {
 // Convert IIIF v3 collection to v2 format
 function convertToV2Collection(v3Collection: V3Collection): IIIFV2Collection {
   
+  // Convert v3 label format to v2 format
+  const convertLabel = (v3Label: string | { [key: string]: string[] }): IIIFV2Label => {
+    if (typeof v3Label === 'string') {
+      return v3Label;
+    }
+    const result = [];
+    for (const [lang, values] of Object.entries(v3Label)) {
+      if (values && values.length > 0) {
+        result.push({
+          "@language": lang,
+          "@value": values[0]
+        });
+      }
+    }
+    return result.length > 0 ? result : "";
+  };
+  
   const v2Collection: IIIFV2Collection = {
     "@context": "http://iiif.io/api/presentation/2/context.json",
     "@id": v3Collection.id.replace('/api/iiif/3/', '/api/iiif/2/'),
     "@type": "sc:Collection",
-    "label": v3Collection.label,
+    "label": convertLabel(v3Collection.label),
   };
 
   // Add description if present
@@ -71,7 +90,10 @@ function convertToV2Collection(v3Collection: V3Collection): IIIFV2Collection {
 
   // Add metadata
   if (v3Collection.metadata) {
-    v2Collection.metadata = v3Collection.metadata;
+    v2Collection.metadata = v3Collection.metadata.map(item => ({
+      label: convertLabel(item.label),
+      value: convertLabel(item.value)
+    }));
   }
 
   // Add attribution
@@ -91,7 +113,7 @@ function convertToV2Collection(v3Collection: V3Collection): IIIFV2Collection {
       .map((item) => ({
         "@id": item.id.replace('/api/iiif/', '/api/iiif/2/'),
         "@type": "sc:Manifest",
-        "label": item.label
+        "label": convertLabel(item.label)
       }));
   }
 
