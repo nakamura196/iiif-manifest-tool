@@ -1,72 +1,76 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import { FiImage, FiUpload, FiLock, FiGlobe } from 'react-icons/fi';
+import { FiImage, FiUpload, FiLock, FiGlobe, FiArrowRight } from 'react-icons/fi';
+import Link from 'next/link';
 
 export default function HomePage() {
   const { data: session } = useSession();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (session) {
-      router.push('/ja/dashboard');
-    }
-  }, [session, router]);
 
   return (
     <main className="container mx-auto px-4 py-16">
       <div className="max-w-4xl mx-auto text-center">
         <h1 className="text-5xl font-bold mb-6">
-          IIIF Manifest Tool
+          画像コレクション管理ツール
         </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-400 mb-12">
-          画像をドラッグ&ドロップしてIIIFマニフェストを簡単作成
+        <p className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+          画像をまとめて整理・公開・共有できるサービス
         </p>
+
+        {session ? (
+          <div className="mb-12">
+            <Link
+              href="/ja/dashboard"
+              className="inline-flex items-center gap-2 px-8 py-4 bg-blue-500 text-white text-lg rounded-lg hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
+            >
+              ダッシュボードへ
+              <FiArrowRight />
+            </Link>
+          </div>
+        ) : null}
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
             <FiUpload className="text-4xl text-blue-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">簡単アップロード</h3>
+            <h3 className="text-lg font-semibold mb-2">かんたん操作</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              画像をドラッグ&ドロップするだけで、mdxオブジェクトストレージにアップロード
+              画像をドラッグ&ドロップするだけで、クラウドに保存して整理
             </p>
           </div>
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
             <FiImage className="text-4xl text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">IIIF対応</h3>
+            <h3 className="text-lg font-semibold mb-2">美術館品質</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              IIIF Presentation API 3.0準拠のマニフェストを自動生成
+              世界の美術館・図書館で使われている国際規格（IIIF）に対応
             </p>
           </div>
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
             <FiLock className="text-4xl text-purple-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">アクセス制御</h3>
+            <h3 className="text-lg font-semibold mb-2">安全な共有</h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
-              公開/非公開の設定とIIIF Auth APIによる認証機能
+              公開・非公開を選択でき、大切な画像を安全に管理
             </p>
           </div>
         </div>
 
         <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-8">
-          <h2 className="text-2xl font-bold mb-4">機能</h2>
+          <h2 className="text-2xl font-bold mb-4">こんな方におすすめ</h2>
           <ul className="text-left max-w-2xl mx-auto space-y-3">
             <li className="flex items-start">
               <FiGlobe className="mr-3 mt-1 text-blue-500 shrink-0" />
-              <span>Googleアカウントでログインして、個人のコレクションを管理</span>
+              <span>研究資料や作品集を整理して公開したい研究者・アーティスト</span>
             </li>
             <li className="flex items-start">
               <FiGlobe className="mr-3 mt-1 text-blue-500 shrink-0" />
-              <span>画像URL、IIIF info.jsonからも画像を追加可能</span>
+              <span>デジタルアーカイブを構築したい図書館・博物館・美術館</span>
             </li>
             <li className="flex items-start">
               <FiGlobe className="mr-3 mt-1 text-blue-500 shrink-0" />
-              <span>コレクションとアイテム単位での整理</span>
+              <span>写真コレクションを整理して共有したい個人の方</span>
             </li>
             <li className="flex items-start">
               <FiGlobe className="mr-3 mt-1 text-blue-500 shrink-0" />
-              <span>マニフェストURLをコピーして外部ビューアで表示</span>
+              <span>高品質な画像ビューアで作品を展示したいクリエイター</span>
             </li>
           </ul>
         </div>

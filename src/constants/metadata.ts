@@ -1,11 +1,11 @@
 export const SITE_CONFIG = {
   name: {
-    ja: 'IIIF Manifest Tool',
-    en: 'IIIF Manifest Tool',
+    ja: '画像コレクション管理ツール',
+    en: 'Image Collection Manager',
   },
   description: {
-    ja: 'IIIF（International Image Interoperability Framework）に準拠したマニフェストを生成・管理するツール',
-    en: 'A tool for generating and managing IIIF (International Image Interoperability Framework) compliant manifests',
+    ja: '画像をまとめて整理・公開・共有できるサービス。美術館品質の国際規格IIIF対応',
+    en: 'Service for organizing, publishing, and sharing image collections with museum-quality IIIF standard support',
   },
   url: process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com',
   ogImage: {
@@ -18,8 +18,8 @@ export const SITE_CONFIG = {
     creator: '@yourcreator',
   },
   keywords: {
-    ja: 'IIIF, マニフェスト, 画像, デジタルアーカイブ, 国際標準',
-    en: 'IIIF, manifest, images, digital archive, international standard',
+    ja: '画像管理, コレクション, IIIF, デジタルアーカイブ, 画像共有, 美術館, 博物館, 図書館',
+    en: 'image management, collection, IIIF, digital archive, image sharing, museum, library, gallery',
   },
 } as const;
 

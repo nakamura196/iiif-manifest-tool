@@ -1,13 +1,13 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, use, useCallback } from 'react';
+import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageUploader from '@/components/ImageUploader';
 import AuthTokenModal from '@/components/AuthTokenModal';
 import ItemEditModal from '@/components/ItemEditModal';
 import CollectionEditModal from '@/components/CollectionEditModal';
-import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical } from 'react-icons/fi';
 import Link from 'next/link';
 
 interface Item {
@@ -59,6 +59,10 @@ export default function CollectionPage({ params }: PageProps) {
   const [showCollectionEditModal, setShowCollectionEditModal] = useState(false);
   const [collectionName, setCollectionName] = useState<string>('コレクション');
   const [collectionDescription, setCollectionDescription] = useState<string>('');
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [showItemDropdown, setShowItemDropdown] = useState<string | null>(null);
+  const itemDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   const fetchCollectionData = useCallback(async () => {
     try {
@@ -99,6 +103,39 @@ export default function CollectionPage({ params }: PageProps) {
       fetchItems();
     }
   }, [session, fetchItems, fetchCollectionData]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+
+    if (showDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showDropdown]);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (showItemDropdown) {
+        const dropdownRef = itemDropdownRefs.current[showItemDropdown];
+        if (dropdownRef && !dropdownRef.contains(event.target as Node)) {
+          setShowItemDropdown(null);
+        }
+      }
+    }
+
+    if (showItemDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }
+  }, [showItemDropdown]);
 
   const handleUpload = async (files: File[]) => {
     setUploading(true);
@@ -265,45 +302,61 @@ export default function CollectionPage({ params }: PageProps) {
           Self Museum
         </button>
         <button
-          onClick={() => {
-            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
-            const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
-            const encodedUrl = encodeURIComponent(collectionUrl);
-            const miradorUrl = `/mirador/index.html?manifest=${encodedUrl}`;
-            window.open(miradorUrl, '_blank');
-          }}
-          className="flex items-center gap-2 px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-          title="Miradorで表示"
-        >
-          <FiBook />
-          Mirador
-        </button>
-        <button
-          onClick={() => {
-            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
-            const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
-            window.open(collectionUrl, '_blank');
-          }}
-          className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          title="コレクションJSON"
-        >
-          <FiEye />
-          JSON
-        </button>
-        <button
-          onClick={() => setShowCollectionEditModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-        >
-          <FiSettings />
-          コレクション設定
-        </button>
-        <button
           onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
         >
           <FiPlus />
           新規アイテム
         </button>
+        <div className="relative" ref={dropdownRef}>
+          <button
+            onClick={() => setShowDropdown(!showDropdown)}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+            title="その他のオプション"
+          >
+            <FiMoreVertical className="text-xl" />
+          </button>
+          {showDropdown && (
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-10">
+              <button
+                onClick={() => {
+                  const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
+                  const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
+                  const encodedUrl = encodeURIComponent(collectionUrl);
+                  const miradorUrl = `/mirador/index.html?manifest=${encodedUrl}`;
+                  window.open(miradorUrl, '_blank');
+                  setShowDropdown(false);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+              >
+                <FiBook />
+                ビューアで見る
+              </button>
+              <button
+                onClick={() => {
+                  const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
+                  const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
+                  window.open(collectionUrl, '_blank');
+                  setShowDropdown(false);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+              >
+                <FiEye />
+                データをエクスポート
+              </button>
+              <button
+                onClick={() => {
+                  setShowCollectionEditModal(true);
+                  setShowDropdown(false);
+                }}
+                className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+              >
+                <FiSettings />
+                コレクション設定
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {collectionDescription && (
@@ -352,66 +405,89 @@ export default function CollectionPage({ params }: PageProps) {
                     {item.description}
                   </p>
                 )}
-                <div className="flex gap-2 flex-wrap">
-                  <button
-                    onClick={() => openInMirador(item)}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded hover:bg-green-200 dark:hover:bg-green-800"
-                  >
-                    <FiBook />
-                    Mirador
-                  </button>
-                  <button
-                    onClick={() => {
-                      const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
-                      const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
-                      window.open(manifestUrl, '_blank');
-                    }}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    <FiEye />
-                    JSON
-                  </button>
-                  <button
-                    onClick={() => {
-                      const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
-                      const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
-                      navigator.clipboard.writeText(manifestUrl);
-                      // You can add a toast notification here
-                    }}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
-                  >
-                    <FiCopy />
-                    URL
-                  </button>
+                <div className="flex gap-2 items-center">
                   <button
                     onClick={() => {
                       setEditingItemId(item.id);
                       setShowEditModal(true);
                     }}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-800"
+                    className="flex-1 flex items-center justify-center gap-1 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
                     <FiEdit2 />
                     編集
                   </button>
-                  <button
-                    onClick={() => handleDelete(item.id)}
-                    className="flex items-center gap-1 px-3 py-1 text-sm bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded hover:bg-red-200 dark:hover:bg-red-800"
-                  >
-                    <FiTrash2 />
-                    削除
-                  </button>
-                  {!item.isPublic && (
+                  <div className="relative" ref={el => { itemDropdownRefs.current[item.id] = el; }}>
                     <button
-                      onClick={() => {
-                        setSelectedItem(item);
-                        setShowAuthModal(true);
-                      }}
-                      className="flex items-center gap-1 px-3 py-1 text-sm bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded hover:bg-purple-200 dark:hover:bg-purple-800"
+                      onClick={() => setShowItemDropdown(showItemDropdown === item.id ? null : item.id)}
+                      className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
+                      title="その他のオプション"
                     >
-                      <FiKey />
-                      認証
+                      <FiMoreVertical />
                     </button>
-                  )}
+                    {showItemDropdown === item.id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-10">
+                        <button
+                          onClick={() => {
+                            openInMirador(item);
+                            setShowItemDropdown(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
+                        >
+                          <FiBook />
+                          ビューアで見る
+                        </button>
+                        <button
+                          onClick={() => {
+                            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
+                            const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
+                            window.open(manifestUrl, '_blank');
+                            setShowItemDropdown(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
+                        >
+                          <FiEye />
+                          データをエクスポート
+                        </button>
+                        <button
+                          onClick={() => {
+                            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
+                            const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
+                            navigator.clipboard.writeText(manifestUrl);
+                            setShowItemDropdown(null);
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
+                        >
+                          <FiCopy />
+                          URLをコピー
+                        </button>
+                        {!item.isPublic && (
+                          <button
+                            onClick={() => {
+                              setSelectedItem(item);
+                              setShowAuthModal(true);
+                              setShowItemDropdown(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm"
+                          >
+                            <FiKey />
+                            認証設定
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            if (confirm(`「${item.title}」を削除してもよろしいですか？`)) {
+                              handleDelete(item.id);
+                              setShowItemDropdown(null);
+                            }
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm text-red-600 dark:text-red-400"
+                        >
+                          <FiTrash2 />
+                          削除
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

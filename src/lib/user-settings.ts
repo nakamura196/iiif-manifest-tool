@@ -32,8 +32,8 @@ const DEFAULT_SETTINGS: UserSettings = {
     en: 'My Collections'
   },
   publicCollectionDescription: {
-    ja: 'あなたのIIIFコレクションとマニフェストを管理できます',
-    en: 'Manage your IIIF collections and manifests'
+    ja: 'あなたの画像コレクションを管理できます',
+    en: 'Manage your image collections'
   }
 };
 
