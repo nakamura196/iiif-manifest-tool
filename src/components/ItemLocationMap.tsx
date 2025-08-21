@@ -1,16 +1,8 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-// Fix for default markers in Next.js
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: '/leaflet/marker-icon-2x.png',
-  iconUrl: '/leaflet/marker-icon.png',
-  shadowUrl: '/leaflet/marker-shadow.png',
-});
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 
 interface ItemLocationMapProps {
   latitude: number;
@@ -20,63 +12,95 @@ interface ItemLocationMapProps {
 }
 
 export default function ItemLocationMap({ latitude, longitude, label, onChange }: ItemLocationMapProps) {
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     // Initialize map
     if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current).setView([latitude, longitude], 13);
+      mapRef.current = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: {
+          version: 8,
+          sources: {
+            'osm-tiles': {
+              type: 'raster',
+              tiles: [
+                'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+              ],
+              tileSize: 256,
+              attribution: '© OpenStreetMap contributors'
+            }
+          },
+          layers: [
+            {
+              id: 'osm-tiles',
+              type: 'raster',
+              source: 'osm-tiles',
+              minzoom: 0,
+              maxzoom: 19
+            }
+          ]
+        },
+        center: [longitude, latitude],
+        zoom: 13,
+      });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
-      }).addTo(mapRef.current);
+      // Add navigation controls
+      mapRef.current.addControl(new maplibregl.NavigationControl(), 'top-right');
 
       // Add marker
-      markerRef.current = L.marker([latitude, longitude], {
+      markerRef.current = new maplibregl.Marker({
         draggable: !!onChange,
-      }).addTo(mapRef.current);
+        color: '#3B82F6', // Blue color
+      })
+        .setLngLat([longitude, latitude])
+        .addTo(mapRef.current);
 
+      // Add popup if label exists
       if (label) {
-        markerRef.current.bindPopup(label).openPopup();
+        const popup = new maplibregl.Popup({ offset: 25 })
+          .setText(label);
+        markerRef.current.setPopup(popup);
       }
 
       // Handle marker drag
       if (onChange && markerRef.current) {
-        markerRef.current.on('dragend', (e) => {
-          const marker = e.target;
-          const position = marker.getLatLng();
-          onChange(position.lat, position.lng);
+        markerRef.current.on('dragend', () => {
+          if (markerRef.current) {
+            const lngLat = markerRef.current.getLngLat();
+            onChange(lngLat.lat, lngLat.lng);
+          }
         });
       }
 
       // Handle map click to move marker
       if (onChange) {
         mapRef.current.on('click', (e) => {
-          const { lat, lng } = e.latlng;
+          const { lng, lat } = e.lngLat;
           if (markerRef.current) {
-            markerRef.current.setLatLng([lat, lng]);
+            markerRef.current.setLngLat([lng, lat]);
             onChange(lat, lng);
           }
         });
       }
     } else {
       // Update existing map
-      mapRef.current.setView([latitude, longitude], mapRef.current.getZoom());
+      mapRef.current.setCenter([longitude, latitude]);
       if (markerRef.current) {
-        markerRef.current.setLatLng([latitude, longitude]);
+        markerRef.current.setLngLat([longitude, latitude]);
+        
+        // Update popup if label changed
         if (label) {
-          markerRef.current.bindPopup(label);
+          const popup = new maplibregl.Popup({ offset: 25 })
+            .setText(label);
+          markerRef.current.setPopup(popup);
         }
       }
     }
-
-    return () => {
-      // Don't destroy the map on every render
-    };
   }, [latitude, longitude, label, onChange]);
 
   // Cleanup on unmount
@@ -92,9 +116,9 @@ export default function ItemLocationMap({ latitude, longitude, label, onChange }
 
   return (
     <div className="relative h-full w-full">
-      <div ref={mapContainerRef} className="h-full w-full" />
+      <div ref={mapContainerRef} className="h-full w-full rounded-lg" />
       {onChange && (
-        <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-lg text-sm z-[1000]">
+        <div className="absolute bottom-4 left-4 bg-white dark:bg-gray-800 px-3 py-2 rounded-lg shadow-lg text-sm z-10">
           <p className="text-gray-600 dark:text-gray-400">
             地図をクリックまたはマーカーをドラッグして位置を変更
           </p>

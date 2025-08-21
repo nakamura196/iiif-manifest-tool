@@ -70,7 +70,7 @@ interface ImageData {
 
 export default function ItemEditPage({ params }: ItemEditPageProps) {
   const resolvedParams = use(params);
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   
   const [loading, setLoading] = useState(true);

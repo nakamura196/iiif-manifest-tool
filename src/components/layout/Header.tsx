@@ -2,7 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe } from 'react-icons/fi';
+import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu } from 'react-icons/fi';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter, usePathname } from 'next/navigation';
@@ -11,7 +11,9 @@ import { useLocale } from 'next-intl';
 const Header = () => {
   const { data: session, status } = useSession();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -29,16 +31,19 @@ const Header = () => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setIsSettingsOpen(false);
+      }
     };
 
-    if (isMenuOpen) {
+    if (isMenuOpen || isSettingsOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isMenuOpen]);
+  }, [isMenuOpen, isSettingsOpen]);
 
   const toggleLanguage = () => {
     const newLocale = locale === 'ja' ? 'en' : 'ja';
@@ -171,33 +176,57 @@ const Header = () => {
             )}
           </div>
         ) : (
-          <div className="flex items-center space-x-1 sm:space-x-2">
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => signIn('google')}
-              className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-1 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
             >
-              <FiLogIn className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="text-xs sm:text-sm hidden sm:inline">ログイン</span>
+              <FiLogIn className="w-5 h-5" />
+              <span className="text-sm">ログイン</span>
             </button>
             
-            {/* ログイン前は外に表示 */}
-            {mounted && (
+            {/* 設定メニュー（ハンバーガー） */}
+            <div className="relative" ref={settingsRef}>
               <button
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                aria-label="テーマ切り替え"
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+                aria-label="設定メニュー"
               >
-                {theme === 'dark' ? <FiSun className="w-4 h-4 sm:w-5 sm:h-5" /> : <FiMoon className="w-4 h-4 sm:w-5 sm:h-5" />}
+                <FiMenu className="w-5 h-5" />
               </button>
-            )}
-            
-            <button
-              onClick={toggleLanguage}
-              className="p-1.5 sm:p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-              aria-label="言語切り替え"
-            >
-              <FiGlobe className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+              
+              {isSettingsOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
+                  {mounted && (
+                    <button
+                      onClick={() => {
+                        setTheme(theme === 'dark' ? 'light' : 'dark');
+                        setIsSettingsOpen(false);
+                      }}
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
+                    >
+                      {theme === 'dark' ? (
+                        <FiSun className="w-4 h-4" />
+                      ) : (
+                        <FiMoon className="w-4 h-4" />
+                      )}
+                      <span>{theme === 'dark' ? 'ライトモード' : 'ダークモード'}</span>
+                    </button>
+                  )}
+                  
+                  <button
+                    onClick={() => {
+                      toggleLanguage();
+                      setIsSettingsOpen(false);
+                    }}
+                    className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left"
+                  >
+                    <FiGlobe className="w-4 h-4" />
+                    <span>{locale === 'ja' ? 'English' : '日本語'}</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

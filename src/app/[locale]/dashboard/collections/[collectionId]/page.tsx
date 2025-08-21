@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import ImageUploader from '@/components/ImageUploader';
 import AuthTokenModal from '@/components/AuthTokenModal';
-import ItemEditModal from '@/components/ItemEditModal';
 import CollectionEditModal from '@/components/CollectionEditModal';
 import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid } from 'react-icons/fi';
 import Link from 'next/link';
@@ -66,8 +65,6 @@ export default function CollectionPage({ params }: PageProps) {
   const [uploading, setUploading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [showCollectionEditModal, setShowCollectionEditModal] = useState(false);
   const [collectionName, setCollectionName] = useState<string>('コレクション');
   const [collectionDescription, setCollectionDescription] = useState<string>('');
@@ -248,12 +245,9 @@ export default function CollectionPage({ params }: PageProps) {
 
       if (response.ok) {
         const newItem = await response.json();
-        setItems([newItem, ...items]);
-        setShowCreateModal(false);
-        setItemTitle('');
-        setItemDescription('');
-        setItemIsPublic(true);
-        setUploadedImages([]);
+        // 編集ページへ遷移
+        const locale = window.location.pathname.split('/')[1] || 'ja';
+        router.push(`/${locale}/dashboard/collections/${resolvedParams.collectionId}/items/${newItem.id}/edit`);
       }
     } catch (error) {
       console.error('Error creating item:', error);
@@ -439,8 +433,8 @@ export default function CollectionPage({ params }: PageProps) {
               label: item.location?.label
             }))}
             onItemClick={(itemId) => {
-              setEditingItemId(itemId);
-              setShowEditModal(true);
+              const locale = window.location.pathname.split('/')[1] || 'ja';
+              router.push(`/${locale}/dashboard/collections/${resolvedParams.collectionId}/items/${itemId}/edit`);
             }}
           />
         </div>
@@ -475,8 +469,8 @@ export default function CollectionPage({ params }: PageProps) {
                 <div className="flex gap-2 items-center">
                   <button
                     onClick={() => {
-                      setEditingItemId(item.id);
-                      setShowEditModal(true);
+                      const locale = window.location.pathname.split('/')[1] || 'ja';
+                      router.push(`/${locale}/dashboard/collections/${resolvedParams.collectionId}/items/${item.id}/edit`);
                     }}
                     className="flex-1 flex items-center justify-center gap-1 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
                   >
@@ -672,21 +666,6 @@ export default function CollectionPage({ params }: PageProps) {
           onClose={() => {
             setShowAuthModal(false);
             setSelectedItem(null);
-          }}
-        />
-      )}
-
-      {showEditModal && editingItemId && (
-        <ItemEditModal
-          itemId={editingItemId}
-          collectionId={resolvedParams.collectionId}
-          ownerId={session?.user?.id}
-          onClose={() => {
-            setShowEditModal(false);
-            setEditingItemId(null);
-          }}
-          onUpdate={() => {
-            fetchItems();
           }}
         />
       )}

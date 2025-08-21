@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FiX, FiTrash2, FiEdit2, FiSettings, FiPlus } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
+import { FiX, FiTrash2, FiEdit2, FiSettings, FiPlus, FiExternalLink } from 'react-icons/fi';
 import ImageUploader from './ImageUploader';
 import ImageAccessControl from './ImageAccessControl';
 
@@ -45,6 +46,7 @@ interface ManifestMetadata {
 }
 
 export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, onUpdate }: ItemEditModalProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
@@ -570,20 +572,33 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
         </div>
 
         <div className="flex-shrink-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 sm:p-6">
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-between">
             <button
-              onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              onClick={() => {
+                // Navigate to detail edit page
+                const locale = window.location.pathname.split('/')[1] || 'ja';
+                router.push(`/${locale}/dashboard/collections/${collectionId}/items/${itemId}/edit`);
+              }}
+              className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
             >
-              キャンセル
+              <FiExternalLink />
+              詳細編集
             </button>
-            <button
-              onClick={handleSave}
-              disabled={!title || images.length === 0 || saving || uploading}
-              className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
-            >
-              {saving ? '保存中...' : '保存'}
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={!title || images.length === 0 || saving || uploading}
+                className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
+              >
+                {saving ? '保存中...' : '保存'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

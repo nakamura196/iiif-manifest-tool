@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { FiX, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { useRouter } from 'next/navigation';
+import { FiX, FiPlus, FiTrash2, FiExternalLink } from 'react-icons/fi';
 
 interface CollectionEditModalProps {
   collectionId: string;
