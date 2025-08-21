@@ -22,7 +22,7 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
   const [creatingMessage, setCreatingMessage] = useState('');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(true);
 
   const handleCreate = async () => {
     if (!name.trim()) return;
