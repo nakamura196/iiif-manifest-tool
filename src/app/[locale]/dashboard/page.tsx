@@ -100,14 +100,14 @@ export default function DashboardPage() {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              // Create a v2 collection URL that includes all user's collections
+              // Create a v2 public collection URL
               const userId = session?.user?.id;
-              const baseUrl = `${window.location.origin}/api/iiif/2/user/${userId}/collections`;
+              const baseUrl = `${window.location.origin}/api/iiif/2/public/${userId}/collections`;
               const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(baseUrl)}`;
               window.open(selfMuseumUrl, '_blank');
             }}
             className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
-            title="Self Museumで全コレクションを表示"
+            title="Self Museumで公開コレクションを表示"
           >
             <FiExternalLink />
             Self Museum
@@ -115,11 +115,11 @@ export default function DashboardPage() {
           <button
             onClick={() => {
               const userId = session?.user?.id;
-              const jsonUrl = `${window.location.origin}/api/iiif/2/user/${userId}/collections`;
+              const jsonUrl = `${window.location.origin}/api/iiif/2/public/${userId}/collections`;
               window.open(jsonUrl, '_blank');
             }}
             className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-            title="コレクション一覧JSONを表示"
+            title="公開コレクション一覧JSONを表示"
           >
             <FiEye />
             JSON

@@ -40,27 +40,37 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { userId } = await params;
     const session = await getServerSession(authOptions);
     
-    // Allow access to own collections
+    // Allow access to own collections or when accessing without authentication
     const isOwner = session?.user?.id === userId;
     
-    if (!isOwner) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // For now, allow public access to user collections for Self Museum
+    // In the future, you might want to check if collections are public
+    // if (!isOwner) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
     
-    // Get all collections for the current user
-    const collectionsResponse = await fetch(`${baseUrl}/api/collections`, {
-      headers: {
-        cookie: request.headers.get('cookie') || '',
-      },
-    });
+    // Get collections based on whether the user is authenticated
+    let collections = [];
     
-    if (!collectionsResponse.ok) {
-      throw new Error('Failed to fetch collections');
+    if (isOwner && session) {
+      // If owner, get all collections using authenticated endpoint
+      const collectionsResponse = await fetch(`${baseUrl}/api/collections`, {
+        headers: {
+          cookie: request.headers.get('cookie') || '',
+        },
+      });
+      
+      if (collectionsResponse.ok) {
+        collections = await collectionsResponse.json();
+      }
+    } else {
+      // For public access, we need to get public collections
+      // For now, return empty since we don't have a public collections endpoint
+      // TODO: Create an endpoint to fetch public collections for a user
+      collections = [];
     }
-    
-    const collections = await collectionsResponse.json();
     
     // Fetch all collections with their manifests
     const collectionsWithManifests = await Promise.all(
@@ -122,11 +132,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       "label": [
         {
           "@language": "ja",
-          "@value": `${session.user.name || session.user.email}のコレクション`
+          "@value": `${session?.user?.name || session?.user?.email || `ユーザー ${userId}`}のコレクション`
         },
         {
           "@language": "en",
-          "@value": `${session.user.name || session.user.email}'s Collections`
+          "@value": `${session?.user?.name || session?.user?.email || `User ${userId}`}'s Collections`
         }
       ],
       "description": "ユーザーのすべてのコレクション / All collections by this user",
@@ -138,8 +148,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             { "@language": "en", "@value": "Owner" }
           ],
           "value": [
-            { "@language": "ja", "@value": session.user.name || session.user.email || "" },
-            { "@language": "en", "@value": session.user.name || session.user.email || "" }
+            { "@language": "ja", "@value": session?.user?.name || session?.user?.email || `ユーザー ${userId}` },
+            { "@language": "en", "@value": session?.user?.name || session?.user?.email || `User ${userId}` }
           ]
         },
         {
@@ -170,4 +180,15 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       { status: 500 }
     );
   }
+}
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
 }
