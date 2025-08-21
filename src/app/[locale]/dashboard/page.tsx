@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink } from 'react-icons/fi';
+import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye } from 'react-icons/fi';
 
 interface Collection {
   id: string;
@@ -100,8 +100,9 @@ export default function DashboardPage() {
         <div className="flex gap-2">
           <button
             onClick={() => {
-              // Create a collection URL that includes all user's collections
-              const baseUrl = `${window.location.origin}/api/iiif/collection`;
+              // Create a v2 collection URL that includes all user's collections
+              const userId = session?.user?.id;
+              const baseUrl = `${window.location.origin}/api/iiif/2/user/${userId}/collections`;
               const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(baseUrl)}`;
               window.open(selfMuseumUrl, '_blank');
             }}
@@ -110,6 +111,18 @@ export default function DashboardPage() {
           >
             <FiExternalLink />
             Self Museum
+          </button>
+          <button
+            onClick={() => {
+              const userId = session?.user?.id;
+              const jsonUrl = `${window.location.origin}/api/iiif/2/user/${userId}/collections`;
+              window.open(jsonUrl, '_blank');
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+            title="コレクション一覧JSONを表示"
+          >
+            <FiEye />
+            JSON
           </button>
           <button
             onClick={() => setShowCreateModal(true)}

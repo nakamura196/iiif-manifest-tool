@@ -254,7 +254,7 @@ export default function CollectionPage({ params }: PageProps) {
         <button
           onClick={() => {
             const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
-            const collectionUrl = `${window.location.origin}/api/iiif/collection/${combinedId}`;
+            const collectionUrl = `${window.location.origin}/api/iiif/2/collection/${combinedId}`;
             const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(collectionUrl)}`;
             window.open(selfMuseumUrl, '_blank');
           }}
