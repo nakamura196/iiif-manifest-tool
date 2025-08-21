@@ -7,7 +7,8 @@
     "cancel": "キャンセル",
     "back": "戻る",
     "required": "必須",
-    "optional": "任意"
+    "optional": "任意",
+    "collection": "コレクション"
   },
   "HomePage": {
     "hero": {
@@ -109,6 +110,7 @@
     "private": "非公開",
     "moreOptions": "その他のオプション",
     "confirmDelete": "「{title}」を削除してもよろしいですか？",
+    "confirmDeleteItem": "このアイテムを削除してもよろしいですか？",
     "mapLoading": "地図を読み込み中..."
   },
   "CollectionEdit": {

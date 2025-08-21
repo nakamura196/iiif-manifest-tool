@@ -52,7 +52,7 @@ export default function CollectionPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [collectionName, setCollectionName] = useState<string>('コレクション');
+  const [collectionName, setCollectionName] = useState<string>('');
   const [collectionDescription, setCollectionDescription] = useState<string>('');
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -65,13 +65,13 @@ export default function CollectionPage({ params }: PageProps) {
       const response = await fetch(`/api/collections/${resolvedParams.collectionId}`);
       if (response.ok) {
         const data = await response.json();
-        setCollectionName(data.name || 'コレクション');
+        setCollectionName(data.name || t('Common.collection'));
         setCollectionDescription(data.description || '');
       }
     } catch (error) {
       console.error('Error fetching collection:', error);
     }
-  }, [resolvedParams.collectionId]);
+  }, [resolvedParams.collectionId, t]);
 
   const fetchItems = useCallback(async () => {
     try {
@@ -145,7 +145,7 @@ export default function CollectionPage({ params }: PageProps) {
   };
 
   const handleDelete = async (itemId: string) => {
-    if (!confirm('このアイテムを削除してもよろしいですか？')) return;
+    if (!confirm(t('Collection.confirmDeleteItem'))) return;
 
     try {
       const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${itemId}`, {
@@ -272,7 +272,7 @@ export default function CollectionPage({ params }: PageProps) {
               }`}
             >
               <FiGrid />
-              <span className="hidden sm:inline">グリッド</span>
+              <span className="hidden sm:inline">{t('Collection.grid')}</span>
             </button>
             <button
               onClick={() => setViewMode('map')}
@@ -283,7 +283,7 @@ export default function CollectionPage({ params }: PageProps) {
               }`}
             >
               <FiMap />
-              <span className="hidden sm:inline">地図</span>
+              <span className="hidden sm:inline">{t('Collection.map')}</span>
             </button>
           </div>
         </div>
@@ -342,9 +342,9 @@ export default function CollectionPage({ params }: PageProps) {
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="text-lg font-semibold">{item.title}</h3>
                   {item.isPublic ? (
-                    <FiGlobe className="text-gray-500 text-sm" title="公開" />
+                    <FiGlobe className="text-gray-500 text-sm" title={t('Collection.public')} />
                   ) : (
-                    <FiLock className="text-gray-500 text-sm" title="非公開" />
+                    <FiLock className="text-gray-500 text-sm" title={t('Collection.private')} />
                   )}
                 </div>
                 {item.description && (
@@ -367,7 +367,7 @@ export default function CollectionPage({ params }: PageProps) {
                     <button
                       onClick={() => setShowItemDropdown(showItemDropdown === item.id ? null : item.id)}
                       className="px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
-                      title="その他のオプション"
+                      title={t('Collection.moreOptions')}
                     >
                       <FiMoreVertical />
                     </button>

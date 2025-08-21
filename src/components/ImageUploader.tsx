@@ -2,6 +2,7 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useTranslations } from 'next-intl';
 import { FiUpload, FiImage, FiLink } from 'react-icons/fi';
 
 interface ImageUploaderProps {
@@ -11,6 +12,7 @@ interface ImageUploaderProps {
 }
 
 export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: ImageUploaderProps) {
+  const t = useTranslations();
   const [urlInput, setUrlInput] = useState('');
   const [infoJsonInput, setInfoJsonInput] = useState('');
   const [activeTab, setActiveTab] = useState<'upload' | 'url' | 'iiif'>('upload');
@@ -56,7 +58,7 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
           }`}
         >
           <FiUpload className="inline mr-2" />
-          アップロード
+          Upload
         </button>
         <button
           onClick={() => setActiveTab('url')}
@@ -67,7 +69,7 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
           }`}
         >
           <FiLink className="inline mr-2" />
-          画像URL
+          {t('ImageUploader.fromUrl')}
         </button>
         <button
           onClick={() => setActiveTab('iiif')}
@@ -95,21 +97,21 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
           <input {...getInputProps()} />
           <FiUpload className="mx-auto text-4xl text-gray-400 mb-4" />
           {isDragActive ? (
-            <p className="text-blue-500">ドロップして画像をアップロード</p>
+            <p className="text-blue-500">{t('ImageUploader.dragDrop')}</p>
           ) : (
             <div>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-                画像をドラッグ&ドロップ、またはクリックして選択
+                {t('ImageUploader.dragDrop')}
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                対応形式: PNG, JPG, JPEG, GIF, WebP, TIFF
+                {t('ImageUploader.supportedFormats')}
               </p>
             </div>
           )}
           {acceptedFiles.length > 0 && (
             <div className="mt-4">
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                選択されたファイル: {acceptedFiles.length}個
+                Selected files: {acceptedFiles.length}
               </p>
             </div>
           )}
@@ -123,7 +125,7 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
               type="url"
               value={urlInput}
               onChange={(e) => setUrlInput(e.target.value)}
-              placeholder="画像のURLを入力"
+              placeholder={t('ImageUploader.urlPlaceholder')}
               className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <button
@@ -131,11 +133,11 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
               disabled={!urlInput.trim()}
               className="px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              追加
+              {t('ImageUploader.add')}
             </button>
           </div>
           <p className="text-sm text-gray-500">
-            外部の画像URLを直接追加できます
+            Add external image URLs directly
           </p>
         </div>
       )}
@@ -147,7 +149,7 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
               type="url"
               value={infoJsonInput}
               onChange={(e) => setInfoJsonInput(e.target.value)}
-              placeholder="info.jsonのURLを入力"
+              placeholder={t('ImageUploader.infoJsonPlaceholder')}
               className="flex-1 px-3 py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <button
@@ -155,11 +157,11 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
               disabled={!infoJsonInput.trim()}
               className="px-4 sm:px-6 py-2 text-sm sm:text-base bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              追加
+              {t('ImageUploader.add')}
             </button>
           </div>
           <p className="text-xs sm:text-sm text-gray-500">
-            高品質画像配信サービスのinfo.jsonを追加できます
+            Add info.json from high-quality image delivery services
           </p>
         </div>
       )}

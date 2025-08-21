@@ -7,7 +7,8 @@
     "cancel": "Cancel",
     "back": "Back",
     "required": "Required",
-    "optional": "Optional"
+    "optional": "Optional",
+    "collection": "Collection"
   },
   "HomePage": {
     "hero": {
@@ -109,6 +110,7 @@
     "private": "Private",
     "moreOptions": "More Options",
     "confirmDelete": "Are you sure you want to delete \"{title}\"?",
+    "confirmDeleteItem": "Are you sure you want to delete this item?",
     "mapLoading": "Loading map..."
   },
   "CollectionEdit": {
@@ -254,5 +256,46 @@
   "CollectionMap": {
     "loading": "Loading map...",
     "clickToSetLocation": "Click on the map to set location"
+  },
+  "ItemEditPage": {
+    "title": "Edit Item",
+    "loading": "Loading...",
+    "save": "Save",
+    "saving": "Saving...",
+    "basicInfo": "Basic Information",
+    "imageManagement": "Image Management",
+    "additionalInfo": "Additional Information",
+    "location": "Location",
+    "detailedSettings": "Advanced Settings",
+    "itemTitle": "Title",
+    "itemTitlePlaceholder": "Enter item title",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter item description (optional)",
+    "makePublic": "Make this item public",
+    "currentImages": "Current Images",
+    "addNewImages": "Add New Images",
+    "imageAccessSettings": "Per-image Access Settings",
+    "movePrevious": "Move forward",
+    "moveNext": "Move backward",
+    "delete": "Delete",
+    "latitude": "Latitude",
+    "latitudePlaceholder": "e.g. 35.6762",
+    "longitude": "Longitude",
+    "longitudePlaceholder": "e.g. 139.6503",
+    "locationName": "Location Name (Optional)",
+    "locationNamePlaceholder": "e.g. Tokyo Tower",
+    "clearLocation": "Clear location",
+    "clickMapToSetLocation": "Click on the map to set location. Tokyo is displayed by default.",
+    "fieldLabel": "Field Name (e.g. Creation Year)",
+    "fieldValue": "Content (e.g. 1850)",
+    "addInfo": "Add Information",
+    "additionalInfoNote": "Information added here will be displayed as detailed item information. You can freely add various information about the item such as creation year, author, technique, size, etc.",
+    "attribution": "Holding Institution",
+    "attributionPlaceholder": "e.g. National Library",
+    "license": "License Information",
+    "licensePlaceholder": "e.g. https://creativecommons.org/licenses/by/4.0/",
+    "usageTerms": "Terms of Use",
+    "usageTermsLabel": "Label (e.g. Usage Notice)",
+    "usageTermsDescription": "Description (e.g. Please contact us before secondary use)"
   }
 }

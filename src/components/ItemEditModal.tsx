@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { FiX, FiTrash2, FiEdit2, FiSettings, FiPlus, FiExternalLink } from 'react-icons/fi';
 import ImageUploader from './ImageUploader';
 import ImageAccessControl from './ImageAccessControl';
@@ -47,6 +48,7 @@ interface ManifestMetadata {
 
 export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, onUpdate }: ItemEditModalProps) {
   const router = useRouter();
+  const t = useTranslations();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [title, setTitle] = useState('');
@@ -249,7 +251,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-          <div className="text-lg">読み込み中...</div>
+          <div className="text-lg">{t('ItemEditModal.loading')}</div>
         </div>
       </div>
     );
@@ -262,7 +264,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
           <div className="flex items-center justify-between">
             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
               <FiEdit2 className="text-lg sm:text-xl" />
-              アイテムを編集
+              {t('ItemEditModal.title')}
             </h2>
             <button
               onClick={onClose}
@@ -278,24 +280,24 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
           <div className="space-y-3 sm:space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">
-              タイトル *
+              {t('ItemEditModal.itemTitle')} *
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
-              placeholder="アイテムのタイトル"
+              placeholder={t('ItemEditModal.itemTitlePlaceholder')}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">説明</label>
+            <label className="block text-sm font-medium mb-1">{t('ItemEditModal.description')}</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
               rows={3}
-              placeholder="アイテムの説明（任意）"
+              placeholder={t('ItemEditModal.descriptionPlaceholder')}
             />
           </div>
           <div className="flex items-center">
@@ -307,55 +309,55 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
               className="mr-2"
             />
             <label htmlFor="editIsPublic" className="text-sm">
-              このアイテムを公開する
+              {t('ItemEditModal.makePublic')}
             </label>
           </div>
           </div>
 
           {/* 位置情報 */}
           <div className="space-y-3">
-            <h3 className="text-base sm:text-lg font-semibold">位置情報（任意）</h3>
+            <h3 className="text-base sm:text-lg font-semibold">{t('ItemEditModal.location')}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium mb-1">緯度</label>
+                <label className="block text-sm font-medium mb-1">{t('ItemEditModal.latitude')}</label>
                 <input
                   type="text"
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
-                  placeholder="例: 35.6762"
+                  placeholder={t('ItemEditModal.latitudePlaceholder')}
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">経度</label>
+                <label className="block text-sm font-medium mb-1">{t('ItemEditModal.longitude')}</label>
                 <input
                   type="text"
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
-                  placeholder="例: 139.6503"
+                  placeholder={t('ItemEditModal.longitudePlaceholder')}
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">場所の名前（任意）</label>
+              <label className="block text-sm font-medium mb-1">{t('ItemEditModal.locationName')}</label>
               <input
                 type="text"
                 value={locationLabel}
                 onChange={(e) => setLocationLabel(e.target.value)}
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
-                placeholder="例: 東京タワー"
+                placeholder={t('ItemEditModal.locationNamePlaceholder')}
               />
             </div>
           </div>
 
           {/* 画像管理 */}
           <div>
-            <h3 className="text-base sm:text-lg font-semibold mb-3">画像管理</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-3">{t('ItemEditModal.imageManagement')}</h3>
           
           {images.length > 0 && (
             <div className="mb-4">
-              <h4 className="text-sm font-medium mb-2">現在の画像 ({images.length})</h4>
+              <h4 className="text-sm font-medium mb-2">{t('ItemEditModal.currentImages')} ({images.length})</h4>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {images.map((img, index) => (
                   <div key={index} className="relative group">
@@ -373,7 +375,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                             moveImage(index, 'up');
                           }}
                           className="p-1 sm:p-2 bg-white text-black rounded hover:bg-gray-200 text-sm sm:text-base"
-                          title="前へ移動"
+                          title={t('ItemEditModal.movePrevious')}
                         >
                           ←
                         </button>
@@ -385,7 +387,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                             moveImage(index, 'down');
                           }}
                           className="p-1 sm:p-2 bg-white text-black rounded hover:bg-gray-200 text-sm sm:text-base"
-                          title="次へ移動"
+                          title={t('ItemEditModal.moveNext')}
                         >
                           →
                         </button>
@@ -396,7 +398,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                           removeImage(index);
                         }}
                         className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-                        title="削除"
+                        title={t('ItemEditModal.delete')}
                       >
                         <FiTrash2 />
                       </button>
@@ -424,7 +426,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
               className="flex items-center gap-2 px-4 py-2 bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-200 dark:hover:bg-purple-800"
             >
               <FiSettings />
-              画像ごとのアクセス設定
+              {t('ItemEditModal.imageAccessSettings')}
             </button>
             
             {showAccessControl && (
@@ -440,37 +442,37 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
 
           {/* 詳細情報 */}
           <div>
-            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">詳細情報</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('ItemEditModal.detailedInfo')}</h3>
             <div className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-sm font-medium mb-1">
-                所蔵・提供機関
+                {t('ItemEditModal.attribution')}
               </label>
               <input
                 type="text"
                 value={metadata.attribution || ''}
                 onChange={(e) => setMetadata({ ...metadata, attribution: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
-                placeholder="例: 国立図書館"
+                placeholder={t('ItemEditModal.attributionPlaceholder')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">
-                ライセンス情報
+                {t('ItemEditModal.license')}
               </label>
               <input
                 type="text"
                 value={metadata.rights || ''}
                 onChange={(e) => setMetadata({ ...metadata, rights: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
-                placeholder="例: https://creativecommons.org/licenses/by/4.0/"
+                placeholder={t('ItemEditModal.licensePlaceholder')}
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium mb-1">
-                利用条件
+                {t('ItemEditModal.usageTerms')}
               </label>
               <div className="space-y-2">
                 <input
@@ -490,7 +492,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                     });
                   }}
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
-                  placeholder="項目名（例: 利用にあたって）"
+                  placeholder={t('ItemEditModal.usageTermsLabel')}
                 />
                 <textarea
                   value={metadata.requiredStatement?.value?.ja?.[0] || ''}
@@ -509,7 +511,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                   }}
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
                   rows={2}
-                  placeholder="説明（例: 画像の二次利用については事前にご相談ください）"
+                  placeholder={t('ItemEditModal.usageTermsDescription')}
                 />
               </div>
             </div>
@@ -519,7 +521,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
 
           {/* 追加情報 */}
           <div>
-            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">追加情報</h3>
+            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">{t('ItemEditModal.additionalInfo')}</h3>
               <div className="space-y-3">
                 {metadata.customFields?.map((field, index) => (
                   <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
@@ -532,7 +534,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                         setMetadata({ ...metadata, customFields: newFields });
                       }}
                       className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
-                      placeholder="項目名（例: 作成年）"
+                      placeholder={t('ItemEditModal.fieldLabel')}
                     />
                     <input
                       type="text"
@@ -543,7 +545,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                         setMetadata({ ...metadata, customFields: newFields });
                       }}
                       className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
-                      placeholder="内容（例: 1850年）"
+                      placeholder={t('ItemEditModal.fieldValue')}
                     />
                     <button
                       onClick={() => {
@@ -564,7 +566,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                   className="flex items-center gap-2 px-3 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
                 >
                   <FiPlus />
-                  情報を追加
+                  {t('ItemEditModal.addInfo')}
                 </button>
               </div>
             </div>
@@ -582,21 +584,21 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
               className="flex items-center gap-2 px-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
             >
               <FiExternalLink />
-              詳細編集
+              {t('ItemEditModal.detailEdit')}
             </button>
             <div className="flex gap-3">
               <button
                 onClick={onClose}
                 className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               >
-                キャンセル
+                {t('ItemEditModal.cancel')}
               </button>
               <button
                 onClick={handleSave}
                 disabled={!title || images.length === 0 || saving || uploading}
                 className="px-4 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400"
               >
-                {saving ? '保存中...' : '保存'}
+                {saving ? t('ItemEditModal.saving') : t('ItemEditModal.save')}
               </button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslations } from 'next-intl';
 import { FiLock, FiGlobe, FiUsers, FiX } from 'react-icons/fi';
 
 interface ImageAccessSettings {
@@ -19,6 +20,7 @@ interface ImageAccessControlProps {
 }
 
 export default function ImageAccessControl({ images, onChange }: ImageAccessControlProps) {
+  const t = useTranslations();
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
   const [newEmail, setNewEmail] = useState('');
 
@@ -53,7 +55,7 @@ export default function ImageAccessControl({ images, onChange }: ImageAccessCont
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">画像ごとのアクセス設定</h3>
+      <h3 className="text-lg font-semibold">{t('ImageAccessControl.title')}</h3>
       
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         {images.map((image, index) => {
@@ -67,16 +69,16 @@ export default function ImageAccessControl({ images, onChange }: ImageAccessCont
               <div className="aspect-square relative bg-gray-100 dark:bg-gray-800 rounded overflow-hidden">
                 <img 
                   src={image.url} 
-                  alt={`画像 ${index + 1}`}
+                  alt={`Image ${index + 1}`}
                   className="w-full h-full object-cover"
                 />
                 <div className="absolute top-2 right-2">
                   {access.isPublic ? (
-                    <div className="bg-green-500 text-white p-1 rounded" title="公開">
+                    <div className="bg-green-500 text-white p-1 rounded" title={t('ImageAccessControl.public')}>
                       <FiGlobe className="w-4 h-4" />
                     </div>
                   ) : (
-                    <div className="bg-red-500 text-white p-1 rounded" title="非公開">
+                    <div className="bg-red-500 text-white p-1 rounded" title={t('ImageAccessControl.restricted')}>
                       <FiLock className="w-4 h-4" />
                     </div>
                   )}
@@ -84,7 +86,7 @@ export default function ImageAccessControl({ images, onChange }: ImageAccessCont
               </div>
               
               <div className="space-y-2">
-                <div className="text-sm font-medium">画像 {index + 1}</div>
+                <div className="text-sm font-medium">Image {index + 1}</div>
                 
                 <div className="flex gap-2">
                   <button
@@ -96,7 +98,7 @@ export default function ImageAccessControl({ images, onChange }: ImageAccessCont
                     }`}
                   >
                     <FiGlobe className="inline mr-1" />
-                    公開
+                    {t('ImageAccessControl.public')}
                   </button>
                   <button
                     onClick={() => handleAccessChange(index, false)}
@@ -107,7 +109,7 @@ export default function ImageAccessControl({ images, onChange }: ImageAccessCont
                     }`}
                   >
                     <FiLock className="inline mr-1" />
-                    非公開
+                    {t('ImageAccessControl.restricted')}
                   </button>
                 </div>
                 
@@ -117,7 +119,7 @@ export default function ImageAccessControl({ images, onChange }: ImageAccessCont
                     className="w-full px-2 py-1 text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded"
                   >
                     <FiUsers className="inline mr-1" />
-                    許可ユーザー ({access.allowedUsers.length})
+                    {t('ImageAccessControl.allowedUsers')} ({access.allowedUsers.length})
                   </button>
                 )}
                 
@@ -133,14 +135,14 @@ export default function ImageAccessControl({ images, onChange }: ImageAccessCont
                             addAllowedUser(index, newEmail);
                           }
                         }}
-                        placeholder="メールアドレス"
+                        placeholder={t('ImageAccessControl.userIdPlaceholder')}
                         className="flex-1 px-2 py-1 text-xs border rounded dark:bg-gray-800"
                       />
                       <button
                         onClick={() => addAllowedUser(index, newEmail)}
                         className="px-2 py-1 text-xs bg-blue-500 text-white rounded"
                       >
-                        追加
+                        {t('ImageAccessControl.addUser')}
                       </button>
                     </div>
                     

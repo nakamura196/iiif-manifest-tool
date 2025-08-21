@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useTranslations } from 'next-intl';
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 
@@ -20,6 +21,7 @@ interface CollectionMapProps {
 }
 
 export default function CollectionMap({ items, onItemClick }: CollectionMapProps) {
+  const t = useTranslations();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -146,7 +148,7 @@ export default function CollectionMap({ items, onItemClick }: CollectionMapProps
       {items.filter(item => item.latitude && item.longitude).length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg">
           <p className="text-gray-500 dark:text-gray-400">
-            位置情報が設定されているアイテムがありません
+            No items with location information
           </p>
         </div>
       )}
