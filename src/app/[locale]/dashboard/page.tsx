@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye, FiSettings, FiMoreVertical } from 'react-icons/fi';
+import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye, FiSettings, FiMoreVertical, FiEdit, FiTrash2, FiSearch, FiFilter, FiCalendar, FiClock } from 'react-icons/fi';
 
 interface Collection {
   id: string;
@@ -26,6 +26,11 @@ export default function DashboardPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [showCollectionDropdown, setShowCollectionDropdown] = useState<string | null>(null);
   const collectionDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterVisibility, setFilterVisibility] = useState<'all' | 'public' | 'private'>('all');
+  const [sortBy, setSortBy] = useState<'created' | 'updated' | 'name'>('created');
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
+  const filterMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -56,15 +61,18 @@ export default function DashboardPage() {
           setShowCollectionDropdown(null);
         }
       }
+      if (showFilterMenu && filterMenuRef.current && !filterMenuRef.current.contains(event.target as Node)) {
+        setShowFilterMenu(false);
+      }
     }
 
-    if (showCollectionDropdown) {
+    if (showCollectionDropdown || showFilterMenu) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => {
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [showCollectionDropdown]);
+  }, [showCollectionDropdown, showFilterMenu]);
 
   useEffect(() => {
     if (session) {
@@ -97,6 +105,25 @@ export default function DashboardPage() {
     router.push(`/${locale}/dashboard/collections/settings`);
   };
 
+  const handleDeleteCollection = async (collectionId: string) => {
+    try {
+      const response = await fetch(`/api/collections/${collectionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        // コレクション一覧を再取得
+        await fetchCollections();
+      } else {
+        console.error('Failed to delete collection');
+        alert('コレクションの削除に失敗しました。');
+      }
+    } catch (error) {
+      console.error('Error deleting collection:', error);
+      alert('コレクションの削除中にエラーが発生しました。');
+    }
+  };
+
   const openCollectionInMirador = (collectionId: string) => {
     // Generate collection manifest URL using new IIIF structure
     const combinedId = `${session?.user?.id}_${collectionId}`;
@@ -114,9 +141,39 @@ export default function DashboardPage() {
     );
   }
 
+  // Filter and sort collections
+  const filteredAndSortedCollections = collections
+    .filter(collection => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesName = collection.name.toLowerCase().includes(query);
+        const matchesDescription = collection.description?.toLowerCase().includes(query) || false;
+        if (!matchesName && !matchesDescription) return false;
+      }
+      
+      // Visibility filter
+      if (filterVisibility === 'public' && !collection.isPublic) return false;
+      if (filterVisibility === 'private' && collection.isPublic) return false;
+      
+      return true;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case 'name':
+          return a.name.localeCompare(b.name);
+        case 'updated':
+          // For now, use createdAt as we don't have updatedAt
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'created':
+        default:
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      }
+    });
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
         <div className="flex-1 w-full sm:w-auto">
           <h1 className="text-2xl sm:text-3xl font-bold">マイコレクション</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm sm:text-base">
@@ -185,7 +242,154 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {collections.length === 0 ? (
+      {/* Search and Filter Bar */}
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="コレクションを検索..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
+            />
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          </div>
+        </div>
+        <div className="relative" ref={filterMenuRef}>
+          <button
+            onClick={() => setShowFilterMenu(!showFilterMenu)}
+            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700"
+          >
+            <FiFilter />
+            <span>フィルター</span>
+            {(filterVisibility !== 'all' || sortBy !== 'created') && (
+              <span className="ml-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 text-xs rounded-full">
+                {filterVisibility !== 'all' ? 1 : 0} + {sortBy !== 'created' ? 1 : 0}
+              </span>
+            )}
+          </button>
+          {showFilterMenu && (
+            <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
+              <div className="p-4 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">公開設定</h3>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visibility"
+                        checked={filterVisibility === 'all'}
+                        onChange={() => setFilterVisibility('all')}
+                        className="text-blue-500"
+                      />
+                      <span className="text-sm">すべて</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visibility"
+                        checked={filterVisibility === 'public'}
+                        onChange={() => setFilterVisibility('public')}
+                        className="text-blue-500"
+                      />
+                      <span className="text-sm flex items-center gap-1">
+                        <FiGlobe className="text-xs" />
+                        公開のみ
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="visibility"
+                        checked={filterVisibility === 'private'}
+                        onChange={() => setFilterVisibility('private')}
+                        className="text-blue-500"
+                      />
+                      <span className="text-sm flex items-center gap-1">
+                        <FiLock className="text-xs" />
+                        非公開のみ
+                      </span>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold mb-2">並び順</h3>
+                  <div className="space-y-2">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sort"
+                        checked={sortBy === 'created'}
+                        onChange={() => setSortBy('created')}
+                        className="text-blue-500"
+                      />
+                      <span className="text-sm flex items-center gap-1">
+                        <FiCalendar className="text-xs" />
+                        作成日順（新しい順）
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sort"
+                        checked={sortBy === 'updated'}
+                        onChange={() => setSortBy('updated')}
+                        className="text-blue-500"
+                      />
+                      <span className="text-sm flex items-center gap-1">
+                        <FiClock className="text-xs" />
+                        更新日順（新しい順）
+                      </span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="sort"
+                        checked={sortBy === 'name'}
+                        onChange={() => setSortBy('name')}
+                        className="text-blue-500"
+                      />
+                      <span className="text-sm">名前順（A-Z）</span>
+                    </label>
+                  </div>
+                </div>
+                {(filterVisibility !== 'all' || sortBy !== 'created') && (
+                  <button
+                    onClick={() => {
+                      setFilterVisibility('all');
+                      setSortBy('created');
+                    }}
+                    className="w-full text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    フィルターをリセット
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {filteredAndSortedCollections.length === 0 ? (
+        searchQuery || filterVisibility !== 'all' ? (
+          <div className="text-center py-12">
+            <FiSearch className="mx-auto text-6xl text-gray-400 mb-4" />
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              該当するコレクションが見つかりませんでした
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setFilterVisibility('all');
+                setSortBy('created');
+              }}
+              className="px-6 py-2 text-blue-500 hover:text-blue-600"
+            >
+              フィルターをクリア
+            </button>
+          </div>
+        ) : (
         <div className="text-center py-12">
           <FiFolder className="mx-auto text-6xl text-gray-400 mb-4" />
           <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -198,9 +402,16 @@ export default function DashboardPage() {
             最初のコレクションを作成
           </button>
         </div>
+        )
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
-          {collections.map((collection) => (
+        <div>
+          {searchQuery && (
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+              「{searchQuery}」の検索結果: {filteredAndSortedCollections.length}件
+            </p>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+            {filteredAndSortedCollections.map((collection) => (
             <div
               key={collection.id}
               className="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow relative"
@@ -242,6 +453,17 @@ export default function DashboardPage() {
                     <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-[100] max-w-[calc(100vw-2rem)]">
                       <button
                         onClick={() => {
+                          const locale = window.location.pathname.split('/')[1] || 'ja';
+                          router.push(`/${locale}/dashboard/collections/${collection.id}/edit`);
+                          setShowCollectionDropdown(null);
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+                      >
+                        <FiEdit />
+                        編集
+                      </button>
+                      <button
+                        onClick={() => {
                           openCollectionInMirador(collection.id);
                           setShowCollectionDropdown(null);
                         }}
@@ -262,12 +484,25 @@ export default function DashboardPage() {
                         <FiExternalLink />
                         データをエクスポート
                       </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`「${collection.name}」を削除してもよろしいですか？この操作は元に戻せません。`)) {
+                            handleDeleteCollection(collection.id);
+                            setShowCollectionDropdown(null);
+                          }
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-red-600 dark:text-red-400"
+                      >
+                        <FiTrash2 />
+                        削除
+                      </button>
                     </div>
                   )}
                 </div>
               </div>
             </div>
           ))}
+          </div>
         </div>
       )}
 

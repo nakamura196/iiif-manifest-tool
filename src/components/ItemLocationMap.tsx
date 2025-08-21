@@ -123,7 +123,7 @@ export default function ItemLocationMap({ latitude, longitude, label, onChange, 
         }
       }
     }
-  }, [latitude, longitude, label, onChange]);
+  }, [latitude, longitude, label, onChange, showDefault]);
 
   // Cleanup on unmount
   useEffect(() => {

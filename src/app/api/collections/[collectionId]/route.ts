@@ -232,3 +232,50 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { collectionId } = await params;
+    
+    // Delete collection metadata from S3
+    // const metadataKey = `collections/${session.user.id}/${collectionId}/metadata.json`;
+    // const collectionKey = `collections/${session.user.id}/${collectionId}/collection.json`;
+    
+    // Import DeleteObjectCommand from AWS SDK
+    const { DeleteObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
+    
+    // List all objects in the collection folder
+    const listCommand = new ListObjectsV2Command({
+      Bucket: process.env.MDX_S3_BUCKET_NAME!,
+      Prefix: `collections/${session.user.id}/${collectionId}/`,
+    });
+    
+    const listResponse = await s3Client.send(listCommand);
+    
+    // Delete all objects in the collection folder
+    if (listResponse.Contents) {
+      for (const object of listResponse.Contents) {
+        if (object.Key) {
+          const deleteCommand = new DeleteObjectCommand({
+            Bucket: process.env.MDX_S3_BUCKET_NAME!,
+            Key: object.Key,
+          });
+          await s3Client.send(deleteCommand);
+        }
+      }
+    }
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting collection:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete collection' },
+      { status: 500 }
+    );
+  }
+}

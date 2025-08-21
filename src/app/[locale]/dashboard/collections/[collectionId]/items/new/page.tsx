@@ -133,6 +133,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
 
       if (response.ok) {
         const newItem = await response.json();
+        setCreatingMessage('作成を確認中...');
         
         // 作成が完了したことを確認するために少し待機
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -140,10 +141,12 @@ export default function NewItemPage({ params }: NewItemPageProps) {
         // 作成されたことを確認
         const checkResponse = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${newItem.id}`);
         if (checkResponse.ok) {
+          setCreatingMessage('編集ページへ移動中...');
           // 作成が確認できたら編集ページへ遷移
           router.push(`/${resolvedParams.locale}/dashboard/collections/${resolvedParams.collectionId}/items/${newItem.id}/edit`);
         } else {
           console.error('Item created but not found immediately');
+          setCreatingMessage('もう少しお待ちください...');
           // 少し待ってから遷移
           setTimeout(() => {
             router.push(`/${resolvedParams.locale}/dashboard/collections/${resolvedParams.collectionId}/items/${newItem.id}/edit`);
@@ -192,7 +195,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
                 <FiUpload />
-                <span className="hidden sm:inline">{creating ? '作成中...' : '作成して編集'}</span>
+                <span className="hidden sm:inline">{creating ? creatingMessage || '作成中...' : '作成して編集'}</span>
               </button>
             </div>
           </div>
