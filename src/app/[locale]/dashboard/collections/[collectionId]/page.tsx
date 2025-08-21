@@ -6,8 +6,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import ImageUploader from '@/components/ImageUploader';
 import AuthTokenModal from '@/components/AuthTokenModal';
-import CollectionEditModal from '@/components/CollectionEditModal';
-import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid } from 'react-icons/fi';
+import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid, FiImage } from 'react-icons/fi';
 import Link from 'next/link';
 
 // Dynamic import for map component to avoid SSR issues
@@ -65,7 +64,6 @@ export default function CollectionPage({ params }: PageProps) {
   const [uploading, setUploading] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<Item | null>(null);
-  const [showCollectionEditModal, setShowCollectionEditModal] = useState(false);
   const [collectionName, setCollectionName] = useState<string>('コレクション');
   const [collectionDescription, setCollectionDescription] = useState<string>('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -358,7 +356,8 @@ export default function CollectionPage({ params }: PageProps) {
               </button>
               <button
                 onClick={() => {
-                  setShowCollectionEditModal(true);
+                  const locale = window.location.pathname.split('/')[1] || 'ja';
+                  router.push(`/${locale}/dashboard/collections/${resolvedParams.collectionId}/edit`);
                   setShowDropdown(false);
                 }}
                 className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
@@ -445,12 +444,17 @@ export default function CollectionPage({ params }: PageProps) {
               key={item.id}
               className="bg-white dark:bg-gray-800 rounded-lg shadow"
             >
-              {item.thumbnail && (
+              {item.thumbnail ? (
                 <img
                   src={item.thumbnail}
                   alt={item.title}
-                  className="w-full h-48 object-cover rounded-t-lg"
+                  className="w-full h-48 object-cover rounded-t-lg bg-gray-100"
+                  loading="lazy"
                 />
+              ) : (
+                <div className="w-full h-48 bg-gray-200 dark:bg-gray-700 rounded-t-lg flex items-center justify-center">
+                  <FiImage className="text-4xl text-gray-400" />
+                </div>
               )}
               <div className="p-4 relative">
                 <div className="flex items-start justify-between mb-2">
@@ -670,16 +674,6 @@ export default function CollectionPage({ params }: PageProps) {
         />
       )}
 
-      {showCollectionEditModal && (
-        <CollectionEditModal
-          collectionId={resolvedParams.collectionId}
-          onClose={() => setShowCollectionEditModal(false)}
-          onUpdate={() => {
-            // Refresh collection data after editing
-            fetchCollectionData();
-          }}
-        />
-      )}
     </div>
   );
 }

@@ -407,42 +407,44 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                       {images.map((img, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/400,/0/default.jpg` : img.url}
-                            alt={`Image ${index + 1}`}
-                            className="w-full h-40 object-cover rounded-lg"
-                          />
-                          {/* Mobile-friendly controls */}
-                          <div className="absolute inset-0 bg-black bg-opacity-40 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2 rounded-lg">
+                        <div key={index} className="space-y-2">
+                          <div className="relative">
+                            <img
+                              src={img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/400,/0/default.jpg` : img.url}
+                              alt={`Image ${index + 1}`}
+                              className="w-full h-40 object-cover rounded-lg"
+                            />
+                            <div className="absolute top-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                              {index + 1}
+                            </div>
+                          </div>
+                          {/* Controls below image for mobile */}
+                          <div className="flex justify-center gap-2">
                             {index > 0 && (
                               <button
                                 onClick={() => moveImage(index, 'up')}
-                                className="p-2 bg-white text-black rounded hover:bg-gray-200"
+                                className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
                                 title="前へ移動"
                               >
                                 ←
                               </button>
                             )}
+                            <button
+                              onClick={() => removeImage(index)}
+                              className="p-1.5 bg-red-500 text-white rounded hover:bg-red-600"
+                              title="削除"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
                             {index < images.length - 1 && (
                               <button
                                 onClick={() => moveImage(index, 'down')}
-                                className="p-2 bg-white text-black rounded hover:bg-gray-200"
+                                className="p-1.5 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
                                 title="次へ移動"
                               >
                                 →
                               </button>
                             )}
-                            <button
-                              onClick={() => removeImage(index)}
-                              className="p-2 bg-red-500 text-white rounded hover:bg-red-600"
-                              title="削除"
-                            >
-                              <FiTrash2 />
-                            </button>
-                          </div>
-                          <div className="absolute top-2 left-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
-                            {index + 1}
                           </div>
                         </div>
                       ))}
