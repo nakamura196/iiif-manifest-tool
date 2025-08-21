@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye, FiSettings, FiMoreVertical, FiEdit, FiTrash2, FiSearch, FiFilter, FiCalendar, FiClock } from 'react-icons/fi';
+import { useTranslations } from 'next-intl';
 
 interface Collection {
   id: string;
@@ -20,6 +21,7 @@ interface Collection {
 export default function DashboardPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const t = useTranslations();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -116,11 +118,11 @@ export default function DashboardPage() {
         await fetchCollections();
       } else {
         console.error('Failed to delete collection');
-        alert('コレクションの削除に失敗しました。');
+        alert(t('Dashboard.deleteCollectionFailed'));
       }
     } catch (error) {
       console.error('Error deleting collection:', error);
-      alert('コレクションの削除中にエラーが発生しました。');
+      alert(t('Dashboard.deleteCollectionError'));
     }
   };
 
@@ -136,7 +138,7 @@ export default function DashboardPage() {
   if (status === 'loading' || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">読み込み中...</div>
+        <div className="text-lg">{t('Common.loading')}</div>
       </div>
     );
   }
@@ -175,9 +177,9 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
         <div className="flex-1 w-full sm:w-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold">マイコレクション</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{t('Dashboard.title')}</h1>
           <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm sm:text-base">
-            あなたの画像コレクションを管理できます
+            {t('Dashboard.description')}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -190,7 +192,7 @@ export default function DashboardPage() {
               window.open(selfMuseumUrl, '_blank');
             }}
             className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm sm:text-base"
-            title="Self Museumで公開コレクションを表示"
+            title={t('Dashboard.viewInSelfMuseumTooltip')}
           >
             <FiExternalLink className="text-base sm:text-lg" />
             <span className="hidden sm:inline">Self Museum</span>
@@ -201,14 +203,14 @@ export default function DashboardPage() {
             className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
           >
             <FiPlus className="text-base sm:text-lg" />
-            <span className="hidden sm:inline">新規コレクション</span>
-            <span className="sm:hidden">新規</span>
+            <span className="hidden sm:inline">{t('Dashboard.newCollection')}</span>
+            <span className="sm:hidden">{t('Dashboard.new')}</span>
           </button>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              title="その他のオプション"
+              title={t('Collection.moreOptions')}
             >
               <FiMoreVertical className="text-xl" />
             </button>
@@ -224,7 +226,7 @@ export default function DashboardPage() {
                   className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                 >
                   <FiEye />
-                  データをエクスポート
+                  {t('Dashboard.viewData')}
                 </button>
                 <button
                   onClick={() => {
@@ -234,7 +236,7 @@ export default function DashboardPage() {
                   className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                 >
                   <FiSettings />
-                  公開コレクション設定
+                  {t('Dashboard.publicCollectionSettings')}
                 </button>
               </div>
             )}
@@ -248,7 +250,7 @@ export default function DashboardPage() {
           <div className="relative">
             <input
               type="text"
-              placeholder="コレクションを検索..."
+              placeholder={t('Dashboard.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-gray-800 dark:border-gray-700"
@@ -262,7 +264,7 @@ export default function DashboardPage() {
             className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700"
           >
             <FiFilter />
-            <span>フィルター</span>
+            <span>{t('Dashboard.filter')}</span>
             {(filterVisibility !== 'all' || sortBy !== 'created') && (
               <span className="ml-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400 text-xs rounded-full">
                 {filterVisibility !== 'all' ? 1 : 0} + {sortBy !== 'created' ? 1 : 0}
@@ -273,7 +275,7 @@ export default function DashboardPage() {
             <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50">
               <div className="p-4 space-y-4">
                 <div>
-                  <h3 className="text-sm font-semibold mb-2">公開設定</h3>
+                  <h3 className="text-sm font-semibold mb-2">{t('Dashboard.visibilitySettings')}</h3>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -283,7 +285,7 @@ export default function DashboardPage() {
                         onChange={() => setFilterVisibility('all')}
                         className="text-blue-500"
                       />
-                      <span className="text-sm">すべて</span>
+                      <span className="text-sm">{t('Dashboard.all')}</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -295,7 +297,7 @@ export default function DashboardPage() {
                       />
                       <span className="text-sm flex items-center gap-1">
                         <FiGlobe className="text-xs" />
-                        公開のみ
+                        {t('Dashboard.publicOnly')}
                       </span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -308,13 +310,13 @@ export default function DashboardPage() {
                       />
                       <span className="text-sm flex items-center gap-1">
                         <FiLock className="text-xs" />
-                        非公開のみ
+                        {t('Dashboard.privateOnly')}
                       </span>
                     </label>
                   </div>
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold mb-2">並び順</h3>
+                  <h3 className="text-sm font-semibold mb-2">{t('Dashboard.sortOrder')}</h3>
                   <div className="space-y-2">
                     <label className="flex items-center gap-2 cursor-pointer">
                       <input
@@ -326,7 +328,7 @@ export default function DashboardPage() {
                       />
                       <span className="text-sm flex items-center gap-1">
                         <FiCalendar className="text-xs" />
-                        作成日順（新しい順）
+                        {t('Dashboard.sortByCreated')}
                       </span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -339,7 +341,7 @@ export default function DashboardPage() {
                       />
                       <span className="text-sm flex items-center gap-1">
                         <FiClock className="text-xs" />
-                        更新日順（新しい順）
+                        {t('Dashboard.sortByUpdated')}
                       </span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -350,7 +352,7 @@ export default function DashboardPage() {
                         onChange={() => setSortBy('name')}
                         className="text-blue-500"
                       />
-                      <span className="text-sm">名前順（A-Z）</span>
+                      <span className="text-sm">{t('Dashboard.sortByName')}</span>
                     </label>
                   </div>
                 </div>
@@ -362,7 +364,7 @@ export default function DashboardPage() {
                     }}
                     className="w-full text-sm text-blue-600 dark:text-blue-400 hover:underline"
                   >
-                    フィルターをリセット
+                    {t('Dashboard.resetFilters')}
                   </button>
                 )}
               </div>
@@ -376,7 +378,7 @@ export default function DashboardPage() {
           <div className="text-center py-12">
             <FiSearch className="mx-auto text-6xl text-gray-400 mb-4" />
             <p className="text-gray-600 dark:text-gray-400 mb-4">
-              該当するコレクションが見つかりませんでした
+              {t('Dashboard.noMatchingCollections')}
             </p>
             <button
               onClick={() => {
@@ -386,20 +388,20 @@ export default function DashboardPage() {
               }}
               className="px-6 py-2 text-blue-500 hover:text-blue-600"
             >
-              フィルターをクリア
+              {t('Dashboard.clearFilters')}
             </button>
           </div>
         ) : (
         <div className="text-center py-12">
           <FiFolder className="mx-auto text-6xl text-gray-400 mb-4" />
           <p className="text-gray-600 dark:text-gray-400 mb-4">
-            コレクションがまだありません
+            {t('Dashboard.noCollections')}
           </p>
           <button
             onClick={navigateToNewCollection}
             className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
           >
-            最初のコレクションを作成
+            {t('Dashboard.createFirstCollection')}
           </button>
         </div>
         )
@@ -407,7 +409,7 @@ export default function DashboardPage() {
         <div>
           {searchQuery && (
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              「{searchQuery}」の検索結果: {filteredAndSortedCollections.length}件
+              {t('Dashboard.searchResults', { query: searchQuery, count: filteredAndSortedCollections.length })}
             </p>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
@@ -419,9 +421,9 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between mb-4">
                 <FiFolder className="text-3xl text-blue-500" />
                 {collection.isPublic ? (
-                  <FiGlobe className="text-gray-500" title="公開" />
+                  <FiGlobe className="text-gray-500" title={t('Collection.public')} />
                 ) : (
-                  <FiLock className="text-gray-500" title="非公開" />
+                  <FiLock className="text-gray-500" title={t('Collection.private')} />
                 )}
               </div>
               <h3 className="text-xl font-semibold mb-2">{collection.name}</h3>
@@ -432,20 +434,20 @@ export default function DashboardPage() {
               )}
               <div className="flex items-center text-sm text-gray-500 mb-4">
                 <FiImage className="mr-1" />
-                <span>{collection._count?.items || 0} アイテム</span>
+                <span>{collection._count?.items || 0} {t('Dashboard.items')}</span>
               </div>
               <div className="flex gap-2">
                 <Link
                   href={`/ja/dashboard/collections/${collection.id}`}
                   className="flex-1 text-center px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                 >
-                  開く
+                  {t('Dashboard.open')}
                 </Link>
                 <div className="relative" ref={el => { collectionDropdownRefs.current[collection.id] = el; }}>
                   <button
                     onClick={() => setShowCollectionDropdown(showCollectionDropdown === collection.id ? null : collection.id)}
                     className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
-                    title="その他のオプション"
+                    title={t('Collection.moreOptions')}
                   >
                     <FiMoreVertical />
                   </button>
@@ -460,7 +462,7 @@ export default function DashboardPage() {
                         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                       >
                         <FiEdit />
-                        編集
+                        {t('Collection.edit')}
                       </button>
                       <button
                         onClick={() => {
@@ -470,7 +472,7 @@ export default function DashboardPage() {
                         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                       >
                         <FiBook />
-                        ビューアで見る
+                        {t('Dashboard.viewInViewer')}
                       </button>
                       <button
                         onClick={() => {
@@ -482,11 +484,11 @@ export default function DashboardPage() {
                         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
                       >
                         <FiExternalLink />
-                        データをエクスポート
+                        {t('Dashboard.exportData')}
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`「${collection.name}」を削除してもよろしいですか？この操作は元に戻せません。`)) {
+                          if (confirm(t('Collection.confirmDelete', { title: collection.name }))) {
                             handleDeleteCollection(collection.id);
                             setShowCollectionDropdown(null);
                           }
@@ -494,7 +496,7 @@ export default function DashboardPage() {
                         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-red-600 dark:text-red-400"
                       >
                         <FiTrash2 />
-                        削除
+                        {t('Collection.delete')}
                       </button>
                     </div>
                   )}
