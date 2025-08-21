@@ -283,39 +283,44 @@ export default function CollectionPage({ params }: PageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center gap-4 mb-8">
-        <Link href="/ja/dashboard" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
-          <FiArrowLeft className="text-xl" />
-        </Link>
-        <h1 className="text-3xl font-bold flex-1">{collectionName}</h1>
-        <button
-          onClick={() => {
-            const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
-            const collectionUrl = `${window.location.origin}/api/iiif/2/collection/${combinedId}`;
-            const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(collectionUrl)}`;
-            window.open(selfMuseumUrl, '_blank');
-          }}
-          className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
-          title="Self Museumで表示"
-        >
-          <FiExternalLink />
-          Self Museum
-        </button>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-        >
-          <FiPlus />
-          新規アイテム
-        </button>
-        <div className="relative" ref={dropdownRef}>
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link href="/ja/dashboard" className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded flex-shrink-0">
+            <FiArrowLeft className="text-xl" />
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold flex-1">{collectionName}</h1>
+        </div>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:ml-auto">
           <button
-            onClick={() => setShowDropdown(!showDropdown)}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-            title="その他のオプション"
+            onClick={() => {
+              const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}`;
+              const collectionUrl = `${window.location.origin}/api/iiif/2/collection/${combinedId}`;
+              const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(collectionUrl)}`;
+              window.open(selfMuseumUrl, '_blank');
+            }}
+            className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm sm:text-base"
+            title="Self Museumで表示"
           >
-            <FiMoreVertical className="text-xl" />
+            <FiExternalLink className="text-base sm:text-lg" />
+            <span className="hidden sm:inline">Self Museum</span>
+            <span className="sm:hidden">Museum</span>
           </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
+          >
+            <FiPlus className="text-base sm:text-lg" />
+            <span className="hidden sm:inline">新規アイテム</span>
+            <span className="sm:hidden">新規</span>
+          </button>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setShowDropdown(!showDropdown)}
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
+              title="その他のオプション"
+            >
+              <FiMoreVertical className="text-xl" />
+            </button>
           {showDropdown && (
             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-10">
               <button
@@ -356,6 +361,7 @@ export default function CollectionPage({ params }: PageProps) {
               </button>
             </div>
           )}
+          </div>
         </div>
       </div>
 

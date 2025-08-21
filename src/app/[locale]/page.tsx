@@ -1,7 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { FiImage, FiUpload, FiLock, FiGlobe, FiArrowRight } from 'react-icons/fi';
+import { useSession, signIn } from 'next-auth/react';
+import { FiImage, FiUpload, FiLock, FiGlobe, FiArrowRight, FiLogIn } from 'react-icons/fi';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -21,13 +21,26 @@ export default function HomePage() {
           <div className="mb-12">
             <Link
               href="/ja/dashboard"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-blue-500 text-white text-lg rounded-lg hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-blue-500 text-white text-base sm:text-lg rounded-lg hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
             >
               ダッシュボードへ
               <FiArrowRight />
             </Link>
           </div>
-        ) : null}
+        ) : (
+          <div className="mb-12 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl">
+            <p className="text-base sm:text-lg text-gray-700 dark:text-gray-300 mb-4">
+              ログインして、あなたの画像コレクションを管理しましょう
+            </p>
+            <button
+              onClick={() => signIn()}
+              className="inline-flex items-center gap-2 px-6 sm:px-8 py-3 sm:py-4 bg-blue-500 text-white text-base sm:text-lg rounded-lg hover:bg-blue-600 transition-colors shadow-lg hover:shadow-xl"
+            >
+              <FiLogIn />
+              ログインしてダッシュボードへ
+            </button>
+          </div>
+        )}
 
         <div className="grid md:grid-cols-3 gap-8 mb-12">
           <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">

@@ -174,16 +174,16 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-start mb-8">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold">{userSettings.publicCollectionTitle?.ja || 'マイコレクション'}</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-8">
+        <div className="flex-1 w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold">{userSettings.publicCollectionTitle?.ja || 'マイコレクション'}</h1>
           {userSettings.publicCollectionDescription?.ja && (
-            <p className="text-gray-600 dark:text-gray-400 mt-2">
+            <p className="text-gray-600 dark:text-gray-400 mt-2 text-sm sm:text-base">
               {userSettings.publicCollectionDescription.ja}
             </p>
           )}
         </div>
-        <div className="flex gap-2 flex-shrink-0 ml-4">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <button
             onClick={() => {
               // Create a v2 public collection URL
@@ -192,18 +192,20 @@ export default function DashboardPage() {
               const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(baseUrl)}`;
               window.open(selfMuseumUrl, '_blank');
             }}
-            className="flex items-center gap-2 px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600"
+            className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm sm:text-base"
             title="Self Museumで公開コレクションを表示"
           >
-            <FiExternalLink />
-            Self Museum
+            <FiExternalLink className="text-base sm:text-lg" />
+            <span className="hidden sm:inline">Self Museum</span>
+            <span className="sm:hidden">Museum</span>
           </button>
           <button
             onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+            className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
           >
-            <FiPlus />
-            新規コレクション
+            <FiPlus className="text-base sm:text-lg" />
+            <span className="hidden sm:inline">新規コレクション</span>
+            <span className="sm:hidden">新規</span>
           </button>
           <div className="relative" ref={dropdownRef}>
             <button
