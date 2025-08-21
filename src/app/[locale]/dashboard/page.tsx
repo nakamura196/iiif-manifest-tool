@@ -216,7 +216,7 @@ export default function DashboardPage() {
               <FiMoreVertical className="text-xl" />
             </button>
             {showDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-10">
+              <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50 max-w-[calc(100vw-2rem)]">
                 <button
                   onClick={() => {
                     const userId = session?.user?.id;
@@ -299,7 +299,7 @@ export default function DashboardPage() {
                     <FiMoreVertical />
                   </button>
                   {showCollectionDropdown === collection.id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-10">
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50 max-w-[calc(100vw-2rem)]">
                       <button
                         onClick={() => {
                           openCollectionInMirador(collection.id);
