@@ -85,7 +85,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [locationLabel, setLocationLabel] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'metadata' | 'location'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'additional' | 'location' | 'settings'>('basic');
 
   const fetchItem = useCallback(async () => {
     try {
@@ -323,6 +323,17 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   <span>画像管理</span>
                 </button>
                 <button
+                  onClick={() => setActiveTab('additional')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    activeTab === 'additional'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <FiPlus className="text-lg" />
+                  <span>追加情報</span>
+                </button>
+                <button
                   onClick={() => setActiveTab('location')}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                     activeTab === 'location'
@@ -334,9 +345,9 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                   <span>位置情報</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab('metadata')}
+                  onClick={() => setActiveTab('settings')}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    activeTab === 'metadata'
+                    activeTab === 'settings'
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
@@ -486,6 +497,70 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
               </div>
             )}
 
+            {activeTab === 'additional' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <FiPlus />
+                  追加情報
+                </h2>
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    {metadata.customFields?.map((field, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={field.label}
+                          onChange={(e) => {
+                            const newFields = [...(metadata.customFields || [])];
+                            newFields[index].label = e.target.value;
+                            setMetadata({ ...metadata, customFields: newFields });
+                          }}
+                          className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          placeholder="項目名（例: 作成年）"
+                        />
+                        <input
+                          type="text"
+                          value={field.value}
+                          onChange={(e) => {
+                            const newFields = [...(metadata.customFields || [])];
+                            newFields[index].value = e.target.value;
+                            setMetadata({ ...metadata, customFields: newFields });
+                          }}
+                          className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          placeholder="内容（例: 1850年）"
+                        />
+                        <button
+                          onClick={() => {
+                            const newFields = metadata.customFields?.filter((_, i) => i !== index) || [];
+                            setMetadata({ ...metadata, customFields: newFields });
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => {
+                        const newFields = [...(metadata.customFields || []), { label: '', value: '' }];
+                        setMetadata({ ...metadata, customFields: newFields });
+                      }}
+                      className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
+                    >
+                      <FiPlus />
+                      情報を追加
+                    </button>
+                  </div>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      ここで追加した情報は、作品の詳細情報として表示されます。
+                      作成年、作者、技法、サイズなど、作品に関する様々な情報を自由に追加できます。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {activeTab === 'location' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
@@ -539,7 +614,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
               </div>
             )}
 
-            {activeTab === 'metadata' && (
+            {activeTab === 'settings' && (
               <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
                 <h2 className="text-lg font-semibold flex items-center gap-2">
                   <FiSettings />
@@ -618,58 +693,6 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                         rows={3}
                         placeholder="説明（例: 画像の二次利用については事前にご相談ください）"
                       />
-                    </div>
-                  </div>
-
-                  {/* Custom Fields */}
-                  <div>
-                    <h3 className="text-sm font-medium mb-3">追加情報</h3>
-                    <div className="space-y-3">
-                      {metadata.customFields?.map((field, index) => (
-                        <div key={index} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={field.label}
-                            onChange={(e) => {
-                              const newFields = [...(metadata.customFields || [])];
-                              newFields[index].label = e.target.value;
-                              setMetadata({ ...metadata, customFields: newFields });
-                            }}
-                            className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                            placeholder="項目名（例: 作成年）"
-                          />
-                          <input
-                            type="text"
-                            value={field.value}
-                            onChange={(e) => {
-                              const newFields = [...(metadata.customFields || [])];
-                              newFields[index].value = e.target.value;
-                              setMetadata({ ...metadata, customFields: newFields });
-                            }}
-                            className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                            placeholder="内容（例: 1850年）"
-                          />
-                          <button
-                            onClick={() => {
-                              const newFields = metadata.customFields?.filter((_, i) => i !== index) || [];
-                              setMetadata({ ...metadata, customFields: newFields });
-                            }}
-                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
-                          >
-                            <FiTrash2 />
-                          </button>
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => {
-                          const newFields = [...(metadata.customFields || []), { label: '', value: '' }];
-                          setMetadata({ ...metadata, customFields: newFields });
-                        }}
-                        className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
-                      >
-                        <FiPlus />
-                        情報を追加
-                      </button>
                     </div>
                   </div>
                 </div>

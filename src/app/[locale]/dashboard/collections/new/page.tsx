@@ -14,7 +14,7 @@ interface NewCollectionPageProps {
 
 export default function NewCollectionPage({ params }: NewCollectionPageProps) {
   const resolvedParams = use(params);
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');

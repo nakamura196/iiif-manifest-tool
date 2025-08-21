@@ -65,7 +65,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
     isPublic: true,
     metadata: {}
   });
-  const [activeTab, setActiveTab] = useState<'basic' | 'metadata' | 'access'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'additional' | 'settings' | 'access'>('basic');
 
   const fetchCollection = useCallback(async () => {
     try {
@@ -173,9 +173,20 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                   <span>基本情報</span>
                 </button>
                 <button
-                  onClick={() => setActiveTab('metadata')}
+                  onClick={() => setActiveTab('additional')}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                    activeTab === 'metadata'
+                    activeTab === 'additional'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <FiPlus className="text-lg" />
+                  <span>追加情報</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    activeTab === 'settings'
                       ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                       : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                   }`}
@@ -233,14 +244,13 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
               </div>
             )}
 
-            {activeTab === 'metadata' && (
-              <div className="space-y-6">
-                {/* 追加情報 */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                  <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                    <FiSettings />
-                    追加情報
-                  </h2>
+            {activeTab === 'additional' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <FiPlus />
+                  追加情報
+                </h2>
+                <div className="space-y-4">
                   <div className="space-y-3">
                     {collection.metadata?.customFields?.map((field, index) => (
                       <div key={index} className="flex flex-col sm:flex-row gap-2">
@@ -300,11 +310,22 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                       情報を追加
                     </button>
                   </div>
+                  <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      ここで追加した情報は、コレクションの詳細情報として表示されます。
+                      所蔵番号、分類、テーマなど、コレクションに関する様々な情報を自由に追加できます。
+                    </p>
+                  </div>
                 </div>
+              </div>
+            )}
 
-                {/* 詳細設定 */}
-                <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
-                  <h3 className="text-lg font-semibold mb-4">詳細設定</h3>
+            {activeTab === 'settings' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <FiSettings />
+                  詳細設定
+                </h2>
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">
@@ -458,7 +479,6 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                         placeholder="https://example.org/data.json"
                       />
                     </div>
-                  </div>
                 </div>
               </div>
             )}

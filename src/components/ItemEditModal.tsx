@@ -522,7 +522,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
             <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">追加情報</h3>
               <div className="space-y-3">
                 {metadata.customFields?.map((field, index) => (
-                  <div key={index} className="flex flex-col sm:flex-row gap-2">
+                  <div key={index} className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-2">
                     <input
                       type="text"
                       value={field.label}
@@ -531,7 +531,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                         newFields[index].label = e.target.value;
                         setMetadata({ ...metadata, customFields: newFields });
                       }}
-                      className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
                       placeholder="項目名（例: 作成年）"
                     />
                     <input
@@ -542,7 +542,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                         newFields[index].value = e.target.value;
                         setMetadata({ ...metadata, customFields: newFields });
                       }}
-                      className="flex-1 px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                      className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm sm:text-base"
                       placeholder="内容（例: 1850年）"
                     />
                     <button
@@ -550,7 +550,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                         const newFields = metadata.customFields?.filter((_, i) => i !== index) || [];
                         setMetadata({ ...metadata, customFields: newFields });
                       }}
-                      className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                      className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded self-start sm:self-center"
                     >
                       <FiTrash2 />
                     </button>
