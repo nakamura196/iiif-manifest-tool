@@ -1,17 +1,16 @@
 <svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bgGradientDark" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#1a202c;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#2d3748;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:#1e293b;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#334155;stop-opacity:1" />
     </linearGradient>
-    <radialGradient id="overlayGradientDark" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" style="stop-color:white;stop-opacity:0.05" />
-      <stop offset="70%" style="stop-color:white;stop-opacity:0" />
-    </radialGradient>
+    <pattern id="gridDark" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5" opacity="0.08"/>
+    </pattern>
     <filter id="shadowDark" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
       <feOffset dx="0" dy="4" result="offsetblur"/>
-      <feFlood flood-color="#000000" flood-opacity="0.2"/>
+      <feFlood flood-color="#000000" flood-opacity="0.3"/>
       <feComposite in2="offsetblur" operator="in"/>
       <feMerge>
         <feMergeNode/>
@@ -23,34 +22,48 @@
   <!-- Background -->
   <rect width="1200" height="630" fill="url(#bgGradientDark)"/>
   
-  <!-- Overlay effect -->
-  <circle cx="900" cy="150" r="600" fill="url(#overlayGradientDark)" opacity="0.5" transform="rotate(45 900 150)"/>
+  <!-- Grid pattern -->
+  <rect width="1200" height="630" fill="url(#gridDark)"/>
   
-  <!-- Logo -->
-  <g transform="translate(600, 150)">
-    <rect x="-40" y="-40" width="80" height="80" rx="20" fill="#4a5568" filter="url(#shadowDark)"/>
-    <text x="0" y="12" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="36" font-weight="bold" fill="white">N</text>
+  <!-- IIIF Logo Area -->
+  <g transform="translate(150, 265)">
+    <!-- Image frames representing collection -->
+    <rect x="0" y="0" width="80" height="100" rx="4" fill="#64748b" opacity="0.9" filter="url(#shadowDark)" transform="rotate(-5 40 50)"/>
+    <rect x="20" y="10" width="80" height="100" rx="4" fill="#64748b" opacity="0.9" filter="url(#shadowDark)" transform="rotate(3 60 60)"/>
+    <rect x="40" y="20" width="80" height="100" rx="4" fill="#64748b" filter="url(#shadowDark)"/>
+    
+    <!-- IIIF icon on front frame -->
+    <g transform="translate(80, 70)">
+      <circle r="25" fill="#ed1c24"/>
+      <text x="0" y="8" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white">IIIF</text>
+    </g>
   </g>
   
   <!-- Title -->
-  <text x="600" y="300" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="72" font-weight="700" fill="white" filter="url(#shadowDark)">Next.js i18n Template</text>
+  <text x="400" y="280" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="56" font-weight="700" fill="white" filter="url(#shadowDark)">Image Collection Manager</text>
   
-  <!-- Description -->
-  <text x="600" y="380" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="400" fill="white" opacity="0.95">Multilingual SSG template with dark mode support</text>
+  <!-- Subtitle -->
+  <text x="400" y="340" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="24" font-weight="400" fill="white" opacity="0.95">IIIF standard compliant service</text>
   
-  <!-- Tech stack -->
-  <g transform="translate(600, 530)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="20" fill="white" opacity="0.8">
-    <g transform="translate(-150, 0)">
-      <circle cx="-10" cy="-3" r="4" fill="white"/>
-      <text x="0" y="0">Next.js</text>
-    </g>
+  <!-- Features -->
+  <g transform="translate(400, 420)" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="18" fill="white" opacity="0.8">
     <g transform="translate(0, 0)">
-      <circle cx="-10" cy="-3" r="4" fill="white"/>
-      <text x="0" y="0">next-intl</text>
+      <rect x="-8" y="-14" width="16" height="16" rx="2" fill="white" opacity="0.2"/>
+      <text x="20" y="0">Organize and manage images easily</text>
     </g>
-    <g transform="translate(150, 0)">
-      <circle cx="-10" cy="-3" r="4" fill="white"/>
-      <text x="0" y="0">next-themes</text>
+    <g transform="translate(0, 35)">
+      <rect x="-8" y="-14" width="16" height="16" rx="2" fill="white" opacity="0.2"/>
+      <text x="20" y="0">IIIF-compliant high-quality viewing</text>
     </g>
+    <g transform="translate(0, 70)">
+      <rect x="-8" y="-14" width="16" height="16" rx="2" fill="white" opacity="0.2"/>
+      <text x="20" y="0">Share and publish collections effortlessly</text>
+    </g>
+  </g>
+  
+  <!-- IIIF badge -->
+  <g transform="translate(1050, 530)">
+    <rect x="-60" y="-25" width="120" height="50" rx="25" fill="white" opacity="0.15"/>
+    <text x="0" y="5" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="white">IIIF</text>
   </g>
 </svg>
