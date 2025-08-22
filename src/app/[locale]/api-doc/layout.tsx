@@ -1,8 +1,12 @@
 import { setRequestLocale } from 'next-intl/server';
+import { getPageMetadata } from '@/constants/metadata';
 
-export const metadata = {
-  title: 'API Documentation - IIIF Manifest Tool',
-  description: 'API documentation for IIIF Manifest Tool',
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  const locale = (await params).locale as 'ja' | 'en';
+  return getPageMetadata(locale, {
+    title: 'API Documentation',
+    description: 'API documentation for the Image Collection Manager',
+  });
 }
 
 type LayoutProps = {

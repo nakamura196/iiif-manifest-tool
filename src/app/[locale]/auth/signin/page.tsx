@@ -2,10 +2,14 @@
 
 import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
+import { SITE_CONFIG } from '@/constants/metadata';
 
 export default function SignIn() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const locale = useLocale() as 'ja' | 'en';
+  const siteName = SITE_CONFIG.name[locale];
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -15,7 +19,7 @@ export default function SignIn() {
             アカウントにサインイン
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
-            IIIF Manifest Tool を利用するにはサインインが必要です
+            {siteName} を利用するにはサインインが必要です
           </p>
         </div>
         <div className="mt-8 space-y-6">

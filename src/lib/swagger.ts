@@ -1,10 +1,11 @@
 import { createSwaggerSpec } from 'next-swagger-doc';
+import { SITE_CONFIG } from '@/constants/metadata';
 
 const apiDocumentation = createSwaggerSpec({
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'IIIF Manifest Tool API',
+      title: `${SITE_CONFIG.name.en} API`,
       version: '1.0.0',
       description: 'API for managing IIIF collections and manifests with mdx object storage',
     },

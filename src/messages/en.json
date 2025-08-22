@@ -30,7 +30,7 @@
     "settingsMenu": "Settings Menu"
   },
   "Footer": {
-    "copyright": "© 2024 IIIF Manifest Tool",
+    "copyright": "© 2024 {siteName}",
     "quickLinks": {
       "title": "Quick Links",
       "about": "About"

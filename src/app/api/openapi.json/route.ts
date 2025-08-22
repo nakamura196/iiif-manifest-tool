@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
+import { SITE_CONFIG } from '@/constants/metadata';
 
 const openApiSpec = {
   openapi: '3.0.0',
   info: {
-    title: 'IIIF Manifest Tool API',
+    title: `${SITE_CONFIG.name.en} API`,
     version: '1.0.0',
     description: 'API for managing IIIF collections and manifests with mdx object storage',
     contact: {
