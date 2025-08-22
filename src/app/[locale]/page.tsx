@@ -19,7 +19,7 @@ export default function HomePage() {
     dashboardButton: 'ダッシュボードへ',
     features: {
       easy: { title: 'かんたん操作', desc: '画像をドラッグ&ドロップするだけで、クラウドに保存して整理' },
-      quality: { title: '美術館品質', desc: '世界の美術館・図書館で使われている国際規格（IIIF）に対応' },
+      quality: { title: '国際規格対応', desc: '世界の美術館・図書館で使われている国際規格（IIIF）に対応' },
       secure: { title: '安全な共有', desc: '公開・非公開を選択でき、大切な画像を安全に管理' }
     },
     recommended: 'こんな方におすすめ',
@@ -39,7 +39,7 @@ export default function HomePage() {
     dashboardButton: 'Go to Dashboard',
     features: {
       easy: { title: 'Easy to Use', desc: 'Simply drag & drop images to save and organize in the cloud' },
-      quality: { title: 'Museum Quality', desc: 'Compatible with IIIF, the international standard used by museums and libraries worldwide' },
+      quality: { title: 'International Standard', desc: 'Compatible with IIIF, the international standard used by museums and libraries worldwide' },
       secure: { title: 'Secure Sharing', desc: 'Choose between public and private settings to safely manage your precious images' }
     },
     recommended: 'Recommended for',

@@ -4,10 +4,10 @@ export const SITE_CONFIG = {
     en: 'Image Collection Manager',
   },
   description: {
-    ja: '画像をまとめて整理・公開・共有できるサービス。美術館品質の国際規格IIIF対応',
-    en: 'Service for organizing, publishing, and sharing image collections with museum-quality IIIF standard support',
+    ja: '画像をまとめて整理・公開・共有できるサービス。国際規格IIIF対応',
+    en: 'Service for organizing, publishing, and sharing image collections with IIIF standard support',
   },
-  url: process.env.NEXT_PUBLIC_SITE_URL || 'https://example.com',
+  url: process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
   ogImage: {
     ja: '/ogp-ja.svg',
     en: '/ogp-en.svg',
