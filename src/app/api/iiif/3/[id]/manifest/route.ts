@@ -219,6 +219,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                             tags?: string[];
                             url?: string;
                             xywh?: string;
+                            resourceCoords?: [number, number];
                           };
                         } = {
                           type: "Feature",
@@ -236,14 +237,14 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                           feature.id = point.id;
                         }
                         
-                        // Add optional metadata if present
-                        if (point.label || point.tags || point.url || point.xywh) {
-                          feature.metadata = {};
-                          if (point.label) feature.metadata.label = point.label;
-                          if (point.tags) feature.metadata.tags = point.tags;
-                          if (point.url) feature.metadata.url = point.url;
-                          if (point.xywh) feature.metadata.xywh = point.xywh;
-                        }
+                        // Add metadata including resourceCoords
+                        feature.metadata = {
+                          resourceCoords: point.resourceCoords
+                        };
+                        if (point.label) feature.metadata.label = point.label;
+                        if (point.tags) feature.metadata.tags = point.tags;
+                        if (point.url) feature.metadata.url = point.url;
+                        if (point.xywh) feature.metadata.xywh = point.xywh;
                         
                         return feature;
                       })
