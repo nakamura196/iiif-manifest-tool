@@ -37,6 +37,11 @@ export const getMetadata = (locale: 'ja' | 'en') => {
     description,
     keywords,
     metadataBase: new URL(SITE_CONFIG.url),
+    icons: {
+      icon: '/icon.svg',
+      shortcut: '/icon.svg',
+      apple: '/icon.svg',
+    },
     openGraph: {
       title,
       description,
