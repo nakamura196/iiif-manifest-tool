@@ -290,7 +290,7 @@ export async function createIIIFManifest(
                   format: img.mimeType || 'image/jpeg',
                   height: img.height,
                   width: img.width,
-                  service: (img.isIIIF || img.url.includes('iiif')) ? [
+                  service: (img.isIIIF || img.infoJson || img.iiifBaseUrl || img.url.includes('iiif')) ? [
                     {
                       '@id': img.iiifBaseUrl || img.url.replace('/full/full/0/default.jpg', ''),
                       '@type': 'ImageService2',
@@ -639,7 +639,7 @@ export async function updateIIIFManifest(
                     format: img.mimeType || 'image/jpeg',
                     height: img.height,
                     width: img.width,
-                    service: (img.isIIIF || img.url.includes('iiif')) ? [
+                    service: (img.isIIIF || img.infoJson || img.iiifBaseUrl || img.url.includes('iiif')) ? [
                       {
                         '@id': img.iiifBaseUrl || img.url.replace('/full/full/0/default.jpg', ''),
                         '@type': 'ImageService2',
