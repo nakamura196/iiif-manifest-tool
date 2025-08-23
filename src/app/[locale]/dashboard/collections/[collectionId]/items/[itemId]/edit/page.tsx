@@ -207,7 +207,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       let imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
       if (infoJson.sizes && infoJson.sizes.length > 0) {
         // Find a suitable thumbnail size (around 400-800px width)
-        const thumbnailSize = infoJson.sizes.find((size: any) => 
+        const thumbnailSize = infoJson.sizes.find((size: {width: number; height: number}) => 
           size.width >= 400 && size.width <= 800
         ) || infoJson.sizes[infoJson.sizes.length - 1]; // Use largest if no suitable size found
         
@@ -300,47 +300,165 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
     const lines = csvText.trim().split('\n');
     const points: GeoPoint[] = [];
     
-    for (const line of lines) {
+    if (lines.length === 0) return points;
+    
+    // Try to detect header row and column indices
+    let columnIndices: {
+      id?: number;
+      x?: number;
+      y?: number;
+      lat?: number;
+      lng?: number;
+      label?: number;
+      tags?: number;
+      url?: number;
+      xywh?: number;
+    } = {};
+    
+    let dataStartLine = 0;
+    
+    // Check if first line is a header
+    const firstLine = lines[0].toLowerCase();
+    if (firstLine.includes('x') || firstLine.includes('lat') || firstLine.includes('id')) {
+      const headerRow = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      // Map column names to indices
+      headerRow.forEach((col, idx) => {
+        if (col === 'id') columnIndices.id = idx;
+        else if (col === 'x') columnIndices.x = idx;
+        else if (col === 'y') columnIndices.y = idx;
+        // Skip w and h columns - they're not needed for georeferencing
+        else if (col === 'w' || col === 'width' || col === 'h' || col === 'height') {
+          // Intentionally skip these columns
+        }
+        else if (col === 'latitude' || col === 'lat') columnIndices.lat = idx;
+        else if (col === 'longitude' || col === 'lng' || col === 'lon') columnIndices.lng = idx;
+        else if (col === 'label' || col === 'name') columnIndices.label = idx;
+        else if (col === 'tags' || col === 'tag') columnIndices.tags = idx;
+        else if (col === 'url' || col === 'link') columnIndices.url = idx;
+        else if (col === 'xywh' || col === 'region') columnIndices.xywh = idx;
+      });
+      
+      dataStartLine = 1; // Skip header row
+    }
+    
+    // If no header was detected or essential columns are missing, try to infer from data
+    if (columnIndices.x === undefined || columnIndices.y === undefined || 
+        columnIndices.lat === undefined || columnIndices.lng === undefined) {
+      // Reset and try positional parsing
+      columnIndices = {};
+      dataStartLine = 0;
+      
+      // Check first data line to infer format
+      if (lines.length > 0) {
+        const testParts = lines[0].split(',').map(p => p.trim());
+        let offset = 0;
+        
+        // Check if first column looks like an ID
+        if (testParts.length >= 5 && (isNaN(parseFloat(testParts[0])) || testParts[0].includes('point'))) {
+          columnIndices.id = 0;
+          offset = 1;
+        }
+        
+        // Try to find numeric columns for coordinates
+        const numericCols: { index: number; value: number }[] = [];
+        for (let i = offset; i < testParts.length; i++) {
+          const val = parseFloat(testParts[i]);
+          if (!isNaN(val)) {
+            numericCols.push({ index: i, value: val });
+          }
+        }
+        
+        // Need at least 4 numeric columns
+        if (numericCols.length >= 4) {
+          // Heuristic: coordinates usually come in pairs
+          // x,y are image coordinates (usually large numbers > 100)
+          // lat,lng are geographic coordinates (lat: -90 to 90, lng: -180 to 180)
+          
+          let xyFound = false;
+          let latLngFound = false;
+          
+          // Look for x,y pair (both usually > 100)
+          for (let i = 0; i < numericCols.length - 1; i++) {
+            if (!xyFound && numericCols[i].value > 100 && numericCols[i + 1].value > 100) {
+              columnIndices.x = numericCols[i].index;
+              columnIndices.y = numericCols[i + 1].index;
+              xyFound = true;
+              
+              // Look for lat,lng after x,y
+              for (let j = i + 2; j < numericCols.length - 1; j++) {
+                const possibleLat = numericCols[j].value;
+                const possibleLng = numericCols[j + 1].value;
+                
+                // Check if values are in geographic range
+                if (Math.abs(possibleLat) <= 90 && Math.abs(possibleLng) <= 180) {
+                  columnIndices.lat = numericCols[j].index;
+                  columnIndices.lng = numericCols[j + 1].index;
+                  latLngFound = true;
+                  break;
+                }
+              }
+              
+              if (latLngFound) break;
+            }
+          }
+          
+          // If we found lat/lng, assign remaining text columns
+          if (columnIndices.lng !== undefined) {
+            const nextCol = columnIndices.lng + 1;
+            if (testParts.length > nextCol && testParts[nextCol]) columnIndices.label = nextCol;
+            if (testParts.length > nextCol + 1 && testParts[nextCol + 1]) columnIndices.tags = nextCol + 1;
+            if (testParts.length > nextCol + 2 && testParts[nextCol + 2]) columnIndices.url = nextCol + 2;
+            if (testParts.length > nextCol + 3 && testParts[nextCol + 3]) columnIndices.xywh = nextCol + 3;
+          }
+        }
+      }
+    }
+    
+    // Process data lines
+    for (let lineIdx = dataStartLine; lineIdx < lines.length; lineIdx++) {
+      const line = lines[lineIdx];
       if (!line.trim()) continue;
       
-      // Skip header if it looks like one
-      if (line.toLowerCase().includes('id,') || line.toLowerCase().includes('x,') || line.toLowerCase().includes('lat')) continue;
+      // Skip comments
+      if (line.startsWith('#')) continue;
       
       const parts = line.split(',').map(p => p.trim());
       
-      // Support both formats: with ID (new) and without ID (legacy)
-      let startIndex = 0;
-      let pointId: string | undefined;
+      // Extract values using detected column indices
+      const x = columnIndices.x !== undefined ? parseFloat(parts[columnIndices.x]) : NaN;
+      const y = columnIndices.y !== undefined ? parseFloat(parts[columnIndices.y]) : NaN;
+      const lat = columnIndices.lat !== undefined ? parseFloat(parts[columnIndices.lat]) : NaN;
+      const lng = columnIndices.lng !== undefined ? parseFloat(parts[columnIndices.lng]) : NaN;
       
-      // Check if first column is ID (not a number or is just an index)
-      if (parts.length >= 5 && (isNaN(parseFloat(parts[0])) || parts[0].includes('point') || parts[0].length > 0)) {
-        pointId = parts[0];
-        startIndex = 1; // Skip ID column
-      }
-      
-      if (parts.length >= startIndex + 4) {
-        const x = parseFloat(parts[startIndex]);
-        const y = parseFloat(parts[startIndex + 1]);
-        const lat = parseFloat(parts[startIndex + 2]);
-        const lng = parseFloat(parts[startIndex + 3]);
+      if (!isNaN(x) && !isNaN(y) && !isNaN(lat) && !isNaN(lng)) {
+        const point: GeoPoint = {
+          resourceCoords: [x, y],
+          coordinates: [lng, lat] // GeoJSON uses [lng, lat]
+        };
         
-        if (!isNaN(x) && !isNaN(y) && !isNaN(lat) && !isNaN(lng)) {
-          const point: GeoPoint = {
-            resourceCoords: [x, y],
-            coordinates: [lng, lat]
-          };
-          
-          // Add ID if present
-          if (pointId) point.id = pointId;
-          
-          // Optional fields
-          if (parts[startIndex + 4]) point.label = parts[startIndex + 4];
-          if (parts[startIndex + 5]) point.tags = parts[startIndex + 5].split(';').map(t => t.trim());
-          if (parts[startIndex + 6]) point.url = parts[startIndex + 6];
-          if (parts[startIndex + 7]) point.xywh = parts[startIndex + 7];
-          
-          points.push(point);
+        // Add optional fields if columns exist and have values
+        if (columnIndices.id !== undefined && parts[columnIndices.id]) {
+          point.id = parts[columnIndices.id];
         }
+        
+        if (columnIndices.label !== undefined && parts[columnIndices.label]) {
+          point.label = parts[columnIndices.label];
+        }
+        
+        if (columnIndices.tags !== undefined && parts[columnIndices.tags]) {
+          point.tags = parts[columnIndices.tags].split(';').filter(t => t.trim());
+        }
+        
+        if (columnIndices.url !== undefined && parts[columnIndices.url]) {
+          point.url = parts[columnIndices.url];
+        }
+        
+        if (columnIndices.xywh !== undefined && parts[columnIndices.xywh]) {
+          point.xywh = parts[columnIndices.xywh];
+        }
+        
+        points.push(point);
       }
     }
     

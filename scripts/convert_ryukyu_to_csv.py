@@ -40,16 +40,32 @@ def convert_to_csv(json_data, output_file):
             if isinstance(tags, list):
                 tags = ';'.join(tags) if tags else ''
                 
+            # Extract x, y, w, h from member field and calculate center point
+            x_center, y_center, xywh = '', '', ''
+            member = item.get('member', '')
+            if member and '#xywh=' in member:
+                xywh_part = member.split('#xywh=')[1]
+                coords = xywh_part.split(',')
+                if len(coords) >= 4:
+                    x_val = int(coords[0])
+                    y_val = int(coords[1])
+                    w_val = int(coords[2])
+                    h_val = int(coords[3])
+                    # Calculate center point
+                    x_center = str(x_val + w_val // 2)
+                    y_center = str(y_val + h_val // 2)
+                    xywh = xywh_part
+                    
             row = {
-                'id': f'point_{point_idx}',
-                'x': '',  # These would need to be calculated from image coordinates
-                'y': '',
+                'id': item.get('objectID', f'point_{point_idx}'),
+                'x': x_center,
+                'y': y_center,
                 'latitude': lat,
                 'longitude': lon,
                 'label': item.get('label', ''),
                 'tags': tags,
                 'url': f"https://maps.app.goo.gl/?q={lat},{lon}",
-                'xywh': ''  # Would need image analysis to determine
+                'xywh': xywh
             }
             
             writer.writerow(row)

@@ -721,7 +721,7 @@ export async function updateIIIFManifest(
     
     // Add location if provided
     if (location) {
-      (manifest as any).navPlace = {
+      (manifest as unknown as Record<string, unknown>).navPlace = {
         type: 'FeatureCollection',
         features: [
           {
@@ -743,7 +743,7 @@ export async function updateIIIFManifest(
 
     // Add georeferencing annotations if provided
     if (geoAnnotations && Object.keys(geoAnnotations).length > 0) {
-      (manifest as any)['x-geo-annotations'] = geoAnnotations;
+      (manifest as unknown as Record<string, unknown>)['x-geo-annotations'] = geoAnnotations;
     }
 
     // Upload updated manifest to S3

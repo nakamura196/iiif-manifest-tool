@@ -80,6 +80,7 @@ export function createManifest(
     height: number;
     mimeType: string;
     infoJson?: string;
+    iiifBaseUrl?: string;
   }>
 ): IIIFManifest {
   const manifest: IIIFManifest = {

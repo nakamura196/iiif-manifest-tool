@@ -136,9 +136,9 @@ export default function CollectionPage({ params }: PageProps) {
 
 
   const openInMirador = (item: Item) => {
-    // Generate manifest URL using new IIIF structure
+    // Generate manifest URL using IIIF v3
     const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
-    const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
+    const manifestUrl = `${window.location.origin}/api/iiif/3/${combinedId}/manifest`;
     const encodedUrl = encodeURIComponent(manifestUrl);
     const miradorUrl = `/mirador/index.html?manifest=${encodedUrl}`;
     window.open(miradorUrl, '_blank');
@@ -386,7 +386,7 @@ export default function CollectionPage({ params }: PageProps) {
                         <button
                           onClick={() => {
                             const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
-                            const manifestUrl = `${window.location.origin}/api/iiif/${combinedId}/manifest`;
+                            const manifestUrl = `${window.location.origin}/api/iiif/3/${combinedId}/manifest`;
                             window.open(manifestUrl, '_blank');
                             setShowItemDropdown(null);
                           }}

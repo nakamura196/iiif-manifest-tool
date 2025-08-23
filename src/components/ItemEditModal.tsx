@@ -176,7 +176,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
       let imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
       if (infoJson.sizes && infoJson.sizes.length > 0) {
         // Find a suitable thumbnail size (around 400-800px width)
-        const thumbnailSize = infoJson.sizes.find((size: any) => 
+        const thumbnailSize = infoJson.sizes.find((size: {width: number; height: number}) => 
           size.width >= 400 && size.width <= 800
         ) || infoJson.sizes[infoJson.sizes.length - 1]; // Use largest if no suitable size found
         
