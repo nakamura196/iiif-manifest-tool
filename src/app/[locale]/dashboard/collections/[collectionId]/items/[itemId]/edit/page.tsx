@@ -175,30 +175,69 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
 
   const handleUrlAdd = async (url: string) => {
     try {
-      const response = await fetch(url, { method: 'HEAD' });
-      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      // Use server-side API to fetch image metadata to avoid CORS issues
+      const response = await fetch('/api/image-metadata', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch image metadata');
+      }
+
+      const data = await response.json();
       
-      const img = new Image();
-      img.onload = () => {
+      // If we have a dataUrl, use it to get accurate dimensions
+      if (data.dataUrl) {
+        const img = new Image();
+        img.onload = () => {
+          setImages([
+            ...images,
+            {
+              url,
+              width: img.width,
+              height: img.height,
+              mimeType: data.mimeType,
+            },
+          ]);
+        };
+        img.src = data.dataUrl;
+      } else {
+        // Fallback to server-provided dimensions
         setImages([
           ...images,
           {
             url,
-            width: img.width,
-            height: img.height,
-            mimeType: contentType,
+            width: data.width,
+            height: data.height,
+            mimeType: data.mimeType,
           },
         ]);
-      };
-      img.src = url;
+      }
     } catch (error) {
       console.error('Error adding URL:', error);
+      alert('画像の取得に失敗しました。URLを確認してください。');
     }
   };
 
   const handleInfoJsonAdd = async (infoJsonUrl: string) => {
     try {
-      const response = await fetch(infoJsonUrl);
+      // Use server-side API to fetch info.json to avoid CORS issues
+      const response = await fetch('/api/iiif-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: infoJsonUrl }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch info.json');
+      }
+
       const infoJson = await response.json();
       
       const baseUrl = infoJson.id || infoJson['@id'];
