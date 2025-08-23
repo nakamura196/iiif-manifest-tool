@@ -155,10 +155,10 @@ export async function createIIIFManifest(
   // Always use S3 URL for storage
   const s3ManifestUrl = getS3Url(manifestKey);
   
-  // Use new IIIF URL structure
+  // Use versioned IIIF URL structure
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
   const manifestId = `${userId}_${collectionId}_${itemId}`;
-  const publicManifestUrl = `${baseUrl}/api/iiif/${manifestId}/manifest`;
+  const publicManifestUrl = `${baseUrl}/api/iiif/3/${manifestId}/manifest`;
 
   const contexts: string[] = ['http://iiif.io/api/presentation/3/context.json'];
   if (location) {
@@ -484,7 +484,20 @@ export async function updateIIIFManifest(
       label: string;
       value: string;
     }>;
-  }
+  },
+  geoAnnotations?: { [key: number]: {
+    points: Array<{
+      id?: string;
+      resourceCoords: [number, number];
+      coordinates: [number, number];
+      label?: string;
+      tags?: string[];
+      url?: string;
+      xywh?: string;
+    }>;
+    transformationType?: 'polynomial' | 'thin-plate-spline';
+    transformationOrder?: number;
+  }}
 ): Promise<boolean> {
   try {
     const manifestKey = `collections/${userId}/${collectionId}/items/${manifestId}/manifest.json`;
@@ -654,6 +667,33 @@ export async function updateIIIFManifest(
       if (metadata.provider) {
         (manifest as IIIFManifest).provider = metadata.provider;
       }
+    }
+    
+    // Add location if provided
+    if (location) {
+      (manifest as any).navPlace = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: [location.longitude, location.latitude]
+            },
+            properties: {
+              label: {
+                ja: [location.label || title],
+                en: [location.label || title]
+              }
+            }
+          }
+        ]
+      };
+    }
+
+    // Add georeferencing annotations if provided
+    if (geoAnnotations && Object.keys(geoAnnotations).length > 0) {
+      (manifest as any)['x-geo-annotations'] = geoAnnotations;
     }
 
     // Upload updated manifest to S3

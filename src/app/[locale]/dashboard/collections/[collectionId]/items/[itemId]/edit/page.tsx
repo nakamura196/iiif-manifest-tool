@@ -70,6 +70,7 @@ interface ImageData {
 }
 
 interface GeoPoint {
+  id?: string;
   resourceCoords: [number, number];
   coordinates: [number, number];
   label?: string;
@@ -303,15 +304,25 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       if (!line.trim()) continue;
       
       // Skip header if it looks like one
-      if (line.toLowerCase().includes('x,') || line.toLowerCase().includes('lat')) continue;
+      if (line.toLowerCase().includes('id,') || line.toLowerCase().includes('x,') || line.toLowerCase().includes('lat')) continue;
       
       const parts = line.split(',').map(p => p.trim());
       
-      if (parts.length >= 4) {
-        const x = parseFloat(parts[0]);
-        const y = parseFloat(parts[1]);
-        const lat = parseFloat(parts[2]);
-        const lng = parseFloat(parts[3]);
+      // Support both formats: with ID (new) and without ID (legacy)
+      let startIndex = 0;
+      let pointId: string | undefined;
+      
+      // Check if first column is ID (not a number or is just an index)
+      if (parts.length >= 5 && (isNaN(parseFloat(parts[0])) || parts[0].includes('point') || parts[0].length > 0)) {
+        pointId = parts[0];
+        startIndex = 1; // Skip ID column
+      }
+      
+      if (parts.length >= startIndex + 4) {
+        const x = parseFloat(parts[startIndex]);
+        const y = parseFloat(parts[startIndex + 1]);
+        const lat = parseFloat(parts[startIndex + 2]);
+        const lng = parseFloat(parts[startIndex + 3]);
         
         if (!isNaN(x) && !isNaN(y) && !isNaN(lat) && !isNaN(lng)) {
           const point: GeoPoint = {
@@ -319,11 +330,14 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
             coordinates: [lng, lat]
           };
           
+          // Add ID if present
+          if (pointId) point.id = pointId;
+          
           // Optional fields
-          if (parts[4]) point.label = parts[4];
-          if (parts[5]) point.tags = parts[5].split(';').map(t => t.trim());
-          if (parts[6]) point.url = parts[6];
-          if (parts[7]) point.xywh = parts[7];
+          if (parts[startIndex + 4]) point.label = parts[startIndex + 4];
+          if (parts[startIndex + 5]) point.tags = parts[startIndex + 5].split(';').map(t => t.trim());
+          if (parts[startIndex + 6]) point.url = parts[startIndex + 6];
+          if (parts[startIndex + 7]) point.xywh = parts[startIndex + 7];
           
           points.push(point);
         }
@@ -356,15 +370,16 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
     const annotation = geoAnnotations[imageIndex];
     if (!annotation || annotation.points.length === 0) return;
     
-    let csv = 'x,y,latitude,longitude,label,tags,url,xywh\n';
-    for (const point of annotation.points) {
-      csv += `${point.resourceCoords[0]},${point.resourceCoords[1]},`;
+    let csv = 'id,x,y,latitude,longitude,label,tags,url,xywh\n';
+    annotation.points.forEach((point, idx) => {
+      const pointId = point.id || `point_${idx + 1}`;
+      csv += `${pointId},${point.resourceCoords[0]},${point.resourceCoords[1]},`;
       csv += `${point.coordinates[1]},${point.coordinates[0]}`;
       csv += `,${point.label || ''}`;
       csv += `,${point.tags?.join(';') || ''}`;
       csv += `,${point.url || ''}`;
       csv += `,${point.xywh || ''}\n`;
-    }
+    });
     
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -378,26 +393,25 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   };
 
   const downloadCsvTemplate = () => {
-    const template = `x,y,latitude,longitude,label,tags,url,xywh
+    const template = `id,x,y,latitude,longitude,label,tags,url,xywh
 # CSVテンプレート - 画像座標と地理座標のマッピング
 # 各行は1つのポイントを表します
 # 
-# 必須フィールド:
-# x: 画像上のX座標（ピクセル）
-# y: 画像上のY座標（ピクセル）
-# latitude: 緯度（10進数）
-# longitude: 経度（10進数）
-# 
-# オプションフィールド:
+# フィールド説明:
+# id: ポイントの識別子（オプション、例: point_1, 電気実験室, など）
+# x: 画像上のX座標（ピクセル）※必須
+# y: 画像上のY座標（ピクセル）※必須
+# latitude: 緯度（10進数）※必須
+# longitude: 経度（10進数）※必須
 # label: ポイントのラベル（例: 東京大学本館）
 # tags: タグ（セミコロン区切り、例: 建物;歴史的建造物）
 # url: 関連URL（例: https://example.com）
 # xywh: 画像上の領域（x,y,width,height形式）
 # 
 # サンプルデータ:
-100,200,35.6762,139.6503,東京タワー,ランドマーク;観光地,https://www.tokyotower.co.jp,100,200,50,100
-300,400,35.6585,139.7454,東京スカイツリー,ランドマーク;展望台,https://www.tokyo-skytree.jp,300,400,60,120
-500,600,35.7151,139.7623,東京大学,大学;教育機関,https://www.u-tokyo.ac.jp,500,600,80,80`;
+point_1,100,200,35.6762,139.6503,東京タワー,ランドマーク;観光地,https://www.tokyotower.co.jp,100,200,50,100
+point_2,300,400,35.6585,139.7454,東京スカイツリー,ランドマーク;展望台,https://www.tokyo-skytree.jp,300,400,60,120
+point_3,500,600,35.7151,139.7623,東京大学,大学;教育機関,https://www.u-tokyo.ac.jp,500,600,80,80`;
     
     const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -411,17 +425,17 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   };
 
   const downloadCsvSample = () => {
-    const sample = `x,y,latitude,longitude,label,tags,url,xywh
-6690,7517,35.7151233,139.7623182,電気実験室,工学部,https://maps.app.goo.gl/dJdXXQEA8dWSptgt8,5936,6344,976,1384
-8846,9181,35.7129321,139.7612649,法文経教室　第二号館,法学部;文学部;経済学部,,
-11626,8624,35.7109037,139.7622949,医学部　第二号館,医学部,,
-12761,9476,35.7097492,139.7618816,,,, 
-7540,8365,35.7143244,139.7618343,,,,
-10681,5983,35.7123118,139.764372,,,,
-9304,5659,35.7135689,139.7645652,,,,
-3826,10219,35.7166753,139.7594158,,,,
-8044,9859,35.7134203,139.76062,,,,
-10517,7862,35.7121183,139.7627108,,,,`;
+    const sample = `id,x,y,latitude,longitude,label,tags,url,xywh
+電気実験室,6690,7517,35.7151233,139.7623182,電気実験室,工学部,https://maps.app.goo.gl/dJdXXQEA8dWSptgt8,5936,6344,976,1384
+法文経第二,8846,9181,35.7129321,139.7612649,法文経教室　第二号館,法学部;文学部;経済学部,,
+医学部第二,11626,8624,35.7109037,139.7622949,医学部　第二号館,医学部,,
+point_4,12761,9476,35.7097492,139.7618816,,,, 
+point_5,7540,8365,35.7143244,139.7618343,,,,
+point_6,10681,5983,35.7123118,139.764372,,,,
+point_7,9304,5659,35.7135689,139.7645652,,,,
+point_8,3826,10219,35.7166753,139.7594158,,,,
+point_9,8044,9859,35.7134203,139.76062,,,,
+point_10,10517,7862,35.7121183,139.7627108,,,,`;
     
     const blob = new Blob([sample], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -916,7 +930,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                             <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                               <div className="flex justify-between items-start mb-2">
                                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                                  {t('ItemEditPage.csvFormat')}: x,y,latitude,longitude,label,tags,url,xywh
+                                  {t('ItemEditPage.csvFormat')}: id,x,y,latitude,longitude,label,tags,url,xywh
                                 </p>
                                 <div className="flex gap-2">
                                   <button
@@ -940,7 +954,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                                 onChange={(e) => setCsvInput({ ...csvInput, [imageIndex]: e.target.value })}
                                 className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-600 font-mono text-sm"
                                 rows={8}
-                                placeholder="6690,7517,35.7151233,139.7623182,電気実験室,工学部,https://maps.app.goo.gl/...,5936,6344,976,1384"
+                                placeholder="電気実験室,6690,7517,35.7151233,139.7623182,電気実験室,工学部,https://maps.app.goo.gl/...,5936,6344,976,1384"
                               />
                               <div className="flex gap-2 mt-2">
                                 <button

@@ -195,8 +195,32 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                           order: geoAnnotation.transformationOrder || 1
                         }
                       },
-                      features: geoAnnotation.points.map((point: any, pointIndex: number) => {
-                        const feature: any = {
+                      features: geoAnnotation.points.map((point: {
+                        id?: string;
+                        resourceCoords: [number, number];
+                        coordinates: [number, number];
+                        label?: string;
+                        tags?: string[];
+                        url?: string;
+                        xywh?: string;
+                      }) => {
+                        const feature: {
+                          type: string;
+                          id?: string;
+                          properties: {
+                            resourceCoords: [number, number];
+                          };
+                          geometry: {
+                            type: string;
+                            coordinates: [number, number];
+                          };
+                          metadata?: {
+                            label?: string;
+                            tags?: string[];
+                            url?: string;
+                            xywh?: string;
+                          };
+                        } = {
                           type: "Feature",
                           properties: {
                             resourceCoords: point.resourceCoords
@@ -206,6 +230,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                             coordinates: point.coordinates
                           }
                         };
+                        
+                        // Add ID if present
+                        if (point.id) {
+                          feature.id = point.id;
+                        }
                         
                         // Add optional metadata if present
                         if (point.label || point.tags || point.url || point.xywh) {
