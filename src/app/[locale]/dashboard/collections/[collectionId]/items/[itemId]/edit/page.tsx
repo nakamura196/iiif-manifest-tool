@@ -296,6 +296,39 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
     setLongitude(lng.toString());
   };
 
+  // Helper function to parse CSV line properly handling quoted values
+  const parseCsvLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          // Escaped quote
+          current += '"';
+          i++; // Skip next quote
+        } else {
+          // Toggle quote mode
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        // End of field
+        result.push(current.trim());
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    // Add last field
+    result.push(current.trim());
+    return result;
+  };
+
   const parseCsvAnnotations = (csvText: string): GeoPoint[] => {
     const lines = csvText.trim().split('\n');
     const points: GeoPoint[] = [];
@@ -320,7 +353,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
     // Check if first line is a header
     const firstLine = lines[0].toLowerCase();
     if (firstLine.includes('x') || firstLine.includes('lat') || firstLine.includes('id')) {
-      const headerRow = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const headerRow = parseCsvLine(lines[0]).map(h => h.toLowerCase());
       
       // Map column names to indices
       headerRow.forEach((col, idx) => {
@@ -351,7 +384,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       
       // Check first data line to infer format
       if (lines.length > 0) {
-        const testParts = lines[0].split(',').map(p => p.trim());
+        const testParts = parseCsvLine(lines[0]);
         let offset = 0;
         
         // Check if first column looks like an ID
@@ -423,7 +456,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       // Skip comments
       if (line.startsWith('#')) continue;
       
-      const parts = line.split(',').map(p => p.trim());
+      const parts = parseCsvLine(line);
       
       // Extract values using detected column indices
       const x = columnIndices.x !== undefined ? parseFloat(parts[columnIndices.x]) : NaN;
