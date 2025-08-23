@@ -40,13 +40,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const images = manifest.items.map((canvas, index) => {
       const annotation = canvas.items?.[0]?.items?.[0];
       const body = annotation?.body;
+      
+      // Extract IIIF info from service if present (support both v2 and v3 formats)
+      const service = body?.service?.[0];
+      const isIIIF = !!service;
+      const iiifBaseUrl = service?.id || service?.['@id'] || undefined;
+      
       return {
         id: `image-${index}`,
         url: body?.id || '',
         width: body?.width || canvas.width,
         height: body?.height || canvas.height,
         mimeType: body?.format || 'image/jpeg',
-        order: index
+        order: index,
+        ...(isIIIF && { isIIIF }),
+        ...(iiifBaseUrl && { iiifBaseUrl })
       };
     });
 

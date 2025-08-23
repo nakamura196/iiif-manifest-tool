@@ -17,6 +17,11 @@ def convert_to_csv(json_data, output_file):
         
         point_idx = 1
         for item in json_data:
+            # Filter only items with specific manifest
+            manifest_url = item.get('manifest', '')
+            if manifest_url != 'https://www.hi.u-tokyo.ac.jp/collection/digitalgallery/ryukyu/data/iiif/0001/manifest.json':
+                continue
+                
             lat = item.get('latitude')
             lon = item.get('longitude')
             
@@ -64,23 +69,25 @@ def convert_to_csv(json_data, output_file):
                 'longitude': lon,
                 'label': item.get('label', ''),
                 'tags': tags,
-                'url': f"https://maps.app.goo.gl/?q={lat},{lon}",
+                'url': f"https://www.google.com/maps?q={lat},{lon}",
                 'xywh': xywh
             }
             
             writer.writerow(row)
             point_idx += 1
     
-    print(f"CSV file created: {output_file}")
+    print(f"CSV file created: {output_file} with {point_idx - 1} items")
 
 def main():
     url = "https://www.hi.u-tokyo.ac.jp/collection/digitalgallery/ryukyu/data/index.json"
     output_file = "ryukyu_annotations.csv"
+    target_manifest = "https://www.hi.u-tokyo.ac.jp/collection/digitalgallery/ryukyu/data/iiif/0001/manifest.json"
     
     try:
         print(f"Fetching data from: {url}")
         json_data = fetch_json_data(url)
-        print(f"Found {len(json_data)} items")
+        print(f"Found {len(json_data)} total items")
+        print(f"Filtering for manifest: {target_manifest}")
         
         convert_to_csv(json_data, output_file)
         

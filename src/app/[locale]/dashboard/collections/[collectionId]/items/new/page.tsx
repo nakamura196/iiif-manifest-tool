@@ -96,21 +96,35 @@ export default function NewItemPage({ params }: NewItemPageProps) {
       const baseUrl = infoJson.id || infoJson['@id'];
       const cleanBaseUrl = baseUrl.replace(/\/$/, '');
       
-      // Use appropriate thumbnail size from info.json sizes array
-      let imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+      // Full size image URL
+      const imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+      
+      // Generate thumbnail URL with appropriate size
+      let thumbnailUrl = imageUrl; // Default to full size
       if (infoJson.sizes && infoJson.sizes.length > 0) {
-        // Find a suitable thumbnail size (around 400-800px width)
+        // Find a suitable thumbnail size (around 400px width)
         const thumbnailSize = infoJson.sizes.find((size: {width: number; height: number}) => 
           size.width >= 400 && size.width <= 800
-        ) || infoJson.sizes[infoJson.sizes.length - 1]; // Use largest if no suitable size found
+        );
         
-        imageUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
+        if (thumbnailSize) {
+          // Use specific width and height for thumbnail
+          thumbnailUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},/0/default.jpg`;
+        } else {
+          // If no suitable size found, use 400px width
+          thumbnailUrl = `${cleanBaseUrl}/full/400,/0/default.jpg`;
+        }
+      } else if (infoJson.width) {
+        // If no sizes array but width is available, calculate proportional thumbnail
+        const targetWidth = Math.min(400, infoJson.width);
+        thumbnailUrl = `${cleanBaseUrl}/full/${targetWidth},/0/default.jpg`;
       }
       
       setUploadedImages([
         ...uploadedImages,
         {
           url: imageUrl,
+          thumbnailUrl: thumbnailUrl,
           width: infoJson.width,
           height: infoJson.height,
           mimeType: 'image/jpeg',
