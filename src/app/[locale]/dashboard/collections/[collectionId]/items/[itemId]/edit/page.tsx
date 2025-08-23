@@ -57,6 +57,7 @@ interface ManifestMetadata {
 
 interface ImageData {
   url: string;
+  thumbnailUrl?: string;
   width: number;
   height: number;
   mimeType?: string;
@@ -219,7 +220,9 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
           thumbnailUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
         } else {
           // If no suitable size in range, find the largest available size
-          const largestSize = infoJson.sizes[infoJson.sizes.length - 1];
+          // Sort sizes by width to ensure we get the largest
+          const sortedSizes = [...infoJson.sizes].sort((a, b) => b.width - a.width);
+          const largestSize = sortedSizes[0];
           if (largestSize) {
             thumbnailUrl = `${cleanBaseUrl}/full/${largestSize.width},${largestSize.height}/0/default.jpg`;
           } else {
@@ -816,7 +819,7 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                         <div key={index} className="space-y-2">
                           <div className="relative">
                             <img
-                              src={img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/400,/0/default.jpg` : img.url}
+                              src={img.thumbnailUrl || (img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/400,/0/default.jpg` : img.url)}
                               alt={`Image ${index + 1}`}
                               className="w-full h-40 object-cover rounded-lg"
                             />

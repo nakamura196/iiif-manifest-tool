@@ -17,6 +17,7 @@ interface NewItemPageProps {
 
 interface UploadedImage {
   url: string;
+  thumbnailUrl?: string;
   width: number;
   height: number;
   mimeType?: string;
@@ -108,11 +109,19 @@ export default function NewItemPage({ params }: NewItemPageProps) {
         );
         
         if (thumbnailSize) {
-          // Use specific width and height for thumbnail
-          thumbnailUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},/0/default.jpg`;
+          // Use specific width AND height from sizes array
+          thumbnailUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
         } else {
-          // If no suitable size found, use 400px width
-          thumbnailUrl = `${cleanBaseUrl}/full/400,/0/default.jpg`;
+          // If no suitable size in range, find the largest available size
+          // Sort sizes by width to ensure we get the largest
+          const sortedSizes = [...infoJson.sizes].sort((a, b) => b.width - a.width);
+          const largestSize = sortedSizes[0];
+          if (largestSize) {
+            thumbnailUrl = `${cleanBaseUrl}/full/${largestSize.width},${largestSize.height}/0/default.jpg`;
+          } else {
+            // Fallback to a small fixed size
+            thumbnailUrl = `${cleanBaseUrl}/full/400,/0/default.jpg`;
+          }
         }
       } else if (infoJson.width) {
         // If no sizes array but width is available, calculate proportional thumbnail

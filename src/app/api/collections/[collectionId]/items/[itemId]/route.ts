@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       // Extract IIIF info from service if present (support both v2 and v3 formats)
       const service = body?.service?.[0];
       const isIIIF = !!service;
-      const iiifBaseUrl = service?.id || service?.['@id'] || undefined;
+      const iiifBaseUrl = service?.['@id'] || undefined;
       
       return {
         id: `image-${index}`,

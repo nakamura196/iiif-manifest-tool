@@ -162,8 +162,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               if (!isCanvasPublic && !annotation.body.service) {
                 annotation.body.service = [
                   {
-                    id: imageUrl,
-                    type: 'ImageService2',
+                    '@id': imageUrl,
+                    '@type': 'ImageService2',
                     profile: 'http://iiif.io/api/image/2/level2.json'
                   }
                 ];

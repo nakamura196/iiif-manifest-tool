@@ -181,6 +181,7 @@ export async function createIIIFManifest(
     thumbnailWidth?: number;
     thumbnailHeight?: number;
     mimeType?: string;
+    infoJson?: string;
     isIIIF?: boolean;
     iiifBaseUrl?: string;
     access?: {
@@ -292,8 +293,8 @@ export async function createIIIFManifest(
                   width: img.width,
                   service: (img.isIIIF || img.infoJson || img.iiifBaseUrl || img.url.includes('iiif')) ? [
                     {
-                      id: img.iiifBaseUrl || img.url.replace('/full/full/0/default.jpg', ''),
-                      type: 'ImageService2',
+                      '@id': img.iiifBaseUrl || img.url.replace('/full/full/0/default.jpg', ''),
+                      '@type': 'ImageService2',
                       profile: 'http://iiif.io/api/image/2/level2.json'
                     }
                   ] : undefined
@@ -490,6 +491,7 @@ export async function updateIIIFManifest(
     thumbnailWidth?: number;
     thumbnailHeight?: number;
     mimeType?: string;
+    infoJson?: string;
     isIIIF?: boolean;
     iiifBaseUrl?: string;
     access?: {
@@ -641,8 +643,8 @@ export async function updateIIIFManifest(
                     width: img.width,
                     service: (img.isIIIF || img.infoJson || img.iiifBaseUrl || img.url.includes('iiif')) ? [
                       {
-                        id: img.iiifBaseUrl || img.url.replace('/full/full/0/default.jpg', ''),
-                        type: 'ImageService2',
+                        '@id': img.iiifBaseUrl || img.url.replace('/full/full/0/default.jpg', ''),
+                        '@type': 'ImageService2',
                         profile: 'http://iiif.io/api/image/2/level2.json'
                       }
                     ] : undefined
