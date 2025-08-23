@@ -99,6 +99,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const [uploading, setUploading] = useState(false);
   const [metadata, setMetadata] = useState<ManifestMetadata>({});
   const [showAccessControl, setShowAccessControl] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({ show: false, message: '', type: 'success' });
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [locationLabel, setLocationLabel] = useState<string>('');
@@ -262,7 +263,11 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       });
 
       if (response.ok) {
-        router.push(`/${resolvedParams.locale}/dashboard/collections/${resolvedParams.collectionId}`);
+        setSnackbar({ show: true, message: t('ItemEditPage.saveSuccess'), type: 'success' });
+        setTimeout(() => setSnackbar({ show: false, message: '', type: 'success' }), 3000);
+      } else {
+        setSnackbar({ show: true, message: t('ItemEditPage.saveError'), type: 'error' });
+        setTimeout(() => setSnackbar({ show: false, message: '', type: 'success' }), 3000);
       }
     } catch (error) {
       console.error('Error updating item:', error);
@@ -1099,6 +1104,22 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
           </div>
         </div>
       </div>
+
+      {/* Snackbar */}
+      {snackbar.show && (
+        <div className={`fixed bottom-4 right-4 px-6 py-3 rounded-lg shadow-lg transition-all transform ${
+          snackbar.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+        } animate-in slide-in-from-bottom-5`}>
+          <div className="flex items-center gap-2">
+            {snackbar.type === 'success' ? (
+              <FiSave className="text-lg" />
+            ) : (
+              <FiX className="text-lg" />
+            )}
+            <span>{snackbar.message}</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

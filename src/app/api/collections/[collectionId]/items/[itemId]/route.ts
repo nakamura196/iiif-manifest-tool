@@ -135,7 +135,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       isPublic,
       images,
       metadata,
-      location
+      location,
+      geoAnnotations: manifest['x-geo-annotations'] || {}
     });
   } catch (error) {
     console.error('Error fetching item:', error);
@@ -213,7 +214,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       isPublic,
       canvasAccess,
       location,
-      metadata
+      metadata,
+      geoAnnotations
     );
 
     if (success) {

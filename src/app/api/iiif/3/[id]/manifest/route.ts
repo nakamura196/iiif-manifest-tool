@@ -81,6 +81,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       });
     }
     
+    // Add georeferencing context if annotations exist
+    if (manifest['x-geo-annotations']) {
+      // Add georef context to @context if not already present
+      if (manifest['@context']) {
+        if (typeof manifest['@context'] === 'string') {
+          manifest['@context'] = [
+            "http://iiif.io/api/extension/georef/1/context.json",
+            manifest['@context']
+          ];
+        } else if (Array.isArray(manifest['@context']) && !manifest['@context'].includes("http://iiif.io/api/extension/georef/1/context.json")) {
+          manifest['@context'] = [
+            "http://iiif.io/api/extension/georef/1/context.json",
+            ...manifest['@context']
+          ];
+        }
+      }
+    }
+    
     // Process manifest to update all S3 URLs to proxy URLs
     if (manifest.items) {
       manifest.items = manifest.items.map((canvas: IIIFManifest['items'][0] & { 'x-canvas-access'?: { isPublic?: boolean; allowedUsers?: string[]; allowedGroups?: string[] } }, index: number) => {
@@ -154,6 +172,60 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           }
         }
         
+        // Add georeferencing annotations if available
+        if (manifest['x-geo-annotations'] && manifest['x-geo-annotations'][index]) {
+          const geoAnnotation = manifest['x-geo-annotations'][index];
+          if (geoAnnotation.points && geoAnnotation.points.length > 0) {
+            canvas.annotations = [
+              {
+                id: `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}/annotationPage`,
+                type: "AnnotationPage",
+                items: [
+                  {
+                    id: `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}/annotation/georef`,
+                    type: "Annotation",
+                    motivation: "georeferencing",
+                    target: canvas.id || `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}`,
+                    body: {
+                      id: `${baseUrl}/api/iiif/3/${id}/canvas/${canvasNumber}/feature-collection`,
+                      type: "FeatureCollection",
+                      transformation: {
+                        type: geoAnnotation.transformationType || "polynomial",
+                        options: {
+                          order: geoAnnotation.transformationOrder || 1
+                        }
+                      },
+                      features: geoAnnotation.points.map((point: any, pointIndex: number) => {
+                        const feature: any = {
+                          type: "Feature",
+                          properties: {
+                            resourceCoords: point.resourceCoords
+                          },
+                          geometry: {
+                            type: "Point",
+                            coordinates: point.coordinates
+                          }
+                        };
+                        
+                        // Add optional metadata if present
+                        if (point.label || point.tags || point.url || point.xywh) {
+                          feature.metadata = {};
+                          if (point.label) feature.metadata.label = point.label;
+                          if (point.tags) feature.metadata.tags = point.tags;
+                          if (point.url) feature.metadata.url = point.url;
+                          if (point.xywh) feature.metadata.xywh = point.xywh;
+                        }
+                        
+                        return feature;
+                      })
+                    }
+                  }
+                ]
+              }
+            ];
+          }
+        }
+        
         return canvas;
       });
     }
@@ -164,6 +236,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     
     // Remove internal access control fields before returning
     delete manifest['x-access'];
+    delete manifest['x-geo-annotations'];
     if (manifest.items) {
       manifest.items.forEach((canvas: IIIFManifest['items'][0] & { 'x-canvas-access'?: { isPublic?: boolean; allowedUsers?: string[]; allowedGroups?: string[] } }) => {
         delete canvas['x-canvas-access'];

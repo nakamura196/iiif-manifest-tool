@@ -139,7 +139,9 @@ export function createManifest(
               type: 'Annotation',
               motivation: 'painting',
               body: {
-                id: image.url,
+                id: image.infoJson && image.iiifBaseUrl ? 
+                  `${image.iiifBaseUrl}/full/full/0/default.jpg` : 
+                  image.url,
                 type: 'Image',
                 format: image.mimeType,
                 width: image.width,
