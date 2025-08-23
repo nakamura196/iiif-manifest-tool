@@ -76,6 +76,43 @@ export interface IIIFManifest {
         };
       }>;
     }>;
+    annotations?: Array<{  // Georeferencing annotations
+      id: string;
+      type: 'AnnotationPage';
+      items: Array<{
+        id: string;
+        type: 'Annotation';
+        motivation: string;
+        target: string;
+        body: {
+          id: string;
+          type: string;
+          transformation?: {
+            type: string;
+            options?: {
+              order?: number;
+            };
+          };
+          features?: Array<{
+            type: string;
+            id?: string;
+            properties: {
+              resourceCoords: [number, number];
+            };
+            geometry: {
+              type: string;
+              coordinates: [number, number];
+            };
+            metadata?: {
+              label?: string;
+              tags?: string[];
+              url?: string;
+              xywh?: string;
+            };
+          }>;
+        };
+      }>;
+    }>;
     'x-canvas-access'?: {  // Per-canvas access control (internal only)
       isPublic?: boolean;
       allowedUsers?: string[];
@@ -116,6 +153,19 @@ export interface IIIFManifest {
       isPublic?: boolean;
     };
   };
+  'x-geo-annotations'?: { [key: number]: {  // Georeferencing annotations (internal only)
+    points: Array<{
+      id?: string;
+      resourceCoords: [number, number];
+      coordinates: [number, number];
+      label?: string;
+      tags?: string[];
+      url?: string;
+      xywh?: string;
+    }>;
+    transformationType?: 'polynomial' | 'thin-plate-spline';
+    transformationOrder?: number;
+  }};
 }
 
 export async function createIIIFManifest(
