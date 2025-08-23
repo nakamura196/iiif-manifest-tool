@@ -4,7 +4,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { FiArrowLeft, FiSave, FiTrash2, FiPlus, FiSettings, FiImage, FiMapPin, FiInfo, FiLock, FiLoader } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiTrash2, FiPlus, FiSettings, FiImage, FiMapPin, FiInfo, FiLock, FiLoader, FiTarget, FiUpload, FiDownload, FiX } from 'react-icons/fi';
 import ImageUploader from '@/components/ImageUploader';
 import ImageAccessControl from '@/components/ImageAccessControl';
 import Link from 'next/link';
@@ -69,6 +69,21 @@ interface ImageData {
   };
 }
 
+interface GeoPoint {
+  resourceCoords: [number, number];
+  coordinates: [number, number];
+  label?: string;
+  tags?: string[];
+  url?: string;
+  xywh?: string;
+}
+
+interface GeoAnnotation {
+  points: GeoPoint[];
+  transformationType?: 'polynomial' | 'thin-plate-spline';
+  transformationOrder?: number;
+}
+
 export default function ItemEditPage({ params }: ItemEditPageProps) {
   const resolvedParams = use(params);
   const { status } = useSession();
@@ -87,7 +102,10 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [locationLabel, setLocationLabel] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'additional' | 'location' | 'settings'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'additional' | 'location' | 'annotations' | 'settings'>('basic');
+  const [geoAnnotations, setGeoAnnotations] = useState<{ [key: number]: GeoAnnotation }>({});
+  const [csvInput, setCsvInput] = useState<{ [key: number]: string }>({});
+  const [showCsvImport, setShowCsvImport] = useState<{ [key: number]: boolean }>({});
 
   const fetchItem = useCallback(async () => {
     try {
@@ -99,6 +117,9 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
         setIsPublic(data.isPublic !== undefined ? data.isPublic : true);
         setImages(data.images || []);
         setMetadata(data.metadata || {});
+        if (data.geoAnnotations) {
+          setGeoAnnotations(data.geoAnnotations);
+        }
         if (data.location) {
           setLatitude(data.location.latitude?.toString() || '');
           setLongitude(data.location.longitude?.toString() || '');
@@ -179,7 +200,17 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       
       const baseUrl = infoJson.id || infoJson['@id'];
       const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      const imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+      
+      // Use appropriate thumbnail size from info.json sizes array
+      let imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+      if (infoJson.sizes && infoJson.sizes.length > 0) {
+        // Find a suitable thumbnail size (around 400-800px width)
+        const thumbnailSize = infoJson.sizes.find((size: any) => 
+          size.width >= 400 && size.width <= 800
+        ) || infoJson.sizes[infoJson.sizes.length - 1]; // Use largest if no suitable size found
+        
+        imageUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
+      }
       
       setImages([
         ...images,
@@ -221,6 +252,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
           isPublic,
           metadata,
           canvasAccess: images.map(img => img.access || { isPublic: true, allowedUsers: [] }),
+          geoAnnotations,
           location: (latitude && longitude) ? {
             latitude: parseFloat(latitude),
             longitude: parseFloat(longitude),
@@ -256,6 +288,162 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const handleLocationChange = (lat: number, lng: number) => {
     setLatitude(lat.toString());
     setLongitude(lng.toString());
+  };
+
+  const parseCsvAnnotations = (csvText: string): GeoPoint[] => {
+    const lines = csvText.trim().split('\n');
+    const points: GeoPoint[] = [];
+    
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      
+      // Skip header if it looks like one
+      if (line.toLowerCase().includes('x,') || line.toLowerCase().includes('lat')) continue;
+      
+      const parts = line.split(',').map(p => p.trim());
+      
+      if (parts.length >= 4) {
+        const x = parseFloat(parts[0]);
+        const y = parseFloat(parts[1]);
+        const lat = parseFloat(parts[2]);
+        const lng = parseFloat(parts[3]);
+        
+        if (!isNaN(x) && !isNaN(y) && !isNaN(lat) && !isNaN(lng)) {
+          const point: GeoPoint = {
+            resourceCoords: [x, y],
+            coordinates: [lng, lat]
+          };
+          
+          // Optional fields
+          if (parts[4]) point.label = parts[4];
+          if (parts[5]) point.tags = parts[5].split(';').map(t => t.trim());
+          if (parts[6]) point.url = parts[6];
+          if (parts[7]) point.xywh = parts[7];
+          
+          points.push(point);
+        }
+      }
+    }
+    
+    return points;
+  };
+
+  const handleCsvImport = (imageIndex: number) => {
+    const csvText = csvInput[imageIndex];
+    if (!csvText) return;
+    
+    const points = parseCsvAnnotations(csvText);
+    if (points.length > 0) {
+      setGeoAnnotations({
+        ...geoAnnotations,
+        [imageIndex]: {
+          points,
+          transformationType: 'polynomial',
+          transformationOrder: 1
+        }
+      });
+      setShowCsvImport({ ...showCsvImport, [imageIndex]: false });
+      setCsvInput({ ...csvInput, [imageIndex]: '' });
+    }
+  };
+
+  const exportAnnotationsAsCsv = (imageIndex: number) => {
+    const annotation = geoAnnotations[imageIndex];
+    if (!annotation || annotation.points.length === 0) return;
+    
+    let csv = 'x,y,latitude,longitude,label,tags,url,xywh\n';
+    for (const point of annotation.points) {
+      csv += `${point.resourceCoords[0]},${point.resourceCoords[1]},`;
+      csv += `${point.coordinates[1]},${point.coordinates[0]}`;
+      csv += `,${point.label || ''}`;
+      csv += `,${point.tags?.join(';') || ''}`;
+      csv += `,${point.url || ''}`;
+      csv += `,${point.xywh || ''}\n`;
+    }
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `annotations-image-${imageIndex + 1}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCsvTemplate = () => {
+    const template = `x,y,latitude,longitude,label,tags,url,xywh
+# CSVテンプレート - 画像座標と地理座標のマッピング
+# 各行は1つのポイントを表します
+# 
+# 必須フィールド:
+# x: 画像上のX座標（ピクセル）
+# y: 画像上のY座標（ピクセル）
+# latitude: 緯度（10進数）
+# longitude: 経度（10進数）
+# 
+# オプションフィールド:
+# label: ポイントのラベル（例: 東京大学本館）
+# tags: タグ（セミコロン区切り、例: 建物;歴史的建造物）
+# url: 関連URL（例: https://example.com）
+# xywh: 画像上の領域（x,y,width,height形式）
+# 
+# サンプルデータ:
+100,200,35.6762,139.6503,東京タワー,ランドマーク;観光地,https://www.tokyotower.co.jp,100,200,50,100
+300,400,35.6585,139.7454,東京スカイツリー,ランドマーク;展望台,https://www.tokyo-skytree.jp,300,400,60,120
+500,600,35.7151,139.7623,東京大学,大学;教育機関,https://www.u-tokyo.ac.jp,500,600,80,80`;
+    
+    const blob = new Blob([template], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'georeferencing-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCsvSample = () => {
+    const sample = `x,y,latitude,longitude,label,tags,url,xywh
+6690,7517,35.7151233,139.7623182,電気実験室,工学部,https://maps.app.goo.gl/dJdXXQEA8dWSptgt8,5936,6344,976,1384
+8846,9181,35.7129321,139.7612649,法文経教室　第二号館,法学部;文学部;経済学部,,
+11626,8624,35.7109037,139.7622949,医学部　第二号館,医学部,,
+12761,9476,35.7097492,139.7618816,,,, 
+7540,8365,35.7143244,139.7618343,,,,
+10681,5983,35.7123118,139.764372,,,,
+9304,5659,35.7135689,139.7645652,,,,
+3826,10219,35.7166753,139.7594158,,,,
+8044,9859,35.7134203,139.76062,,,,
+10517,7862,35.7121183,139.7627108,,,,`;
+    
+    const blob = new Blob([sample], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'georeferencing-sample.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const removeAnnotationPoint = (imageIndex: number, pointIndex: number) => {
+    const annotation = geoAnnotations[imageIndex];
+    if (!annotation) return;
+    
+    const newPoints = annotation.points.filter((_, i) => i !== pointIndex);
+    if (newPoints.length > 0) {
+      setGeoAnnotations({
+        ...geoAnnotations,
+        [imageIndex]: { ...annotation, points: newPoints }
+      });
+    } else {
+      const newAnnotations = { ...geoAnnotations };
+      delete newAnnotations[imageIndex];
+      setGeoAnnotations(newAnnotations);
+    }
   };
 
   if (status === 'loading' || loading) {
@@ -349,6 +537,17 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                 >
                   <FiMapPin className="text-lg" />
                   <span>{t('ItemEditPage.location')}</span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('annotations')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    activeTab === 'annotations'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <FiTarget className="text-lg" />
+                  <span>{t('ItemEditPage.annotations')}</span>
                 </button>
                 <button
                   onClick={() => setActiveTab('settings')}
@@ -636,6 +835,179 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
                       </p>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'annotations' && (
+              <div className="space-y-6">
+                <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <FiTarget />
+                    {t('ItemEditPage.georeferencing')}
+                  </h2>
+                  
+                  {images.length === 0 ? (
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {t('ItemEditPage.addImagesFirst')}
+                    </p>
+                  ) : (
+                    <div className="space-y-6">
+                      {images.map((image, imageIndex) => (
+                        <div key={imageIndex} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+                          <div className="flex items-start gap-4 mb-4">
+                            <img
+                              src={image.isIIIF && image.iiifBaseUrl ? `${image.iiifBaseUrl}/full/100,/0/default.jpg` : image.url}
+                              alt={`Image ${imageIndex + 1}`}
+                              className="w-20 h-20 object-cover rounded"
+                            />
+                            <div className="flex-1">
+                              <h3 className="font-medium mb-2">
+                                {t('ItemEditPage.image')} {imageIndex + 1}
+                                {geoAnnotations[imageIndex] && (
+                                  <span className="ml-2 text-sm text-green-600 dark:text-green-400">
+                                    ({geoAnnotations[imageIndex].points.length} {t('ItemEditPage.points')})
+                                  </span>
+                                )}
+                              </h3>
+                              
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => setShowCsvImport({ ...showCsvImport, [imageIndex]: !showCsvImport[imageIndex] })}
+                                  className="flex items-center gap-1 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                  <FiUpload />
+                                  {t('ItemEditPage.importCsv')}
+                                </button>
+                                
+                                {geoAnnotations[imageIndex] && (
+                                  <button
+                                    onClick={() => exportAnnotationsAsCsv(imageIndex)}
+                                    className="flex items-center gap-1 px-3 py-1 text-sm bg-green-500 text-white rounded hover:bg-green-600"
+                                  >
+                                    <FiDownload />
+                                    {t('ItemEditPage.exportCsv')}
+                                  </button>
+                                )}
+                                
+                                {geoAnnotations[imageIndex] && (
+                                  <button
+                                    onClick={() => {
+                                      const newAnnotations = { ...geoAnnotations };
+                                      delete newAnnotations[imageIndex];
+                                      setGeoAnnotations(newAnnotations);
+                                    }}
+                                    className="flex items-center gap-1 px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
+                                  >
+                                    <FiTrash2 />
+                                    {t('ItemEditPage.clearAll')}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {showCsvImport[imageIndex] && (
+                            <div className="mb-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                              <div className="flex justify-between items-start mb-2">
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  {t('ItemEditPage.csvFormat')}: x,y,latitude,longitude,label,tags,url,xywh
+                                </p>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={downloadCsvTemplate}
+                                    className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                                  >
+                                    <FiDownload className="inline mr-1" />
+                                    {t('ItemEditPage.downloadTemplate')}
+                                  </button>
+                                  <button
+                                    onClick={downloadCsvSample}
+                                    className="text-xs px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded hover:bg-gray-300 dark:hover:bg-gray-600"
+                                  >
+                                    <FiDownload className="inline mr-1" />
+                                    {t('ItemEditPage.downloadSample')}
+                                  </button>
+                                </div>
+                              </div>
+                              <textarea
+                                value={csvInput[imageIndex] || ''}
+                                onChange={(e) => setCsvInput({ ...csvInput, [imageIndex]: e.target.value })}
+                                className="w-full px-3 py-2 border rounded dark:bg-gray-800 dark:border-gray-600 font-mono text-sm"
+                                rows={8}
+                                placeholder="6690,7517,35.7151233,139.7623182,電気実験室,工学部,https://maps.app.goo.gl/...,5936,6344,976,1384"
+                              />
+                              <div className="flex gap-2 mt-2">
+                                <button
+                                  onClick={() => handleCsvImport(imageIndex)}
+                                  className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600"
+                                >
+                                  {t('ItemEditPage.import')}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setShowCsvImport({ ...showCsvImport, [imageIndex]: false });
+                                    setCsvInput({ ...csvInput, [imageIndex]: '' });
+                                  }}
+                                  className="px-3 py-1 text-sm bg-gray-500 text-white rounded hover:bg-gray-600"
+                                >
+                                  {t('ItemEditPage.cancel')}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {geoAnnotations[imageIndex] && geoAnnotations[imageIndex].points.length > 0 && (
+                            <div className="space-y-2">
+                              <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {t('ItemEditPage.annotationPoints')}:
+                              </h4>
+                              <div className="max-h-60 overflow-y-auto space-y-2">
+                                {geoAnnotations[imageIndex].points.map((point, pointIndex) => (
+                                  <div key={pointIndex} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-900 rounded text-sm">
+                                    <div className="flex-1">
+                                      <span className="font-mono">
+                                        [{point.resourceCoords[0]}, {point.resourceCoords[1]}] → 
+                                        [{point.coordinates[1].toFixed(6)}, {point.coordinates[0].toFixed(6)}]
+                                      </span>
+                                      {point.label && (
+                                        <span className="ml-2 text-gray-600 dark:text-gray-400">
+                                          {point.label}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <button
+                                      onClick={() => removeAnnotationPoint(imageIndex, pointIndex)}
+                                      className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded"
+                                    >
+                                      <FiX />
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100 mb-2">
+                    {t('ItemEditPage.aboutGeoref')}
+                  </h3>
+                  <p className="text-sm text-blue-800 dark:text-blue-200">
+                    {t('ItemEditPage.georefDescription')}
+                  </p>
+                  <a
+                    href="https://iiif.io/api/extension/georef/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline mt-2 inline-block"
+                  >
+                    {t('ItemEditPage.learnMore')} →
+                  </a>
                 </div>
               </div>
             )}

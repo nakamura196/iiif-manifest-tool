@@ -164,7 +164,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { title, description, images, isPublic, metadata, canvasAccess, location } = body;
+    const { title, description, images, isPublic, metadata, canvasAccess, location, geoAnnotations } = body;
 
     if (!title || !images || images.length === 0) {
       return NextResponse.json(

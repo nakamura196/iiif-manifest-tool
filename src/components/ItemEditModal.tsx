@@ -171,8 +171,17 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
       const baseUrl = infoJson.id || infoJson['@id'];
       // Remove trailing slash if present
       const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      // Create the full IIIF image URL
-      const imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+      
+      // Use appropriate thumbnail size from info.json sizes array
+      let imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+      if (infoJson.sizes && infoJson.sizes.length > 0) {
+        // Find a suitable thumbnail size (around 400-800px width)
+        const thumbnailSize = infoJson.sizes.find((size: any) => 
+          size.width >= 400 && size.width <= 800
+        ) || infoJson.sizes[infoJson.sizes.length - 1]; // Use largest if no suitable size found
+        
+        imageUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
+      }
       
       setImages([
         ...images,
