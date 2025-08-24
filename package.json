@@ -1,5 +1,5 @@
 {
-  "name": "iiif-manifest-tool",
+  "name": "image-collection-tool",
   "version": "0.1.0",
   "private": true,
   "scripts": {

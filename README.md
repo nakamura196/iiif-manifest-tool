@@ -1,6 +1,6 @@
-# IIIF Manifest Tool
+# 画像コレクション管理ツール
 
-IIIF（International Image Interoperability Framework）に準拠したマニフェストを生成・管理するためのWebアプリケーション。
+IIIF（International Image Interoperability Framework）に準拠したマニフェストを生成し、画像コレクションを管理するためのWebアプリケーション。
 
 ## 🚀 特徴
 
@@ -184,8 +184,8 @@ npm run start
 ### Docker（オプション）
 
 ```bash
-docker build -t iiif-manifest-tool .
-docker run -p 3000:3000 --env-file .env iiif-manifest-tool
+docker build -t image-collection-tool .
+docker run -p 3000:3000 --env-file .env image-collection-tool
 ```
 
 ## 🧪 テスト
