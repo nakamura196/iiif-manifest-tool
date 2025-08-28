@@ -120,12 +120,8 @@ export async function createIIIFCollection(
     ];
   }
 
-  if (description) {
-    collection.summary = {
-      ja: [description],
-      en: [description]
-    };
-  }
+  // This is already handled above in the collection object creation
+  // Remove duplicate summary assignment
 
   await uploadToS3(
     collectionKey,

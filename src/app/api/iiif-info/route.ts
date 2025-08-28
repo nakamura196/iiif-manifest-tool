@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Traverse } from '@iiif/parser';
 import { convertPresentation2 } from '@iiif/parser/presentation-2';
-import { Manifest, Collection, ContentResource } from '@iiif/presentation-3';
+import { Manifest, Collection } from '@iiif/presentation-3';
 
 interface ProcessedManifest {
   url: string;
@@ -10,32 +9,34 @@ interface ProcessedManifest {
 }
 
 // Detect IIIF version
-function detectVersion(data: any): 'v2' | 'v3' | 'unknown' {
-  if (data['@context']) {
-    const context = Array.isArray(data['@context']) ? data['@context'].join(' ') : data['@context'];
-    if (context.includes('presentation/3')) return 'v3';
-    if (context.includes('presentation/2')) return 'v2';
+function detectVersion(data: unknown): 'v2' | 'v3' | 'unknown' {
+  const obj = data as Record<string, unknown>;
+  if (obj['@context']) {
+    const context = Array.isArray(obj['@context']) ? obj['@context'].join(' ') : obj['@context'];
+    if (typeof context === 'string' && context.includes('presentation/3')) return 'v3';
+    if (typeof context === 'string' && context.includes('presentation/2')) return 'v2';
   }
-  if (data.type && !data['@type']) return 'v3';
-  if (data['@type']) return 'v2';
+  if (obj.type && !obj['@type']) return 'v3';
+  if (obj['@type']) return 'v2';
   return 'unknown';
 }
 
 // Extract label from v3 format
-function extractLabelFromV3(label: any): string {
+function extractLabelFromV3(label: unknown): string {
   if (!label) return 'Untitled';
   if (typeof label === 'string') return label;
   
   // Handle language map
   if (label && typeof label === 'object' && !Array.isArray(label)) {
+    const labelObj = label as Record<string, unknown>;
     // Try Japanese first, then English, then any language
-    if (label.ja && label.ja[0]) return label.ja[0];
-    if (label.en && label.en[0]) return label.en[0];
-    if (label.none && label.none[0]) return label.none[0];
+    if (labelObj.ja && Array.isArray(labelObj.ja) && labelObj.ja[0]) return String(labelObj.ja[0]);
+    if (labelObj.en && Array.isArray(labelObj.en) && labelObj.en[0]) return String(labelObj.en[0]);
+    if (labelObj.none && Array.isArray(labelObj.none) && labelObj.none[0]) return String(labelObj.none[0]);
     
-    const firstLang = Object.keys(label)[0];
-    if (firstLang && Array.isArray(label[firstLang]) && label[firstLang][0]) {
-      return label[firstLang][0];
+    const firstLang = Object.keys(labelObj)[0];
+    if (firstLang && Array.isArray(labelObj[firstLang]) && (labelObj[firstLang] as unknown[])[0]) {
+      return String((labelObj[firstLang] as unknown[])[0]);
     }
   }
   
@@ -43,33 +44,44 @@ function extractLabelFromV3(label: any): string {
 }
 
 // Extract thumbnail from v3 format
-function extractThumbnailFromV3(thumbnail: any): string | undefined {
+function extractThumbnailFromV3(thumbnail: unknown): string | undefined {
   if (!thumbnail) return undefined;
   
   // Handle array of thumbnails
   if (Array.isArray(thumbnail) && thumbnail[0]) {
     const first = thumbnail[0];
     if (typeof first === 'string') return first;
-    if (first.id) return first.id;
-    if (first.body?.id) return first.body.id;
+    if (typeof first === 'object' && first !== null) {
+      const obj = first as Record<string, unknown>;
+      if (typeof obj.id === 'string') return obj.id;
+      if (obj.body && typeof obj.body === 'object' && obj.body !== null) {
+        const body = obj.body as Record<string, unknown>;
+        if (typeof body.id === 'string') return body.id;
+      }
+    }
   }
   
   // Handle single thumbnail
   if (typeof thumbnail === 'string') return thumbnail;
-  if (thumbnail.id) return thumbnail.id;
-  if (thumbnail.body?.id) return thumbnail.body.id;
+  if (typeof thumbnail === 'object' && thumbnail !== null) {
+    const obj = thumbnail as Record<string, unknown>;
+    if (typeof obj.id === 'string') return obj.id;
+    if (obj.body && typeof obj.body === 'object' && obj.body !== null) {
+      const body = obj.body as Record<string, unknown>;
+      if (typeof body.id === 'string') return body.id;
+    }
+  }
   
   return undefined;
 }
 
 // Convert any IIIF resource to v3
-function convertToV3(data: any): Manifest | Collection {
+function convertToV3(data: unknown): Manifest | Collection {
   const version = detectVersion(data);
   
   if (version === 'v3') {
-    // Already v3, just validate
-    const traverser = Traverse.create(data);
-    return traverser.getResource() as Manifest | Collection;
+    // Already v3, just return as is
+    return data as Manifest | Collection;
   } else if (version === 'v2') {
     // Convert v2 to v3
     return convertPresentation2(data) as Manifest | Collection;
@@ -109,15 +121,16 @@ export async function POST(request: NextRequest) {
       
       // Process v3 collection items
       const items = collection.items || [];
-      const processedManifests: ProcessedManifest[] = items.map((item: any) => {
+      const processedManifests: ProcessedManifest[] = items.map((item: unknown) => {
+        const itemObj = item as Record<string, unknown>;
         // Extract manifest URL
-        let manifestUrl = item.id || '';
+        const manifestUrl = (typeof itemObj.id === 'string' ? itemObj.id : '') || '';
         
         // Extract label
-        const label = extractLabelFromV3(item.label);
+        const label = extractLabelFromV3(itemObj.label);
         
         // Extract thumbnail
-        const thumbnail = extractThumbnailFromV3(item.thumbnail);
+        const thumbnail = extractThumbnailFromV3(itemObj.thumbnail);
         
         return {
           url: manifestUrl,
@@ -126,9 +139,29 @@ export async function POST(request: NextRequest) {
         };
       });
       
+      // Extract multilingual collection label
+      const collectionLabel = collection.label;
+      let collectionLabelString = '';
+      
+      if (collectionLabel) {
+        if (typeof collectionLabel === 'string') {
+          collectionLabelString = collectionLabel;
+        } else if (typeof collectionLabel === 'object') {
+          // Prefer Japanese, then English, then any available language
+          if (collectionLabel.ja && collectionLabel.ja[0]) {
+            collectionLabelString = collectionLabel.ja[0];
+          } else if (collectionLabel.en && collectionLabel.en[0]) {
+            collectionLabelString = collectionLabel.en[0];
+          } else {
+            collectionLabelString = extractLabelFromV3(collectionLabel);
+          }
+        }
+      }
+      
       return NextResponse.json({ 
         manifests: processedManifests,
-        collectionLabel: extractLabelFromV3(collection.label)
+        collectionLabel: collectionLabelString || 'Imported Collection',
+        collectionLabelMultilingual: collectionLabel  // Also include full multilingual data
       });
     }
     

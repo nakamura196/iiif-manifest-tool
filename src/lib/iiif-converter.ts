@@ -77,28 +77,32 @@ interface IIIFV3Manifest {
 /**
  * Extract label from v2 format to string
  */
-function extractV2Label(label: any): string {
+function extractV2Label(label: unknown): string {
   if (typeof label === 'string') {
     return label;
   }
   if (label && typeof label === 'object') {
-    if ('@value' in label) {
-      return label['@value'];
+    const labelObj = label as Record<string, unknown>;
+    if ('@value' in labelObj) {
+      return String(labelObj['@value']);
     }
     if (Array.isArray(label)) {
       const firstLabel = label[0];
       if (firstLabel) {
         if (typeof firstLabel === 'string') return firstLabel;
-        if ('@value' in firstLabel) return firstLabel['@value'];
+        if (typeof firstLabel === 'object' && '@value' in firstLabel) return String((firstLabel as Record<string, unknown>)['@value']);
         // Handle language map
-        const lang = Object.keys(firstLabel)[0];
-        if (lang) return firstLabel[lang];
+        if (typeof firstLabel === 'object') {
+          const lang = Object.keys(firstLabel as Record<string, unknown>)[0];
+          if (lang) return String((firstLabel as Record<string, unknown>)[lang]);
+        }
       }
     }
     // Handle direct language map
-    const firstKey = Object.keys(label)[0];
+    const firstKey = Object.keys(labelObj)[0];
     if (firstKey) {
-      return Array.isArray(label[firstKey]) ? label[firstKey][0] : label[firstKey];
+      const value = labelObj[firstKey];
+      return Array.isArray(value) ? String(value[0]) : String(value);
     }
   }
   return 'Untitled';
@@ -107,7 +111,7 @@ function extractV2Label(label: any): string {
 /**
  * Convert v2 label to v3 format
  */
-function convertLabelToV3(label: any): { [lang: string]: string[] } {
+function convertLabelToV3(label: unknown): { [lang: string]: string[] } {
   const labelStr = extractV2Label(label);
   
   // Try to detect language
@@ -129,76 +133,110 @@ function convertLabelToV3(label: any): { [lang: string]: string[] } {
 /**
  * Convert IIIF v2 manifest to v3 format
  */
-export function convertManifestV2toV3(v2Manifest: any): IIIFV3Manifest {
+export function convertManifestV2toV3(v2Manifest: unknown): IIIFV3Manifest {
+  const v2 = v2Manifest as Record<string, unknown>;
   const v3Manifest: IIIFV3Manifest = {
     '@context': 'http://iiif.io/api/presentation/3/context.json',
-    id: v2Manifest['@id'] || v2Manifest.id,
+    id: String(v2['@id'] || v2.id),
     type: 'Manifest',
-    label: convertLabelToV3(v2Manifest.label),
+    label: convertLabelToV3(v2.label),
   };
 
   // Convert description
-  if (v2Manifest.description) {
-    v3Manifest.summary = convertLabelToV3(v2Manifest.description);
+  if (v2.description) {
+    v3Manifest.summary = convertLabelToV3(v2.description);
   }
 
   // Convert metadata
-  if (v2Manifest.metadata && Array.isArray(v2Manifest.metadata)) {
-    v3Manifest.metadata = v2Manifest.metadata.map(item => ({
-      label: convertLabelToV3(item.label),
-      value: convertLabelToV3(item.value),
-    }));
+  if (v2.metadata && Array.isArray(v2.metadata)) {
+    v3Manifest.metadata = v2.metadata.map((item: unknown) => {
+      const itemObj = item as Record<string, unknown>;
+      return {
+        label: convertLabelToV3(itemObj.label),
+        value: convertLabelToV3(itemObj.value),
+      };
+    });
   }
 
   // Convert attribution to requiredStatement
-  if (v2Manifest.attribution) {
+  if (v2.attribution) {
     v3Manifest.requiredStatement = {
       label: { en: ['Attribution'], ja: ['帰属'] },
-      value: convertLabelToV3(v2Manifest.attribution),
+      value: convertLabelToV3(v2.attribution),
     };
   }
 
   // Convert license to rights
-  if (v2Manifest.license) {
-    v3Manifest.rights = typeof v2Manifest.license === 'string' ? v2Manifest.license : '';
+  if (v2.license) {
+    v3Manifest.rights = typeof v2.license === 'string' ? v2.license : '';
   }
 
   // Convert sequences/canvases to items
-  if (v2Manifest.sequences && v2Manifest.sequences[0]?.canvases) {
-    v3Manifest.items = v2Manifest.sequences[0].canvases.map((canvas: any, canvasIndex: number) => {
-      const canvasId = canvas['@id'] || `canvas-${canvasIndex}`;
+  if (v2.sequences && Array.isArray(v2.sequences) && v2.sequences[0]) {
+    const seq = v2.sequences[0] as Record<string, unknown>;
+    if (seq.canvases && Array.isArray(seq.canvases)) {
+      v3Manifest.items = seq.canvases.map((canvas: unknown, canvasIndex: number) => {
+        const c = canvas as Record<string, unknown>;
+        const canvasId = String(c['@id'] || `canvas-${canvasIndex}`);
       
-      const v3Canvas: any = {
-        id: canvasId,
-        type: 'Canvas',
-        width: canvas.width || 1000,
-        height: canvas.height || 1000,
-        items: []
-      };
+        const v3Canvas: {
+          id: string;
+          type: string;
+          width: number;
+          height: number;
+          items: Array<{
+            id: string;
+            type: string;
+            items: Array<{
+              id: string;
+              type: string;
+              motivation: string;
+              body: {
+                id: string;
+                type: string;
+                format?: string;
+                width?: number;
+                height?: number;
+              };
+              target: string;
+            }>;
+          }>;
+        } = {
+          id: canvasId,
+          type: 'Canvas',
+          width: Number(c.width) || 1000,
+          height: Number(c.height) || 1000,
+          items: []
+        };
 
-      // Convert images to annotation pages
-      if (canvas.images && canvas.images.length > 0) {
-        v3Canvas.items = [{
-          id: `${canvasId}/page`,
-          type: 'AnnotationPage',
-          items: canvas.images.map((image: any, imageIndex: number) => ({
-            id: `${canvasId}/annotation/${imageIndex}`,
-            type: 'Annotation',
-            motivation: 'painting',
-            body: {
-              id: image.resource['@id'] || image.resource.id,
-              type: 'Image',
-              format: image.resource.format || 'image/jpeg',
-              width: image.resource.width,
-              height: image.resource.height,
-            },
-            target: canvasId
-          }))
-        }];
-      }
+        // Convert images to annotation pages
+        if (c.images && Array.isArray(c.images) && c.images.length > 0) {
+          v3Canvas.items = [{
+            id: `${canvasId}/page`,
+            type: 'AnnotationPage',
+            items: c.images.map((image: unknown, imageIndex: number) => {
+              const img = image as Record<string, unknown>;
+              const resource = img.resource as Record<string, unknown>;
+              return {
+                id: `${canvasId}/annotation/${imageIndex}`,
+                type: 'Annotation',
+                motivation: 'painting',
+                body: {
+                  id: String(resource['@id'] || resource.id),
+                  type: 'Image',
+                  format: String(resource.format || 'image/jpeg'),
+                  width: resource.width ? Number(resource.width) : undefined,
+                  height: resource.height ? Number(resource.height) : undefined,
+                },
+                target: canvasId
+              };
+            })
+          }];
+        }
 
-      return v3Canvas;
-    });
+        return v3Canvas;
+      });
+    }
   }
 
   return v3Manifest;
@@ -207,21 +245,23 @@ export function convertManifestV2toV3(v2Manifest: any): IIIFV3Manifest {
 /**
  * Check if manifest is v2 format
  */
-export function isV2Manifest(manifest: any): boolean {
-  return !!(manifest['@id'] && manifest['@type'] && manifest.sequences);
+export function isV2Manifest(manifest: unknown): boolean {
+  const m = manifest as Record<string, unknown>;
+  return !!(m['@id'] && m['@type'] && m.sequences);
 }
 
 /**
  * Check if manifest is v3 format
  */
-export function isV3Manifest(manifest: any): boolean {
-  return !!(manifest.id && manifest.type && !manifest['@id'] && !manifest['@type']);
+export function isV3Manifest(manifest: unknown): boolean {
+  const m = manifest as Record<string, unknown>;
+  return !!(m.id && m.type && !m['@id'] && !m['@type']);
 }
 
 /**
  * Convert manifest to v3 if needed
  */
-export function ensureV3Manifest(manifest: any): IIIFV3Manifest {
+export function ensureV3Manifest(manifest: unknown): IIIFV3Manifest {
   if (isV2Manifest(manifest)) {
     return convertManifestV2toV3(manifest);
   }
@@ -231,10 +271,10 @@ export function ensureV3Manifest(manifest: any): IIIFV3Manifest {
 /**
  * Extract common data from any version manifest
  */
-export function extractManifestData(manifest: any) {
+export function extractManifestData(manifest: unknown) {
   const v3Manifest = ensureV3Manifest(manifest);
   
-  const images: any[] = [];
+  const images: Array<{ url: string; width: number; height: number; mimeType: string }> = [];
   let description = '';
   let metadata: Array<{ label: string; value: string }> = [];
   let attribution = '';

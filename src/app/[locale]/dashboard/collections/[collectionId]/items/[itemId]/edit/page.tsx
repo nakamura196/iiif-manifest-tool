@@ -25,8 +25,8 @@ interface ItemEditPageProps {
 }
 
 interface MetadataField {
-  label: string;
-  value: string;
+  label: { [key: string]: string[] };
+  value: { [key: string]: string[] };
 }
 
 interface ManifestMetadata {
@@ -96,8 +96,8 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const [saving, setSaving] = useState(false);
   const [titleJa, setTitleJa] = useState('');
   const [titleEn, setTitleEn] = useState('');
-  const [descriptionJa, setDescriptionJa] = useState('');
-  const [descriptionEn, setDescriptionEn] = useState('');
+  const [descriptionJa, setDescriptionJa] = useState<string[]>([]);
+  const [descriptionEn, setDescriptionEn] = useState<string[]>([]);
   const [isPublic, setIsPublic] = useState(true);
   const [images, setImages] = useState<ImageData[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -126,14 +126,14 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
           setTitleJa(data.title || '');
           setTitleEn(data.title || '');
         }
-        // Extract multilingual descriptions
+        // Extract multilingual descriptions (now as arrays)
         if (data.summary) {
-          setDescriptionJa(data.summary.ja?.[0] || '');
-          setDescriptionEn(data.summary.en?.[0] || '');
+          setDescriptionJa(data.summary.ja || []);
+          setDescriptionEn(data.summary.en || []);
         } else {
           // Fallback for old format
-          setDescriptionJa(data.description || '');
-          setDescriptionEn(data.description || '');
+          setDescriptionJa(data.description ? [data.description] : []);
+          setDescriptionEn(data.description ? [data.description] : []);
         }
         setIsPublic(data.isPublic !== undefined ? data.isPublic : true);
         setImages(data.images || []);
@@ -340,7 +340,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
           location: (latitude && longitude) ? {
             latitude: parseFloat(latitude),
             longitude: parseFloat(longitude),
-            label: locationLabel || title
+            label: locationLabel || titleJa
           } : undefined
         }),
       });
@@ -845,13 +845,41 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">{t('ItemEditPage.descriptionJa')}</label>
-                      <textarea
-                        value={descriptionJa}
-                        onChange={(e) => setDescriptionJa(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        rows={3}
-                        placeholder={t('ItemEditPage.descriptionJaPlaceholder')}
-                      />
+                      <div className="space-y-2">
+                        {descriptionJa.map((desc, index) => (
+                          <div key={index} className="flex gap-2">
+                            <textarea
+                              value={desc}
+                              onChange={(e) => {
+                                const newDescriptions = [...descriptionJa];
+                                newDescriptions[index] = e.target.value;
+                                setDescriptionJa(newDescriptions);
+                              }}
+                              className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              rows={2}
+                              placeholder={t('ItemEditPage.descriptionJaPlaceholder')}
+                            />
+                            <button
+                              onClick={() => {
+                                const newDescriptions = descriptionJa.filter((_, i) => i !== index);
+                                setDescriptionJa(newDescriptions);
+                              }}
+                              className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                              type="button"
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => setDescriptionJa([...descriptionJa, ''])}
+                          className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
+                          type="button"
+                        >
+                          <FiPlus className="text-sm" />
+                          {t('ItemEditPage.addDescriptionLine')}
+                        </button>
+                      </div>
                     </div>
                   </div>
 
@@ -875,13 +903,41 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-2">{t('ItemEditPage.descriptionEn')}</label>
-                      <textarea
-                        value={descriptionEn}
-                        onChange={(e) => setDescriptionEn(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        rows={3}
-                        placeholder={t('ItemEditPage.descriptionEnPlaceholder')}
-                      />
+                      <div className="space-y-2">
+                        {descriptionEn.map((desc, index) => (
+                          <div key={index} className="flex gap-2">
+                            <textarea
+                              value={desc}
+                              onChange={(e) => {
+                                const newDescriptions = [...descriptionEn];
+                                newDescriptions[index] = e.target.value;
+                                setDescriptionEn(newDescriptions);
+                              }}
+                              className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              rows={2}
+                              placeholder={t('ItemEditPage.descriptionEnPlaceholder')}
+                            />
+                            <button
+                              onClick={() => {
+                                const newDescriptions = descriptionEn.filter((_, i) => i !== index);
+                                setDescriptionEn(newDescriptions);
+                              }}
+                              className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                              type="button"
+                            >
+                              <FiTrash2 />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => setDescriptionEn([...descriptionEn, ''])}
+                          className="flex items-center gap-2 px-3 py-1 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
+                          type="button"
+                        >
+                          <FiPlus className="text-sm" />
+                          {t('ItemEditPage.addDescriptionLine')}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -998,56 +1054,121 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                   {t('ItemEditPage.additionalInfo')}
                 </h2>
                 <div className="space-y-4">
-                  <div className="space-y-3">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      カスタムフィールドは多言語対応しています。日本語と英語で項目名と値を設定できます。
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-6">
                     {metadata.customFields?.map((field, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row gap-2">
-                        <input
-                          type="text"
-                          value={field.label}
-                          onChange={(e) => {
-                            const newFields = [...(metadata.customFields || [])];
-                            newFields[index].label = e.target.value;
-                            setMetadata({ ...metadata, customFields: newFields });
-                          }}
-                          className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder={t('ItemEditPage.fieldLabel')}
-                        />
-                        <input
-                          type="text"
-                          value={field.value}
-                          onChange={(e) => {
-                            const newFields = [...(metadata.customFields || [])];
-                            newFields[index].value = e.target.value;
-                            setMetadata({ ...metadata, customFields: newFields });
-                          }}
-                          className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder={t('ItemEditPage.fieldValue')}
-                        />
-                        <button
-                          onClick={() => {
-                            const newFields = metadata.customFields?.filter((_, i) => i !== index) || [];
-                            setMetadata({ ...metadata, customFields: newFields });
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg shrink-0"
-                        >
-                          <FiTrash2 />
-                        </button>
+                      <div key={index} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-4">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-medium">カスタムフィールド {index + 1}</h4>
+                          <button
+                            onClick={() => {
+                              const newFields = metadata.customFields?.filter((_, i) => i !== index) || [];
+                              setMetadata({ ...metadata, customFields: newFields });
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">項目名（日本語）</label>
+                            <input
+                              type="text"
+                              value={field.label?.ja?.[0] || ''}
+                              onChange={(e) => {
+                                const newFields = [...(metadata.customFields || [])];
+                                newFields[index].label = {
+                                  ...newFields[index].label,
+                                  ja: e.target.value ? [e.target.value] : []
+                                };
+                                setMetadata({ ...metadata, customFields: newFields });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="例: 収録DB"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label (English)</label>
+                            <input
+                              type="text"
+                              value={field.label?.en?.[0] || ''}
+                              onChange={(e) => {
+                                const newFields = [...(metadata.customFields || [])];
+                                newFields[index].label = {
+                                  ...newFields[index].label,
+                                  en: e.target.value ? [e.target.value] : []
+                                };
+                                setMetadata({ ...metadata, customFields: newFields });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="e.g. Database"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">値（日本語）</label>
+                            <textarea
+                              value={field.value?.ja?.join('\n') || ''}
+                              onChange={(e) => {
+                                const newFields = [...(metadata.customFields || [])];
+                                const values = e.target.value.split('\n').filter(v => v.trim());
+                                newFields[index].value = {
+                                  ...newFields[index].value,
+                                  ja: values.length > 0 ? values : []
+                                };
+                                setMetadata({ ...metadata, customFields: newFields });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              rows={2}
+                              placeholder="例: メトロポリタン美術館オープンアクセスCSV&#10;（複数値の場合は改行で区切る）"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Value (English)</label>
+                            <textarea
+                              value={field.value?.en?.join('\n') || ''}
+                              onChange={(e) => {
+                                const newFields = [...(metadata.customFields || [])];
+                                const values = e.target.value.split('\n').filter(v => v.trim());
+                                newFields[index].value = {
+                                  ...newFields[index].value,
+                                  en: values.length > 0 ? values : []
+                                };
+                                setMetadata({ ...metadata, customFields: newFields });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              rows={2}
+                              placeholder="e.g. The Metropolitan Museum of Art Open Access CSV&#10;(Separate multiple values with new lines)"
+                            />
+                          </div>
+                        </div>
                       </div>
                     ))}
+                    
                     <button
                       onClick={() => {
-                        const newFields = [...(metadata.customFields || []), { label: '', value: '' }];
+                        const newFields = [...(metadata.customFields || []), { label: {}, value: {} }];
                         setMetadata({ ...metadata, customFields: newFields });
                       }}
                       className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
                     >
                       <FiPlus />
-                      {t('ItemEditPage.addInfo')}
+                      カスタムフィールドを追加
                     </button>
                   </div>
                   <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {t('ItemEditPage.additionalInfoNote')}
+                      ここで追加した情報は、IIIFマニフェストのmetadataフィールドとして出力されます。
+                      複数の値を設定する場合は、改行で区切って入力してください（例: キーワードフィールドに「女性」「屋根」「人」など）。
                     </p>
                   </div>
                 </div>
@@ -1112,7 +1233,7 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                     <ItemLocationMap
                       latitude={latitude ? parseFloat(latitude) : 35.6762}
                       longitude={longitude ? parseFloat(longitude) : 139.6503}
-                      label={locationLabel || title}
+                      label={locationLabel || titleJa}
                       onChange={handleLocationChange}
                       showDefault={!latitude || !longitude}
                     />
@@ -1308,18 +1429,58 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                   {t('ItemEditPage.detailedSettings')}
                 </h2>
                 <div className="space-y-4">
-                  {/* Attribution */}
+                  {/* Attribution - Deprecated, use Provider instead */}
+                  {/* Provider */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      {t('ItemEditPage.attribution')}
+                      {t('ItemEditPage.provider')}
                     </label>
-                    <input
-                      type="text"
-                      value={metadata.attribution || ''}
-                      onChange={(e) => setMetadata({ ...metadata, attribution: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      placeholder={t('ItemEditPage.attributionPlaceholder')}
-                    />
+                    <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">日本語</label>
+                          <input
+                            type="text"
+                            value={metadata.provider?.[0]?.label?.ja?.[0] || ''}
+                            onChange={(e) => {
+                              const currentProvider = metadata.provider?.[0] || { type: 'Agent', label: {} };
+                              const provider = [{
+                                ...currentProvider,
+                                type: 'Agent',
+                                label: {
+                                  ...currentProvider.label,
+                                  ja: e.target.value ? [e.target.value] : []
+                                }
+                              }];
+                              setMetadata({ ...metadata, provider });
+                            }}
+                            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="例: メトロポリタン美術館"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">English</label>
+                          <input
+                            type="text"
+                            value={metadata.provider?.[0]?.label?.en?.[0] || ''}
+                            onChange={(e) => {
+                              const currentProvider = metadata.provider?.[0] || { type: 'Agent', label: {} };
+                              const provider = [{
+                                ...currentProvider,
+                                type: 'Agent',
+                                label: {
+                                  ...currentProvider.label,
+                                  en: e.target.value ? [e.target.value] : []
+                                }
+                              }];
+                              setMetadata({ ...metadata, provider });
+                            }}
+                            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="e.g. Metropolitan Museum of Art"
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Rights */}
@@ -1336,50 +1497,121 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                     />
                   </div>
 
-                  {/* Required Statement */}
+                  {/* Required Statement (Attribution) */}
                   <div>
                     <label className="block text-sm font-medium mb-2">
-                      {t('ItemEditPage.usageTerms')}
+                      {t('ItemEditPage.requiredStatement')}
                     </label>
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={metadata.requiredStatement?.label?.ja?.[0] || ''}
-                        onChange={(e) => {
-                          const currentStatement = metadata.requiredStatement || {
-                            label: { ja: [] },
-                            value: { ja: [] }
-                          };
-                          setMetadata({
-                            ...metadata,
-                            requiredStatement: {
-                              ...currentStatement,
-                              label: { ja: [e.target.value] }
-                            }
-                          });
-                        }}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder={t('ItemEditPage.usageTermsLabel')}
-                      />
-                      <textarea
-                        value={metadata.requiredStatement?.value?.ja?.[0] || ''}
-                        onChange={(e) => {
-                          const currentStatement = metadata.requiredStatement || {
-                            label: { ja: [] },
-                            value: { ja: [] }
-                          };
-                          setMetadata({
-                            ...metadata,
-                            requiredStatement: {
-                              ...currentStatement,
-                              value: { ja: [e.target.value] }
-                            }
-                          });
-                        }}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        rows={3}
-                        placeholder={t('ItemEditPage.usageTermsDescription')}
-                      />
+                    <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">ラベル</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input
+                              type="text"
+                              value={metadata.requiredStatement?.label?.ja?.[0] || ''}
+                              onChange={(e) => {
+                                const currentStatement = metadata.requiredStatement || {
+                                  label: {},
+                                  value: {}
+                                };
+                                setMetadata({
+                                  ...metadata,
+                                  requiredStatement: {
+                                    ...currentStatement,
+                                    label: {
+                                      ...currentStatement.label,
+                                      ja: e.target.value ? [e.target.value] : []
+                                    }
+                                  }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="日本語（例: 帰属）"
+                            />
+                            <input
+                              type="text"
+                              value={metadata.requiredStatement?.label?.en?.[0] || metadata.requiredStatement?.label?.none?.[0] || ''}
+                              onChange={(e) => {
+                                const currentStatement = metadata.requiredStatement || {
+                                  label: {},
+                                  value: {}
+                                };
+                                setMetadata({
+                                  ...metadata,
+                                  requiredStatement: {
+                                    ...currentStatement,
+                                    label: {
+                                      ...currentStatement.label,
+                                      en: e.target.value ? [e.target.value] : []
+                                    }
+                                  }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="English (e.g. Attribution)"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">値</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <textarea
+                                value={metadata.requiredStatement?.value?.ja?.[0] || ''}
+                                onChange={(e) => {
+                                  const currentStatement = metadata.requiredStatement || {
+                                    label: {},
+                                    value: {}
+                                  };
+                                  setMetadata({
+                                    ...metadata,
+                                    requiredStatement: {
+                                      ...currentStatement,
+                                      value: {
+                                        ...currentStatement.value,
+                                        ja: e.target.value ? [e.target.value] : []
+                                      }
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                rows={3}
+                                placeholder="日本語（例: メトロポリタン美術館）"
+                              />
+                            </div>
+                            <div>
+                              <textarea
+                                value={metadata.requiredStatement?.value?.en?.[0] || ''}
+                                onChange={(e) => {
+                                  const currentStatement = metadata.requiredStatement || {
+                                    label: {},
+                                    value: {}
+                                  };
+                                  setMetadata({
+                                    ...metadata,
+                                    requiredStatement: {
+                                      ...currentStatement,
+                                      value: {
+                                        ...currentStatement.value,
+                                        en: e.target.value ? [e.target.value] : []
+                                      }
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                rows={3}
+                                placeholder="English (e.g. Metropolitan Museum of Art)"
+                              />
+                            </div>
+                          </div>
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              複数行の場合は、各行が配列の要素になります。
+                            </p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

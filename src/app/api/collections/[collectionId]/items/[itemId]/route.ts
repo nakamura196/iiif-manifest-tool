@@ -83,8 +83,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         label?: { [key: string]: string[] };
       }>;
       customFields?: Array<{
-        label: string;
-        value: string;
+        label: { [key: string]: string[] };
+        value: { [key: string]: string[] };
       }>;
     }
     const metadata: ExtractedMetadata = {};
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       metadata.provider = manifest.provider;
     }
     
-    // Extract custom metadata fields
+    // Extract custom metadata fields - preserve multilingual format
     if (manifest.metadata && manifest.metadata.length > 0) {
       metadata.customFields = manifest.metadata
         .filter(item => {
@@ -118,8 +118,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           return !['作成日', 'Created', '更新日', 'Updated', 'コレクションID', 'Collection ID'].includes(label);
         })
         .map(item => ({
-          label: item.label.ja?.[0] || item.label.en?.[0] || '',
-          value: item.value.ja?.[0] || item.value.en?.[0] || ''
+          label: item.label || {},
+          value: item.value || {}
         }));
     }
 
@@ -186,8 +186,26 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     // Use multilingual titles if provided, otherwise fall back to old format
     const finalTitleJa = titleJa || title || '';
     const finalTitleEn = titleEn || title || '';
-    const finalDescriptionJa = descriptionJa || description || '';
-    const finalDescriptionEn = descriptionEn || description || '';
+    
+    // Handle descriptions as arrays
+    let finalDescriptionJa: string[] = [];
+    let finalDescriptionEn: string[] = [];
+    
+    if (Array.isArray(descriptionJa)) {
+      finalDescriptionJa = descriptionJa.filter(d => d && d.trim());
+    } else if (descriptionJa) {
+      finalDescriptionJa = [descriptionJa];
+    } else if (description) {
+      finalDescriptionJa = [description];
+    }
+    
+    if (Array.isArray(descriptionEn)) {
+      finalDescriptionEn = descriptionEn.filter(d => d && d.trim());
+    } else if (descriptionEn) {
+      finalDescriptionEn = [descriptionEn];
+    } else if (description) {
+      finalDescriptionEn = [description];
+    }
 
     if ((!finalTitleJa && !finalTitleEn) || !images || images.length === 0) {
       return NextResponse.json(

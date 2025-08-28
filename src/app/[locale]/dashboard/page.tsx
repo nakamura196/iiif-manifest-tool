@@ -4,8 +4,10 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye, FiSettings, FiMoreVertical, FiEdit, FiTrash2, FiSearch, FiFilter, FiCalendar, FiClock, FiTool } from 'react-icons/fi';
+import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye, FiSettings, FiMoreVertical, FiEdit, FiTrash2, FiSearch, FiFilter, FiCalendar, FiClock } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useSnackbar } from '@/contexts/SnackbarContext';
 
 interface Collection {
   id: string;
@@ -33,6 +35,18 @@ export default function DashboardPage() {
   const [sortBy, setSortBy] = useState<'created' | 'updated' | 'name'>('created');
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const filterMenuRef = useRef<HTMLDivElement>(null);
+  const [deleteDialog, setDeleteDialog] = useState<{ 
+    isOpen: boolean; 
+    collectionId: string; 
+    title: string;
+    isLoading?: boolean;
+  }>({
+    isOpen: false,
+    collectionId: '',
+    title: '',
+    isLoading: false
+  });
+  const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -96,6 +110,31 @@ export default function DashboardPage() {
     }
   };
 
+  const handleDeleteCollection = async (collectionId: string) => {
+    // 削除開始時にローディング状態にする
+    setDeleteDialog(prev => ({ ...prev, isLoading: true }));
+    
+    try {
+      const response = await fetch(`/api/collections/${collectionId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        setCollections(collections.filter(c => c.id !== collectionId));
+        showSnackbar('コレクションを削除しました', 'success');
+        // 成功時にダイアログを閉じる
+        setDeleteDialog({ isOpen: false, collectionId: '', title: '', isLoading: false });
+      } else {
+        const error = await response.json();
+        showSnackbar(error.message || '削除に失敗しました', 'error');
+        setDeleteDialog(prev => ({ ...prev, isLoading: false }));
+      }
+    } catch (error) {
+      console.error('Error deleting collection:', error);
+      showSnackbar('削除中にエラーが発生しました', 'error');
+      setDeleteDialog(prev => ({ ...prev, isLoading: false }));
+    }
+  };
 
   const navigateToNewCollection = () => {
     const locale = window.location.pathname.split('/')[1] || 'ja';
@@ -107,24 +146,6 @@ export default function DashboardPage() {
     router.push(`/${locale}/dashboard/collections/settings`);
   };
 
-  const handleDeleteCollection = async (collectionId: string) => {
-    try {
-      const response = await fetch(`/api/collections/${collectionId}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        // コレクション一覧を再取得
-        await fetchCollections();
-      } else {
-        console.error('Failed to delete collection');
-        alert(t('Dashboard.deleteCollectionFailed'));
-      }
-    } catch (error) {
-      console.error('Error deleting collection:', error);
-      alert(t('Dashboard.deleteCollectionError'));
-    }
-  };
 
   const openCollectionInMirador = (collectionId: string) => {
     // Generate collection manifest URL using new IIIF structure
@@ -242,15 +263,6 @@ export default function DashboardPage() {
                   <FiSettings />
                   {t('Dashboard.publicCollectionSettings')}
                 </button>
-                <Link
-                  href="/ja/tools/iiif-parser"
-                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  <FiTool />
-                  {t('Dashboard.iiifParser')}
-                  <span className="ml-auto text-xs text-gray-500">実験的</span>
-                </Link>
               </div>
             )}
           </div>
@@ -504,10 +516,13 @@ export default function DashboardPage() {
                       <button
                         onClick={() => {
                           const collectionName = collection.label.ja?.[0] || collection.label.en?.[0] || collection.label.none?.[0] || 'Untitled';
-                          if (confirm(t('Collection.confirmDelete', { title: collectionName }))) {
-                            handleDeleteCollection(collection.id);
-                            setShowCollectionDropdown(null);
-                          }
+                          setDeleteDialog({
+                            isOpen: true,
+                            collectionId: collection.id,
+                            title: collectionName,
+                            isLoading: false
+                          });
+                          setShowCollectionDropdown(null);
                         }}
                         className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-red-600 dark:text-red-400"
                       >
@@ -524,6 +539,17 @@ export default function DashboardPage() {
         </div>
       )}
 
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, collectionId: '', title: '', isLoading: false })}
+        onConfirm={() => handleDeleteCollection(deleteDialog.collectionId)}
+        title="コレクションの削除"
+        message={`「${deleteDialog.title}」を削除してもよろしいですか？コレクション内のすべてのアイテムも削除されます。この操作は取り消せません。`}
+        confirmText="削除"
+        cancelText="キャンセル"
+        variant="danger"
+        isLoading={deleteDialog.isLoading}
+      />
     </div>
   );
 }

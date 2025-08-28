@@ -11,6 +11,8 @@ import { Inter } from 'next/font/google';
 import { getMetadata } from '@/constants/metadata';
 import type { Metadata } from 'next';
 import SessionProvider from '@/components/SessionProvider';
+import { SnackbarProvider } from '@/contexts/SnackbarContext';
+import UserMappingUpdater from '@/components/UserMappingUpdater';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -48,9 +50,12 @@ export default async function RootLayout({ children, params }: LayoutProps) {
             disableTransitionOnChange
           >
             <NextIntlClientProvider messages={messages}>
-              <Header />
-              {children}
-              <Footer />
+              <SnackbarProvider>
+                <UserMappingUpdater />
+                <Header />
+                {children}
+                <Footer />
+              </SnackbarProvider>
             </NextIntlClientProvider>
           </ThemeProvider>
         </SessionProvider>

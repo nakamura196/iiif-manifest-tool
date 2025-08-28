@@ -15,16 +15,8 @@ interface CollectionEditPageProps {
 }
 
 interface CollectionData {
-  name: string;
-  description: string;
-  label?: {
-    ja: string;
-    en: string;
-  };
-  summary?: {
-    ja: string;
-    en: string;
-  };
+  label?: { [key: string]: string[] };
+  summary?: { [key: string]: string[] };
   isPublic: boolean;
   metadata?: {
     attribution?: string;
@@ -55,8 +47,8 @@ interface CollectionData {
       }>;
     }>;
     customFields?: Array<{
-      label: string;
-      value: string;
+      label: { [key: string]: string[] };
+      value: { [key: string]: string[] };
     }>;
   };
 }
@@ -70,16 +62,8 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [collection, setCollection] = useState<CollectionData>({
-    name: '',
-    description: '',
-    label: {
-      ja: '',
-      en: ''
-    },
-    summary: {
-      ja: '',
-      en: ''
-    },
+    label: {},
+    summary: {},
     isPublic: true,
     metadata: {}
   });
@@ -91,16 +75,8 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
       if (response.ok) {
         const data = await response.json();
         setCollection({
-          name: data.name || '',
-          description: data.description || '',
-          label: data.label || {
-            ja: data.name || '',
-            en: data.name || ''
-          },
-          summary: data.summary || {
-            ja: data.description || '',
-            en: data.description || ''
-          },
+          label: data.label || {},
+          summary: data.summary || {},
           isPublic: data.isPublic ?? true,
           metadata: data.metadata || {}
         });
@@ -169,7 +145,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSave}
-                disabled={!collection.name || saving}
+                disabled={!collection.label?.ja?.[0] || saving}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
                 {saving ? (
@@ -264,13 +240,12 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                         </label>
                         <input
                           type="text"
-                          value={collection.label?.ja || collection.name}
+                          value={collection.label?.ja?.[0] || ''}
                           onChange={(e) => setCollection({ 
                             ...collection, 
-                            name: e.target.value,
                             label: { 
-                              ja: e.target.value,
-                              en: collection.label?.en || '' 
+                              ...collection.label,
+                              ja: [e.target.value]
                             } 
                           })}
                           className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
@@ -280,13 +255,12 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                       <div>
                         <label className="block text-sm font-medium mb-2">説明</label>
                         <textarea
-                          value={collection.summary?.ja || collection.description}
+                          value={collection.summary?.ja?.[0] || ''}
                           onChange={(e) => setCollection({ 
                             ...collection, 
-                            description: e.target.value,
                             summary: { 
-                              ja: e.target.value,
-                              en: collection.summary?.en || '' 
+                              ...collection.summary,
+                              ja: e.target.value ? [e.target.value] : []
                             } 
                           })}
                           className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
@@ -307,12 +281,12 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                         </label>
                         <input
                           type="text"
-                          value={collection.label?.en || collection.name}
+                          value={collection.label?.en?.[0] || ''}
                           onChange={(e) => setCollection({ 
                             ...collection, 
                             label: { 
-                              ja: collection.label?.ja || '',
-                              en: e.target.value 
+                              ...collection.label,
+                              en: e.target.value ? [e.target.value] : []
                             } 
                           })}
                           className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
@@ -322,12 +296,12 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                       <div>
                         <label className="block text-sm font-medium mb-2">Description</label>
                         <textarea
-                          value={collection.summary?.en || collection.description}
+                          value={collection.summary?.en?.[0] || ''}
                           onChange={(e) => setCollection({ 
                             ...collection, 
                             summary: { 
-                              ja: collection.summary?.ja || '',
-                              en: e.target.value 
+                              ...collection.summary,
+                              en: e.target.value ? [e.target.value] : []
                             } 
                           })}
                           className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
@@ -348,54 +322,122 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                   追加情報
                 </h2>
                 <div className="space-y-4">
-                  <div className="space-y-3">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-300">
+                      カスタムフィールドも多言語対応しています。日本語と英語で項目名と値を設定できます。
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-6">
                     {collection.metadata?.customFields?.map((field, index) => (
-                      <div key={index} className="flex flex-col sm:flex-row gap-2">
-                        <input
-                          type="text"
-                          value={field.label}
-                          onChange={(e) => {
-                            const newFields = [...(collection.metadata?.customFields || [])];
-                            newFields[index].label = e.target.value;
-                            setCollection({
-                              ...collection,
-                              metadata: { ...collection.metadata, customFields: newFields }
-                            });
-                          }}
-                          className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder="項目名（例: 所蔵番号）"
-                        />
-                        <input
-                          type="text"
-                          value={field.value}
-                          onChange={(e) => {
-                            const newFields = [...(collection.metadata?.customFields || [])];
-                            newFields[index].value = e.target.value;
-                            setCollection({
-                              ...collection,
-                              metadata: { ...collection.metadata, customFields: newFields }
-                            });
-                          }}
-                          className="flex-1 px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder="内容（例: ABC-123）"
-                        />
-                        <button
-                          onClick={() => {
-                            const newFields = collection.metadata?.customFields?.filter((_, i) => i !== index) || [];
-                            setCollection({
-                              ...collection,
-                              metadata: { ...collection.metadata, customFields: newFields }
-                            });
-                          }}
-                          className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
-                        >
-                          <FiTrash2 />
-                        </button>
+                      <div key={index} className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-4">
+                        <div className="flex justify-between items-start">
+                          <h4 className="font-medium">カスタムフィールド {index + 1}</h4>
+                          <button
+                            onClick={() => {
+                              const newFields = collection.metadata?.customFields?.filter((_, i) => i !== index) || [];
+                              setCollection({
+                                ...collection,
+                                metadata: { ...collection.metadata, customFields: newFields }
+                              });
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900 rounded-lg"
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">項目名（日本語）</label>
+                            <input
+                              type="text"
+                              value={field.label?.ja?.[0] || ''}
+                              onChange={(e) => {
+                                const newFields = [...(collection.metadata?.customFields || [])];
+                                newFields[index].label = {
+                                  ...newFields[index].label,
+                                  ja: e.target.value ? [e.target.value] : []
+                                };
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, customFields: newFields }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="例: 所蔵番号"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Label (English)</label>
+                            <input
+                              type="text"
+                              value={field.label?.en?.[0] || ''}
+                              onChange={(e) => {
+                                const newFields = [...(collection.metadata?.customFields || [])];
+                                newFields[index].label = {
+                                  ...newFields[index].label,
+                                  en: e.target.value ? [e.target.value] : []
+                                };
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, customFields: newFields }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="e.g. Accession Number"
+                            />
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">値（日本語）</label>
+                            <input
+                              type="text"
+                              value={field.value?.ja?.[0] || ''}
+                              onChange={(e) => {
+                                const newFields = [...(collection.metadata?.customFields || [])];
+                                newFields[index].value = {
+                                  ...newFields[index].value,
+                                  ja: e.target.value ? [e.target.value] : []
+                                };
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, customFields: newFields }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="例: ABC-123"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Value (English)</label>
+                            <input
+                              type="text"
+                              value={field.value?.en?.[0] || ''}
+                              onChange={(e) => {
+                                const newFields = [...(collection.metadata?.customFields || [])];
+                                newFields[index].value = {
+                                  ...newFields[index].value,
+                                  en: e.target.value ? [e.target.value] : []
+                                };
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, customFields: newFields }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="e.g. ABC-123"
+                            />
+                          </div>
+                        </div>
                       </div>
                     ))}
+                    
                     <button
                       onClick={() => {
-                        const newFields = [...(collection.metadata?.customFields || []), { label: '', value: '' }];
+                        const newFields = [...(collection.metadata?.customFields || []), { label: {}, value: {} }];
                         setCollection({
                           ...collection,
                           metadata: { ...collection.metadata, customFields: newFields }
@@ -404,9 +446,10 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                       className="flex items-center gap-2 px-4 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900 rounded-lg"
                     >
                       <FiPlus />
-                      情報を追加
+                      カスタムフィールドを追加
                     </button>
                   </div>
+                  
                   <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                     <p className="text-sm text-gray-600 dark:text-gray-400">
                       ここで追加した情報は、コレクションの詳細情報として表示されます。
@@ -426,22 +469,6 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        所蔵・提供機関
-                      </label>
-                      <input
-                        type="text"
-                        value={collection.metadata?.attribution || ''}
-                        onChange={(e) => setCollection({
-                          ...collection,
-                          metadata: { ...collection.metadata, attribution: e.target.value }
-                        })}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder="例: 国立図書館"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
                         提供者情報
                       </label>
                       <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -458,7 +485,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                   type: 'Agent',
                                   label: {
                                     ...currentProvider.label,
-                                    ja: e.target.value ? [e.target.value] : undefined
+                                    ja: e.target.value ? [e.target.value] : []
                                   }
                                 }];
                                 setCollection({
@@ -482,7 +509,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                   type: 'Agent',
                                   label: {
                                     ...currentProvider.label,
-                                    en: e.target.value ? [e.target.value] : undefined
+                                    en: e.target.value ? [e.target.value] : []
                                   }
                                 }];
                                 setCollection({
@@ -547,7 +574,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                         ...currentStatement,
                                         label: {
                                           ...currentStatement.label,
-                                          ja: e.target.value ? [e.target.value] : undefined
+                                          ja: e.target.value ? [e.target.value] : []
                                         }
                                       }
                                     }
@@ -572,7 +599,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                         ...currentStatement,
                                         label: {
                                           ...currentStatement.label,
-                                          en: e.target.value ? [e.target.value] : undefined
+                                          en: e.target.value ? [e.target.value] : []
                                         }
                                       }
                                     }
@@ -601,7 +628,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                         ...currentStatement,
                                         value: {
                                           ...currentStatement.value,
-                                          ja: e.target.value ? [e.target.value] : undefined
+                                          ja: e.target.value ? [e.target.value] : []
                                         }
                                       }
                                     }
@@ -626,7 +653,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                         ...currentStatement,
                                         value: {
                                           ...currentStatement.value,
-                                          en: e.target.value ? [e.target.value] : undefined
+                                          en: e.target.value ? [e.target.value] : []
                                         }
                                       }
                                     }
@@ -697,7 +724,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                   id: currentHomepage.id || '',
                                   label: {
                                     ...currentHomepage.label,
-                                    ja: e.target.value ? [e.target.value] : undefined
+                                    ja: e.target.value ? [e.target.value] : []
                                   }
                                 }];
                                 setCollection({
@@ -718,7 +745,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                   id: currentHomepage.id || '',
                                   label: {
                                     ...currentHomepage.label,
-                                    en: e.target.value ? [e.target.value] : undefined
+                                    en: e.target.value ? [e.target.value] : []
                                   }
                                 }];
                                 setCollection({
@@ -815,7 +842,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                   ...currentSeeAlso,
                                   label: {
                                     ...currentSeeAlso.label,
-                                    ja: e.target.value ? [e.target.value] : undefined
+                                    ja: e.target.value ? [e.target.value] : []
                                   }
                                 }];
                                 setCollection({
@@ -835,7 +862,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                                   ...currentSeeAlso,
                                   label: {
                                     ...currentSeeAlso.label,
-                                    en: e.target.value ? [e.target.value] : undefined
+                                    en: e.target.value ? [e.target.value] : []
                                   }
                                 }];
                                 setCollection({

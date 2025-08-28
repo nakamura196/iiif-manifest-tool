@@ -8,6 +8,44 @@ interface RouteParams {
   params: Promise<{ collectionId: string }>;
 }
 
+// Helper function to clean multilingual text format
+function cleanMultilingualText(text: unknown): { [key: string]: string[] } {
+  if (!text || typeof text !== 'object') return {};
+  
+  const result: { [key: string]: string[] } = {};
+  
+  for (const [lang, value] of Object.entries(text)) {
+    if (Array.isArray(value)) {
+      // Check if array contains strings or nested objects
+      const cleanedValues = value.map(v => {
+        if (typeof v === 'string') {
+          return v;
+        } else if (typeof v === 'object' && v !== null) {
+          // If it's a nested object, try to extract the appropriate value
+          const obj = v as Record<string, unknown>;
+          return (obj[lang] as string) || (obj.ja as string) || (obj.en as string) || '';
+        }
+        return '';
+      }).filter(v => v !== '');
+      
+      if (cleanedValues.length > 0) {
+        result[lang] = cleanedValues;
+      }
+    } else if (typeof value === 'string') {
+      result[lang] = [value];
+    } else if (typeof value === 'object' && value !== null) {
+      // Handle nested object case
+      const valObj = value as Record<string, unknown>;
+      const extractedValue = valObj[lang] || valObj.ja || valObj.en;
+      if (extractedValue && typeof extractedValue === 'string') {
+        result[lang] = [extractedValue];
+      }
+    }
+  }
+  
+  return result;
+}
+
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
@@ -31,7 +69,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       const bodyString = await response.Body?.transformToString();
       
       if (bodyString) {
-        return NextResponse.json(JSON.parse(bodyString));
+        const metadata = JSON.parse(bodyString);
+        
+        // Fix any nested format issues in label and summary
+        if (metadata.label) {
+          metadata.label = cleanMultilingualText(metadata.label);
+        }
+        if (metadata.summary) {
+          metadata.summary = cleanMultilingualText(metadata.summary);
+        }
+        
+        // Clean customFields if they exist
+        if (metadata.metadata?.customFields) {
+          metadata.metadata.customFields = metadata.metadata.customFields.map((field: unknown) => {
+            const f = field as { label: unknown; value: unknown };
+            return {
+              label: cleanMultilingualText(f.label),
+              value: cleanMultilingualText(f.value)
+            };
+          });
+        }
+        
+        return NextResponse.json(metadata);
       }
     } catch {
       // If metadata.json doesn't exist, try to get collection.json
@@ -58,18 +117,28 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             m.label.ja?.[0] === '公開設定' || m.label.en?.[0] === 'Visibility'
         )?.value.ja?.[0] === '公開' || collection['x-access']?.isPublic || true;
         
+        // Extract custom fields from IIIF metadata
+        // Exclude system fields like '作成日', '更新日', '公開設定'
+        const systemLabels = ['作成日', '更新日', '公開設定', 'Created', 'Updated', 'Visibility'];
+        const customFields = collection.metadata?.filter(
+          (m: { label: { [key: string]: string[] }; value: { [key: string]: string[] } }) => {
+            // Check if this is a system field
+            const isSystemField = Object.values(m.label).some(
+              labels => labels.some(label => systemLabels.includes(label))
+            );
+            return !isSystemField;
+          }
+        ).map((m: { label: { [key: string]: string[] }; value: { [key: string]: string[] } }) => ({
+          label: cleanMultilingualText(m.label),
+          value: cleanMultilingualText(m.value)
+        })) || [];
+        
         return NextResponse.json({
           id: collectionId,
           name: collection.label?.ja?.[0] || collection.label?.en?.[0] || 'Collection',
           description: collection.summary?.ja?.[0] || collection.summary?.en?.[0] || '',
-          label: {
-            ja: collection.label?.ja?.[0] || '',
-            en: collection.label?.en?.[0] || ''
-          },
-          summary: {
-            ja: collection.summary?.ja?.[0] || '',
-            en: collection.summary?.en?.[0] || ''
-          },
+          label: cleanMultilingualText(collection.label),
+          summary: cleanMultilingualText(collection.summary),
           isPublic,
           metadata: {
             attribution: collection.attribution,
@@ -78,7 +147,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             homepage: collection.homepage,
             seeAlso: collection.seeAlso,
             provider: collection.provider,
-            customFields: []
+            customFields
           }
         });
       }
@@ -116,10 +185,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     // Store collection metadata in S3
     const metadataKey = `collections/${session.user.id}/${collectionId}/metadata.json`;
     
+    // Clean the data to ensure proper format
+    const cleanedData = {
+      label: data.label ? cleanMultilingualText(data.label) : {},
+      summary: data.summary ? cleanMultilingualText(data.summary) : {},
+      isPublic: data.isPublic ?? true,
+      metadata: data.metadata || {}
+    };
+    
     const collectionData = {
       id: collectionId,
       userId: session.user.id,
-      ...data,
+      ...cleanedData,
       updatedAt: new Date().toISOString()
     };
     
@@ -148,62 +225,136 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         const collectionManifest = JSON.parse(bodyString);
         
         // Update collection manifest with new metadata
-        // Use provided label or fallback to name
-        collectionManifest.label = data.label ? {
-          ja: [data.label.ja || data.name],
-          en: [data.label.en || data.name]
-        } : {
-          ja: [data.name],
-          en: [data.name]
-        };
+        // Use cleaned data for consistency
+        if (cleanedData.label && Object.keys(cleanedData.label).length > 0) {
+          collectionManifest.label = cleanedData.label;
+        }
         
-        // Use provided summary or fallback to description
-        if (data.summary || data.description) {
-          collectionManifest.summary = data.summary ? {
-            ja: [data.summary.ja || data.description || ''],
-            en: [data.summary.en || data.description || '']
-          } : {
-            ja: [data.description],
-            en: [data.description]
+        if (cleanedData.summary && Object.keys(cleanedData.summary).length > 0) {
+          collectionManifest.summary = cleanedData.summary;
+        }
+        
+        // Skip the old label/summary handling since we're using cleaned data
+        /*
+        if (data.label) {
+          // Check if it's already in IIIF format (has arrays)
+          if (typeof data.label === 'object' && !Array.isArray(data.label)) {
+            // Check if values are already arrays
+            const hasArrays = Object.values(data.label).some(v => Array.isArray(v));
+            if (hasArrays) {
+              // Already in IIIF format, ensure values are strings
+              collectionManifest.label = {};
+              for (const [lang, value] of Object.entries(data.label)) {
+                if (Array.isArray(value)) {
+                  collectionManifest.label[lang] = value.filter((v: any) => typeof v === 'string');
+                } else if (typeof value === 'string') {
+                  collectionManifest.label[lang] = [value];
+                }
+              }
+            } else {
+              // Convert from {ja: string, en: string} to {ja: [string], en: [string]}
+              collectionManifest.label = {};
+              for (const [lang, value] of Object.entries(data.label)) {
+                if (value && typeof value === 'string') {
+                  collectionManifest.label[lang] = [value];
+                }
+              }
+            }
+          }
+        } else if (data.name) {
+          collectionManifest.label = {
+            ja: [data.name],
+            en: [data.name]
           };
         }
         
+        // Handle summary - convert from edit format to IIIF format if needed  
+        if (data.summary) {
+          // Check if it's already in IIIF format (has arrays)
+          if (typeof data.summary === 'object' && !Array.isArray(data.summary)) {
+            const hasArrays = Object.values(data.summary).some(v => Array.isArray(v));
+            if (hasArrays) {
+              // Already in IIIF format, but check for nested objects
+              collectionManifest.summary = {};
+              for (const [lang, value] of Object.entries(data.summary)) {
+                if (Array.isArray(value)) {
+                  // Check if array contains strings or objects
+                  const firstItem = value[0];
+                  if (typeof firstItem === 'string') {
+                    collectionManifest.summary[lang] = value;
+                  } else if (typeof firstItem === 'object' && firstItem !== null) {
+                    // Nested object found - extract the appropriate value
+                    const extractedValue = (firstItem as any)[lang] || (firstItem as any).ja || (firstItem as any).en;
+                    if (extractedValue) {
+                      collectionManifest.summary[lang] = [extractedValue];
+                    }
+                  }
+                } else if (typeof value === 'string') {
+                  collectionManifest.summary[lang] = [value];
+                }
+              }
+            } else {
+              // Convert from {ja: string, en: string} to {ja: [string], en: [string]}
+              collectionManifest.summary = {};
+              for (const [lang, value] of Object.entries(data.summary)) {
+                if (value && typeof value === 'string') {
+                  collectionManifest.summary[lang] = [value];
+                }
+              }
+            }
+          }
+        }
+        */
+        
         // Add IIIF metadata fields
-        if (data.metadata) {
-          if (data.metadata.attribution) {
-            collectionManifest.attribution = data.metadata.attribution;
+        if (cleanedData.metadata) {
+          if (cleanedData.metadata.attribution) {
+            collectionManifest.attribution = cleanedData.metadata.attribution;
           }
           
-          if (data.metadata.rights) {
-            collectionManifest.rights = data.metadata.rights;
+          if (cleanedData.metadata.rights) {
+            collectionManifest.rights = cleanedData.metadata.rights;
           }
           
-          if (data.metadata.requiredStatement) {
-            collectionManifest.requiredStatement = data.metadata.requiredStatement;
+          if (cleanedData.metadata.requiredStatement) {
+            collectionManifest.requiredStatement = cleanedData.metadata.requiredStatement;
           }
           
-          if (data.metadata.homepage) {
-            collectionManifest.homepage = data.metadata.homepage;
+          if (cleanedData.metadata.homepage) {
+            collectionManifest.homepage = cleanedData.metadata.homepage;
           }
           
-          if (data.metadata.seeAlso) {
-            collectionManifest.seeAlso = data.metadata.seeAlso;
+          if (cleanedData.metadata.seeAlso) {
+            collectionManifest.seeAlso = cleanedData.metadata.seeAlso;
           }
           
-          if (data.metadata.provider) {
-            collectionManifest.provider = data.metadata.provider;
+          if (cleanedData.metadata.provider) {
+            collectionManifest.provider = cleanedData.metadata.provider;
           }
           
           // Add custom metadata fields to IIIF metadata array
-          if (data.metadata.customFields && data.metadata.customFields.length > 0) {
+          if (cleanedData.metadata.customFields && cleanedData.metadata.customFields.length > 0) {
             collectionManifest.metadata = [
               ...(collectionManifest.metadata || []),
-              ...data.metadata.customFields
-                .filter((field: { label: string; value: string }) => field.label && field.value)
-                .map((field: { label: string; value: string }) => ({
-                  label: { ja: [field.label] },
-                  value: { ja: [field.value] }
-                }))
+              ...cleanedData.metadata.customFields
+                .filter((field: unknown) => {
+                  const f = field as { label?: { [key: string]: string[] }; value?: { [key: string]: string[] } };
+                  // Check if field has any non-empty label or value in any language
+                  const hasLabel = f.label && Object.keys(f.label).some(
+                    (lang: string) => f.label![lang] && f.label![lang].length > 0
+                  );
+                  const hasValue = f.value && Object.keys(f.value).some(
+                    (lang: string) => f.value![lang] && f.value![lang].length > 0
+                  );
+                  return hasLabel && hasValue;
+                })
+                .map((field: unknown) => {
+                  const f = field as { label?: { [key: string]: string[] }; value?: { [key: string]: string[] } };
+                  return {
+                    label: f.label || {},
+                    value: f.value || {}
+                  };
+                })
             ];
           }
         }

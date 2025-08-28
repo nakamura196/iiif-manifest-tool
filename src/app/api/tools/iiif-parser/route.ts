@@ -1,28 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Traverse } from '@iiif/parser';
 import { convertPresentation2 } from '@iiif/parser/presentation-2';
 import { Manifest, Collection } from '@iiif/presentation-3';
 
-function detectVersion(data: any): string {
+function detectVersion(data: unknown): string {
+  const obj = data as Record<string, unknown>;
   // IIIF v3 detection
-  if (data['@context'] && typeof data['@context'] === 'string' && data['@context'].includes('presentation/3')) {
+  if (obj['@context'] && typeof obj['@context'] === 'string' && obj['@context'].includes('presentation/3')) {
     return 'v3';
   }
-  if (data.type && !data['@type']) {
+  if (obj.type && !obj['@type']) {
     return 'v3';
   }
   
   // IIIF v2 detection
-  if (data['@context'] && typeof data['@context'] === 'string' && data['@context'].includes('presentation/2')) {
+  if (obj['@context'] && typeof obj['@context'] === 'string' && obj['@context'].includes('presentation/2')) {
     return 'v2';
   }
-  if (data['@type']) {
+  if (obj['@type']) {
     return 'v2';
   }
   
   // Check array contexts
-  if (Array.isArray(data['@context'])) {
-    const contexts = data['@context'].join(' ');
+  if (Array.isArray(obj['@context'])) {
+    const contexts = obj['@context'].join(' ');
     if (contexts.includes('presentation/3')) return 'v3';
     if (contexts.includes('presentation/2')) return 'v2';
   }
@@ -30,33 +30,38 @@ function detectVersion(data: any): string {
   return 'unknown';
 }
 
-function getResourceType(data: any): string {
+function getResourceType(data: unknown): string {
+  const obj = data as Record<string, unknown>;
   // v3 types
-  if (data.type === 'Manifest') return 'Manifest';
-  if (data.type === 'Collection') return 'Collection';
+  if (obj.type === 'Manifest') return 'Manifest';
+  if (obj.type === 'Collection') return 'Collection';
   
   // v2 types
-  if (data['@type'] === 'sc:Manifest') return 'Manifest';
-  if (data['@type'] === 'sc:Collection') return 'Collection';
+  if (obj['@type'] === 'sc:Manifest') return 'Manifest';
+  if (obj['@type'] === 'sc:Collection') return 'Collection';
   
   return 'Unknown';
 }
 
-function getItemCount(data: any): number | undefined {
+function getItemCount(data: unknown): number | undefined {
+  const obj = data as Record<string, unknown>;
   // For manifests, count canvases
-  if (data.items && Array.isArray(data.items)) {
-    return data.items.length;
+  if (obj.items && Array.isArray(obj.items)) {
+    return obj.items.length;
   }
-  if (data.sequences && data.sequences[0]?.canvases) {
-    return data.sequences[0].canvases.length;
+  if (obj.sequences && Array.isArray(obj.sequences) && obj.sequences[0]) {
+    const seq = obj.sequences[0] as Record<string, unknown>;
+    if (seq.canvases && Array.isArray(seq.canvases)) {
+      return seq.canvases.length;
+    }
   }
   
   // For collections, count manifests
-  if (data.manifests) {
-    return data.manifests.length;
+  if (obj.manifests && Array.isArray(obj.manifests)) {
+    return obj.manifests.length;
   }
-  if (data.members) {
-    return data.members.length;
+  if (obj.members && Array.isArray(obj.members)) {
+    return obj.members.length;
   }
   
   return undefined;
@@ -67,7 +72,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, url, json } = body;
 
-    let inputData: any;
+    let inputData: unknown;
 
     // Fetch from URL or parse JSON
     if (type === 'url' && url) {
@@ -96,11 +101,9 @@ export async function POST(request: NextRequest) {
 
     let parsedData: Manifest | Collection;
 
-    // If it's already v3, just validate it
+    // If it's already v3, just use it
     if (inputVersion === 'v3') {
-      // Use Traverse to validate and normalize v3
-      const traverser = Traverse.create(inputData);
-      parsedData = traverser.getResource() as Manifest | Collection;
+      parsedData = inputData as Manifest | Collection;
     } else if (inputVersion === 'v2') {
       // Convert v2 to v3 using convertPresentation2
       try {

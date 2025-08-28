@@ -2,7 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu } from 'react-icons/fi';
+import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu, FiTool, FiHardDrive, FiFolder, FiBook } from 'react-icons/fi';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter, usePathname } from 'next/navigation';
@@ -20,6 +20,10 @@ const Header = () => {
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations();
+
+  // Check if user is admin
+  const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [];
+  const isAdmin = session?.user?.email && ADMIN_EMAILS.includes(session.user.email);
 
   // マウント状態を管理（ハイドレーションエラー回避）
   useEffect(() => {
@@ -133,6 +137,48 @@ const Header = () => {
                   <FiKey className="w-4 h-4" />
                   <span>{t('Header.apiAuth')}</span>
                 </Link>
+
+                <Link
+                  href="/tools/iiif-parser"
+                  className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FiTool className="w-4 h-4" />
+                  <span>IIIF Parser</span>
+                </Link>
+
+                <Link
+                  href="/docs"
+                  className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FiBook className="w-4 h-4" />
+                  <span>{t('Header.documentation')}</span>
+                </Link>
+
+                {isAdmin && (
+                  <>
+                    <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                    
+                    <Link
+                      href="/admin/backup"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FiHardDrive className="w-4 h-4" />
+                      <span>Backup</span>
+                    </Link>
+
+                    <Link
+                      href="/admin/s3-browser"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FiFolder className="w-4 h-4" />
+                      <span>S3 Browser</span>
+                    </Link>
+                  </>
+                )}
 
                 <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
 

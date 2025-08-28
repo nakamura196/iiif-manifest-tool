@@ -172,8 +172,8 @@ export interface IIIFManifest {
 export async function createIIIFManifest(
   userId: string,
   collectionId: string,
-  title: string,
-  description: string | undefined,
+  title: string | { [key: string]: string[] },  // Support both legacy string and IIIF v3 format
+  description: string | { [key: string]: string[] } | undefined,  // Support both formats
   images: Array<{
     url: string;
     thumbnailUrl?: string;
@@ -200,12 +200,34 @@ export async function createIIIFManifest(
     longitude: number;
     label?: string;
   },
-  attribution?: string,
-  license?: string,
-  metadata?: Array<{
-    label: string;
-    value: string;
-  }>
+  metadata?: {
+    attribution?: string;  // Legacy field
+    rights?: string;
+    requiredStatement?: {
+      label: { [key: string]: string[] };
+      value: { [key: string]: string[] };
+    };
+    homepage?: Array<{
+      id: string;
+      type: string;
+      label?: { [key: string]: string[] };
+    }>;
+    seeAlso?: Array<{
+      id: string;
+      type: string;
+      format?: string;
+      label?: { [key: string]: string[] };
+    }>;
+    provider?: Array<{
+      id?: string;
+      type: string;
+      label?: { [key: string]: string[] };
+    }>;
+    customFields?: Array<{
+      label: { [key: string]: string[] };
+      value: { [key: string]: string[] };
+    }>;
+  }
 ): Promise<{ manifestId: string; manifestUrl: string }> {
   const itemId = uuidv4();
   const manifestKey = `collections/${userId}/${collectionId}/items/${itemId}/manifest.json`;
@@ -223,14 +245,23 @@ export async function createIIIFManifest(
     contexts.push('http://iiif.io/api/extension/navplace/context.json');
   }
 
+  // Handle both string and IIIF v3 format for label
+  const labelObj: IIIFMultilingualText = typeof title === 'string' 
+    ? { ja: [title], en: [title] }
+    : title;
+  
+  // Handle both string and IIIF v3 format for summary
+  const summaryObj: IIIFMultilingualText | undefined = description
+    ? (typeof description === 'string' 
+        ? { ja: [description], en: [description] }
+        : description)
+    : undefined;
+
   const manifest: IIIFManifest = {
     '@context': contexts.length === 1 ? contexts[0] : contexts,
     id: s3ManifestUrl,  // Store with S3 URL
     type: 'Manifest',
-    label: {
-      ja: [title],
-      en: [title]
-    },
+    label: labelObj,
     ...(location ? {
       navPlace: {
         type: 'FeatureCollection',
@@ -238,8 +269,8 @@ export async function createIIIFManifest(
           type: 'Feature',
           properties: {
             label: {
-              ja: [location.label || title],
-              en: [location.label || title]
+              ja: [location.label || labelObj.ja?.[0] || 'Location'],
+              en: [location.label || labelObj.en?.[0] || 'Location']
             }
           },
           geometry: {
@@ -338,62 +369,68 @@ export async function createIIIFManifest(
     }
   };
 
-  if (description) {
-    manifest.summary = {
-      ja: [description],
-      en: [description]
-    };
+  if (summaryObj) {
+    manifest.summary = summaryObj;
   }
 
-  // Add metadata if provided
-  if (metadata && metadata.length > 0) {
-    manifest.metadata = [
-      // Add creation date
-      {
-        label: { ja: ['作成日'], en: ['Created'] },
-        value: { ja: [new Date().toISOString()], en: [new Date().toISOString()] }
-      },
-      {
-        label: { ja: ['コレクションID'], en: ['Collection ID'] },
-        value: { ja: [collectionId], en: [collectionId] }
-      },
-      // Add custom metadata
-      ...metadata.map(item => ({
-        label: { 
-          ja: [item.label],
-          en: [item.label] // Could be improved with translation
-        },
-        value: { 
-          ja: [item.value],
-          en: [item.value]
-        }
-      }))
-    ];
-  } else {
-    // Default metadata
-    manifest.metadata = [
-      {
-        label: { ja: ['作成日'], en: ['Created'] },
-        value: { ja: [new Date().toISOString()], en: [new Date().toISOString()] }
-      },
-      {
-        label: { ja: ['コレクションID'], en: ['Collection ID'] },
-        value: { ja: [collectionId], en: [collectionId] }
-      }
-    ];
+  // Build metadata array with default fields
+  manifest.metadata = [
+    {
+      label: { ja: ['作成日'], en: ['Created'] },
+      value: { ja: [new Date().toISOString()], en: [new Date().toISOString()] }
+    },
+    {
+      label: { ja: ['コレクションID'], en: ['Collection ID'] },
+      value: { ja: [collectionId], en: [collectionId] }
+    }
+  ];
+
+  // Add custom fields if provided
+  if (metadata?.customFields && metadata.customFields.length > 0) {
+    manifest.metadata.push(...metadata.customFields.filter(field => {
+      // Check if field has any non-empty label or value in any language
+      const hasLabel = field.label && Object.keys(field.label).some(
+        lang => field.label[lang] && field.label[lang].length > 0
+      );
+      const hasValue = field.value && Object.keys(field.value).some(
+        lang => field.value[lang] && field.value[lang].length > 0
+      );
+      return hasLabel && hasValue;
+    }));
   }
 
-  // Add attribution if provided
-  if (attribution) {
-    manifest.requiredStatement = {
-      label: { ja: ['帰属'], en: ['Attribution'] },
-      value: { ja: [attribution], en: [attribution] }
-    };
-  }
+  // Add metadata fields if provided
+  if (metadata) {
+    // Add requiredStatement if provided
+    if (metadata.requiredStatement) {
+      manifest.requiredStatement = metadata.requiredStatement;
+    } else if (metadata.attribution) {
+      // Fallback to legacy attribution field
+      manifest.requiredStatement = {
+        label: { ja: ['帰属'], en: ['Attribution'] },
+        value: { ja: [metadata.attribution], en: [metadata.attribution] }
+      };
+    }
 
-  // Add rights/license if provided
-  if (license) {
-    manifest.rights = license;
+    // Add rights if provided
+    if (metadata.rights) {
+      manifest.rights = metadata.rights;
+    }
+
+    // Add provider if provided
+    if (metadata.provider) {
+      manifest.provider = metadata.provider;
+    }
+
+    // Add homepage if provided
+    if (metadata.homepage) {
+      manifest.homepage = metadata.homepage;
+    }
+
+    // Add seeAlso if provided
+    if (metadata.seeAlso) {
+      manifest.seeAlso = metadata.seeAlso;
+    }
   }
 
   // Upload manifest to S3
@@ -404,7 +441,9 @@ export async function createIIIFManifest(
   );
 
   // Add item reference to collection (use public URL for collection reference)
-  await addItemToCollection(userId, collectionId, publicManifestUrl, manifestId, title);
+  const titleString = typeof title === 'string' ? title : 
+    (title.ja?.[0] || title.en?.[0] || Object.values(title)[0]?.[0] || 'Untitled');
+  await addItemToCollection(userId, collectionId, publicManifestUrl, manifestId, titleString);
 
   return { manifestId: itemId, manifestUrl: publicManifestUrl };
 }
@@ -519,9 +558,11 @@ export async function listCollectionItems(
       }
     }
 
-    return items.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    return items.sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
   } catch (error) {
     console.error('Error listing collection items:', error);
     return [];
@@ -533,7 +574,7 @@ export async function updateIIIFManifest(
   collectionId: string,
   manifestId: string,
   title: string | { ja?: string; en?: string },
-  description: string | undefined | { ja?: string; en?: string },
+  description: string | string[] | undefined | { ja?: string | string[]; en?: string | string[] },
   images: Array<{
     url: string;
     thumbnailUrl?: string;
@@ -584,8 +625,8 @@ export async function updateIIIFManifest(
       label?: { [key: string]: string[] };
     }>;
     customFields?: Array<{
-      label: string;
-      value: string;
+      label: { [key: string]: string[] };
+      value: { [key: string]: string[] };
     }>;
   },
   geoAnnotations?: { [key: number]: {
@@ -631,7 +672,7 @@ export async function updateIIIFManifest(
       labelObj = IIIFTextHelpers.createText(title.ja, title.en) || { none: ['Untitled'] };
     }
     
-    // Handle multilingual description
+    // Handle multilingual description (supports arrays)
     let summaryObj: IIIFMultilingualText | undefined;
     if (description) {
       if (typeof description === 'string') {
@@ -639,7 +680,14 @@ export async function updateIIIFManifest(
           ja: [description],
           en: [description]
         };
+      } else if (Array.isArray(description)) {
+        // If description is an array, use it for both languages
+        summaryObj = {
+          ja: description.filter(d => d && d.trim()),
+          en: description.filter(d => d && d.trim())
+        };
       } else {
+        // description is an object with ja and/or en properties (can be strings or arrays)
         summaryObj = IIIFTextHelpers.createText(description.ja, description.en);
       }
     }
@@ -752,10 +800,19 @@ export async function updateIIIFManifest(
           label: { ja: ['コレクションID'], en: ['Collection ID'] },
           value: { ja: [collectionId], en: [collectionId] }
         },
-        // Add custom metadata fields
-        ...(metadata?.customFields?.filter(field => field.label && field.value).map(field => ({
-          label: { ja: [field.label] },
-          value: { ja: [field.value] }
+        // Add custom metadata fields with multilingual support
+        ...(metadata?.customFields?.filter(field => {
+          // Check if field has any non-empty label or value in any language
+          const hasLabel = field.label && Object.keys(field.label).some(
+            lang => field.label[lang] && field.label[lang].length > 0
+          );
+          const hasValue = field.value && Object.keys(field.value).some(
+            lang => field.value[lang] && field.value[lang].length > 0
+          );
+          return hasLabel && hasValue;
+        }).map(field => ({
+          label: field.label || {},
+          value: field.value || {}
         })) || [])
       ],
       'x-access': {
@@ -764,13 +821,6 @@ export async function updateIIIFManifest(
         isPublic: isPublic
       }
     };
-
-    if (description) {
-      manifest.summary = {
-        ja: [description],
-        en: [description]
-      };
-    }
 
     // Add IIIF metadata fields
     if (metadata) {
@@ -807,8 +857,8 @@ export async function updateIIIFManifest(
             },
             properties: {
               label: {
-                ja: [location.label || title],
-                en: [location.label || title]
+                ja: [location.label || IIIFTextHelpers.getText(labelObj, 'ja') || 'Location'],
+                en: [location.label || IIIFTextHelpers.getText(labelObj, 'en') || 'Location']
               }
             }
           }
@@ -830,8 +880,9 @@ export async function updateIIIFManifest(
 
     // Update the title in the collection if it has changed
     const oldTitle = existingManifest.label.ja?.[0] || existingManifest.label.en?.[0];
-    if (oldTitle !== title) {
-      await updateItemInCollection(userId, collectionId, manifestId, title);
+    const newTitle = typeof title === 'string' ? title : (title.ja || title.en || 'Untitled');
+    if (oldTitle !== newTitle) {
+      await updateItemInCollection(userId, collectionId, manifestId, newTitle);
     }
 
     return true;

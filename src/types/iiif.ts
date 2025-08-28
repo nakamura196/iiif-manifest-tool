@@ -74,15 +74,22 @@ export const IIIFTextHelpers = {
   },
 
   /**
-   * Create IIIF multilingual text from string values
+   * Create IIIF multilingual text from string or array values
    */
-  createText(ja?: string, en?: string, none?: string): IIIFMultilingualText | undefined {
+  createText(ja?: string | string[], en?: string | string[], none?: string | string[]): IIIFMultilingualText | undefined {
     if (!ja && !en && !none) return undefined;
     
     const text: IIIFMultilingualText = {};
-    if (ja) text.ja = [ja];
-    if (en) text.en = [en];
-    if (none) text.none = [none];
+    
+    if (ja) {
+      text.ja = Array.isArray(ja) ? ja.filter(s => s && s.trim()) : [ja];
+    }
+    if (en) {
+      text.en = Array.isArray(en) ? en.filter(s => s && s.trim()) : [en];
+    }
+    if (none) {
+      text.none = Array.isArray(none) ? none.filter(s => s && s.trim()) : [none];
+    }
     
     return text;
   },
@@ -90,23 +97,25 @@ export const IIIFTextHelpers = {
   /**
    * Normalize various text formats to IIIF v3 format
    */
-  normalizeText(input: any): IIIFMultilingualText | undefined {
+  normalizeText(input: unknown): IIIFMultilingualText | undefined {
     if (!input) return undefined;
     
     // Already IIIF v3 format
     if (typeof input === 'object' && !Array.isArray(input)) {
       const normalized: IIIFMultilingualText = {};
+      const inputObj = input as Record<string, unknown>;
       
-      for (const [lang, value] of Object.entries(input)) {
+      for (const [lang, value] of Object.entries(inputObj)) {
         if (Array.isArray(value)) {
           // Check if array contains strings or objects
           const firstItem = value[0];
           if (typeof firstItem === 'string') {
-            normalized[lang] = value;
+            normalized[lang] = value.filter(v => typeof v === 'string');
           } else if (typeof firstItem === 'object' && firstItem !== null) {
             // Handle incorrectly nested objects
-            const extracted = (firstItem as any)[lang] || (firstItem as any).ja || (firstItem as any).en;
-            if (extracted) {
+            const itemObj = firstItem as Record<string, unknown>;
+            const extracted = itemObj[lang] || itemObj.ja || itemObj.en;
+            if (extracted && typeof extracted === 'string') {
               normalized[lang] = [extracted];
             }
           }

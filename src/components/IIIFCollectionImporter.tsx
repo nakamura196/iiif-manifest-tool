@@ -11,7 +11,7 @@ interface CollectionManifest {
 }
 
 interface IIIFCollectionImporterProps {
-  onImport: (manifests: CollectionManifest[]) => void;
+  onImport: (manifests: CollectionManifest[], collectionLabel?: string, collectionLabelMultilingual?: unknown) => void;
   disabled?: boolean;
 }
 
@@ -38,7 +38,7 @@ export default function IIIFCollectionImporter({ onImport, disabled }: IIIFColle
       const data = await response.json();
       
       if (data.manifests && Array.isArray(data.manifests)) {
-        onImport(data.manifests);
+        onImport(data.manifests, data.collectionLabel, data.collectionLabelMultilingual);
         setCollectionUrl('');
       } else {
         throw new Error('Invalid collection format');

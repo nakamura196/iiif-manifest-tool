@@ -29,15 +29,36 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
   const [importMode, setImportMode] = useState<'manual' | 'iiif'>('manual');
   const [importedManifests, setImportedManifests] = useState<Array<{ url: string; label: string; thumbnail?: string }>>();
 
-  const handleCollectionImport = (manifests: Array<{ url: string; label: string; thumbnail?: string }>) => {
+  const handleCollectionImport = (
+    manifests: Array<{ url: string; label: string; thumbnail?: string }>, 
+    collectionLabel?: string,
+    collectionLabelMultilingual?: unknown
+  ) => {
     setImportedManifests(manifests);
-    if (!nameJa.trim() && manifests.length > 0) {
-      // Extract collection name from the first manifest label if name is empty
-      const collectionName = manifests[0].label.split(' - ')[0] || 'Imported Collection';
-      setNameJa(collectionName);
-      // Set English name to the same value initially (user can edit later)
-      if (!nameEn.trim()) {
-        setNameEn(collectionName);
+    
+    // Set the collection name if not already set
+    if (!nameJa.trim() || !nameEn.trim()) {
+      // If we have multilingual labels, use them
+      if (collectionLabelMultilingual && typeof collectionLabelMultilingual === 'object') {
+        const labelObj = collectionLabelMultilingual as Record<string, unknown>;
+        if (!nameJa.trim() && labelObj.ja && Array.isArray(labelObj.ja) && labelObj.ja[0]) {
+          setNameJa(String(labelObj.ja[0]));
+        }
+        if (!nameEn.trim() && labelObj.en && Array.isArray(labelObj.en) && labelObj.en[0]) {
+          setNameEn(String(labelObj.en[0]));
+        }
+        // If only one language is available, use it for both
+        if (!nameJa.trim() && !labelObj.ja) {
+          setNameJa(collectionLabel || 'Imported Collection');
+        }
+        if (!nameEn.trim() && !labelObj.en) {
+          setNameEn(collectionLabel || 'Imported Collection');
+        }
+      } else {
+        // Fall back to simple string label
+        const name = collectionLabel || (manifests.length > 0 ? manifests[0].label.split(' - ')[0] : 'Imported Collection');
+        if (!nameJa.trim()) setNameJa(name);
+        if (!nameEn.trim()) setNameEn(name);
       }
     }
   };
@@ -82,99 +103,110 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
               if (manifestResponse.ok) {
                 const manifestData = await manifestResponse.json();
                 const images = [];
-                let description = '';
-                let metadata = [];
-                let attribution = '';
-                let license = '';
                 
-                // Extract description from v3 format (summary field)
+                // Extract multilingual title from manifest
+                let titleJa = '';
+                let titleEn = '';
+                if (manifestData.label) {
+                  if (typeof manifestData.label === 'string') {
+                    titleJa = manifestData.label;
+                    titleEn = manifestData.label;
+                  } else if (manifestData.label && typeof manifestData.label === 'object') {
+                    titleJa = manifestData.label.ja?.[0] || manifestData.label.none?.[0] || manifest.label;
+                    titleEn = manifestData.label.en?.[0] || manifestData.label.none?.[0] || manifest.label;
+                  }
+                }
+                
+                // Extract multilingual summaries - handle multiple lines
+                let descriptionJa: string[] = [];
+                let descriptionEn: string[] = [];
                 if (manifestData.summary) {
                   const summary = manifestData.summary;
                   if (typeof summary === 'string') {
-                    description = summary;
+                    descriptionJa = [summary];
+                    descriptionEn = [summary];
                   } else if (summary && typeof summary === 'object') {
-                    // Try Japanese first, then English, then any language
-                    if (summary.ja && summary.ja[0]) {
-                      description = summary.ja[0];
-                    } else if (summary.en && summary.en[0]) {
-                      description = summary.en[0];
-                    } else if (summary.none && summary.none[0]) {
-                      description = summary.none[0];
-                    } else {
-                      const firstLang = Object.keys(summary)[0];
-                      if (firstLang && Array.isArray(summary[firstLang])) {
-                        description = summary[firstLang][0] || '';
-                      }
+                    // Get all Japanese summary lines
+                    if (summary.ja && Array.isArray(summary.ja)) {
+                      descriptionJa = summary.ja;
+                    }
+                    // Get all English summary lines
+                    if (summary.en && Array.isArray(summary.en)) {
+                      descriptionEn = summary.en;
+                    }
+                    // Get 'none' language if others don't exist
+                    if (descriptionJa.length === 0 && summary.none && Array.isArray(summary.none)) {
+                      descriptionJa = summary.none;
+                    }
+                    if (descriptionEn.length === 0 && summary.none && Array.isArray(summary.none)) {
+                      descriptionEn = summary.none;
                     }
                   }
                 }
                 
-                // Extract metadata (v3 format with language maps)
+                // Extract multilingual metadata - preserve all languages
+                let customFields: Array<{ label: { [key: string]: string[] }; value: { [key: string]: string[] } }> = [];
+                let license = '';
+                
+                // Extract metadata (v3 format with language maps) - preserve multilingual format
                 if (manifestData.metadata && Array.isArray(manifestData.metadata)) {
-                  metadata = manifestData.metadata.map((item: any) => {
-                    let label = '';
-                    let value = '';
+                  customFields = manifestData.metadata.map((item: unknown) => {
+                    // Preserve the full multilingual structure
+                    const field: { label: { [key: string]: string[] }; value: { [key: string]: string[] } } = {
+                      label: {},
+                      value: {}
+                    };
                     
-                    // Extract label from language map
-                    if (item.label) {
-                      if (typeof item.label === 'string') {
-                        label = item.label;
-                      } else if (item.label.ja && item.label.ja[0]) {
-                        label = item.label.ja[0];
-                      } else if (item.label.en && item.label.en[0]) {
-                        label = item.label.en[0];
-                      } else if (item.label.none && item.label.none[0]) {
-                        label = item.label.none[0];
-                      } else {
-                        const firstLang = Object.keys(item.label)[0];
-                        if (firstLang && Array.isArray(item.label[firstLang])) {
-                          label = item.label[firstLang][0] || '';
-                        }
+                    const itemObj = item as Record<string, unknown>;
+                    // Extract label - preserve all languages
+                    if (itemObj.label) {
+                      if (typeof itemObj.label === 'string') {
+                        field.label = { ja: [itemObj.label], en: [itemObj.label] };
+                      } else if (typeof itemObj.label === 'object') {
+                        field.label = itemObj.label as { [key: string]: string[] };
                       }
                     }
                     
-                    // Extract value from language map
-                    if (item.value) {
-                      if (typeof item.value === 'string') {
-                        value = item.value;
-                      } else if (item.value.ja && item.value.ja[0]) {
-                        value = item.value.ja[0];
-                      } else if (item.value.en && item.value.en[0]) {
-                        value = item.value.en[0];
-                      } else if (item.value.none && item.value.none[0]) {
-                        value = item.value.none[0];
-                      } else {
-                        const firstLang = Object.keys(item.value)[0];
-                        if (firstLang && Array.isArray(item.value[firstLang])) {
-                          value = item.value[firstLang][0] || '';
-                        }
+                    // Extract value - preserve all languages and multiple values
+                    if (itemObj.value) {
+                      if (typeof itemObj.value === 'string') {
+                        field.value = { ja: [itemObj.value], en: [itemObj.value] };
+                      } else if (typeof itemObj.value === 'object') {
+                        field.value = itemObj.value as { [key: string]: string[] };
                       }
                     }
                     
-                    return { label, value };
-                  }).filter((item: any) => item.label && item.value);
+                    return field;
+                  }).filter((item: { label: { [key: string]: string[] }; value: { [key: string]: string[] } }) => {
+                    // Check if field has any content
+                    const hasLabel = Object.keys(item.label).some(lang => item.label[lang]?.length > 0);
+                    const hasValue = Object.keys(item.value).some(lang => item.value[lang]?.length > 0);
+                    return hasLabel && hasValue;
+                  });
                 }
                 
-                // Extract required statement (attribution in v3)
-                if (manifestData.requiredStatement) {
-                  const reqStatement = manifestData.requiredStatement;
-                  if (reqStatement.value) {
-                    if (typeof reqStatement.value === 'string') {
-                      attribution = reqStatement.value;
-                    } else if (reqStatement.value.ja && reqStatement.value.ja[0]) {
-                      attribution = reqStatement.value.ja[0];
-                    } else if (reqStatement.value.en && reqStatement.value.en[0]) {
-                      attribution = reqStatement.value.en[0];
-                    } else if (reqStatement.value.none && reqStatement.value.none[0]) {
-                      attribution = reqStatement.value.none[0];
+                // Extract required statement, provider, homepage, seeAlso - preserve multilingual format
+                const requiredStatement = manifestData.requiredStatement;
+                
+                // Fix requiredStatement label if it only has "none" language
+                if (requiredStatement && requiredStatement.label) {
+                  if (requiredStatement.label.none && !requiredStatement.label.ja && !requiredStatement.label.en) {
+                    // Add Japanese and English translations for common attribution labels
+                    const noneLabel = requiredStatement.label.none[0];
+                    if (noneLabel === 'Attribution' || noneLabel === 'Required Statement') {
+                      requiredStatement.label.ja = ['帰属'];
+                      requiredStatement.label.en = ['Attribution'];
                     } else {
-                      const firstLang = Object.keys(reqStatement.value)[0];
-                      if (firstLang && Array.isArray(reqStatement.value[firstLang])) {
-                        attribution = reqStatement.value[firstLang][0] || '';
-                      }
+                      // Use the none value for both languages as fallback
+                      requiredStatement.label.ja = requiredStatement.label.none;
+                      requiredStatement.label.en = requiredStatement.label.none;
                     }
                   }
                 }
+                
+                const provider = manifestData.provider;
+                const homepage = manifestData.homepage;
+                const seeAlso = manifestData.seeAlso;
                 
                 // Extract rights (license in v3)
                 if (manifestData.rights) {
@@ -202,14 +234,30 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
                 
                 // Create item if we have images
                 if (images.length > 0) {
+                  // Build IIIF v3 format label and summary
+                  const label: { [key: string]: string[] } = {};
+                  const summary: { [key: string]: string[] } = {};
+                  
+                  if (titleJa) label.ja = [titleJa];
+                  if (titleEn) label.en = [titleEn];
+                  if (!titleJa && !titleEn) label.none = [manifest.label];
+                  
+                  if (descriptionJa.length > 0) summary.ja = descriptionJa;
+                  if (descriptionEn.length > 0) summary.en = descriptionEn;
+                  
                   const itemData = {
-                    title: manifest.label,
-                    description: description || '',
+                    label,  // IIIF v3 format: { [lang]: string[] }
+                    summary,  // IIIF v3 format: { [lang]: string[] }
                     images,
                     isPublic,
-                    attribution,
-                    license,
-                    metadata: metadata.length > 0 ? JSON.stringify(metadata) : undefined,
+                    metadata: {
+                      rights: license,
+                      requiredStatement,
+                      provider,
+                      homepage,
+                      seeAlso,
+                      customFields: customFields.length > 0 ? customFields : undefined
+                    }
                   };
                   
                   const itemResponse = await fetch(`/api/collections/${collection.id}/items`, {

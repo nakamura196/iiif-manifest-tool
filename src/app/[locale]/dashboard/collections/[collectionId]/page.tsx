@@ -9,6 +9,8 @@ import AuthTokenModal from '@/components/AuthTokenModal';
 import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid, FiImage } from 'react-icons/fi';
 import Link from 'next/link';
 import { IIIFItemResponse, IIIFTextHelpers } from '@/types/iiif';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useSnackbar } from '@/contexts/SnackbarContext';
 
 // Dynamic import for map component to avoid SSR issues
 const LoadingComponent = () => {
@@ -43,6 +45,18 @@ export default function CollectionPage({ params }: PageProps) {
   const [showItemDropdown, setShowItemDropdown] = useState<string | null>(null);
   const itemDropdownRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [deleteDialog, setDeleteDialog] = useState<{ 
+    isOpen: boolean; 
+    itemId: string; 
+    title: string;
+    isLoading?: boolean;
+  }>({
+    isOpen: false,
+    itemId: '',
+    title: '',
+    isLoading: false
+  });
+  const { showSnackbar } = useSnackbar();
 
   const fetchCollectionData = useCallback(async () => {
     try {
@@ -123,7 +137,7 @@ export default function CollectionPage({ params }: PageProps) {
 
 
 
-  const openInMirador = (item: Item) => {
+  const openInMirador = (item: IIIFItemResponse) => {
     // Generate manifest URL using IIIF v3
     const combinedId = `${session?.user?.id}_${resolvedParams.collectionId}_${item.id}`;
     const manifestUrl = `${window.location.origin}/api/iiif/3/${combinedId}/manifest`;
@@ -133,8 +147,9 @@ export default function CollectionPage({ params }: PageProps) {
   };
 
   const handleDelete = async (itemId: string) => {
-    if (!confirm(t('Collection.confirmDeleteItem'))) return;
-
+    // 削除開始時にローディング状態にする
+    setDeleteDialog(prev => ({ ...prev, isLoading: true }));
+    
     try {
       const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${itemId}`, {
         method: 'DELETE',
@@ -142,9 +157,17 @@ export default function CollectionPage({ params }: PageProps) {
 
       if (response.ok) {
         setItems(items.filter(item => item.id !== itemId));
+        showSnackbar('アイテムを削除しました', 'success');
+        // 成功時にダイアログを閉じる
+        setDeleteDialog({ isOpen: false, itemId: '', title: '', isLoading: false });
+      } else {
+        showSnackbar('削除に失敗しました', 'error');
+        setDeleteDialog(prev => ({ ...prev, isLoading: false }));
       }
     } catch (error) {
       console.error('Error deleting item:', error);
+      showSnackbar('削除中にエラーが発生しました', 'error');
+      setDeleteDialog(prev => ({ ...prev, isLoading: false }));
     }
   };
 
@@ -410,10 +433,12 @@ export default function CollectionPage({ params }: PageProps) {
                         )}
                         <button
                           onClick={() => {
-                            if (confirm(t('Collection.confirmDelete', { title: IIIFTextHelpers.getText(item.label) || 'item' }))) {
-                              handleDelete(item.id);
-                              setShowItemDropdown(null);
-                            }
+                            setDeleteDialog({
+                              isOpen: true,
+                              itemId: item.id,
+                              title: IIIFTextHelpers.getText(item.label) || 'item'
+                            });
+                            setShowItemDropdown(null);
                           }}
                           className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left text-sm text-red-600 dark:text-red-400"
                         >
@@ -434,13 +459,25 @@ export default function CollectionPage({ params }: PageProps) {
       {showAuthModal && selectedItem && (
         <AuthTokenModal
           itemId={`${session?.user?.id}_${resolvedParams.collectionId}_${selectedItem.id}`}
-          itemTitle={selectedItem.title}
+          itemTitle={IIIFTextHelpers.getText(selectedItem.label) || 'Item'}
           onClose={() => {
             setShowAuthModal(false);
             setSelectedItem(null);
           }}
         />
       )}
+      
+      <ConfirmDialog
+        isOpen={deleteDialog.isOpen}
+        onClose={() => setDeleteDialog({ isOpen: false, itemId: '', title: '', isLoading: false })}
+        onConfirm={() => handleDelete(deleteDialog.itemId)}
+        title="アイテムの削除"
+        message={`「${deleteDialog.title}」を削除してもよろしいですか？この操作は取り消せません。`}
+        confirmText="削除"
+        cancelText="キャンセル"
+        variant="danger"
+        isLoading={deleteDialog.isLoading}
+      />
 
     </div>
   );
