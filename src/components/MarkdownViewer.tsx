@@ -16,15 +16,27 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
         remarkPlugins={[remarkGfm]}
         components={{
           // Customize rendering of various markdown elements
-          h1: ({ children }) => (
-            <h1 className="text-3xl font-bold mb-4 text-gray-900 dark:text-gray-100">{children}</h1>
-          ),
-          h2: ({ children }) => (
-            <h2 className="text-2xl font-semibold mb-3 mt-6 text-gray-800 dark:text-gray-200">{children}</h2>
-          ),
-          h3: ({ children }) => (
-            <h3 className="text-xl font-semibold mb-2 mt-4 text-gray-800 dark:text-gray-200">{children}</h3>
-          ),
+          h1: ({ children }) => {
+            const text = Array.isArray(children) ? children.join('') : String(children || '');
+            const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF-]/g, '');
+            return (
+              <h1 id={id} className="text-3xl font-bold mb-4 text-gray-900 dark:text-gray-100">{children}</h1>
+            );
+          },
+          h2: ({ children }) => {
+            const text = Array.isArray(children) ? children.join('') : String(children || '');
+            const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF-]/g, '');
+            return (
+              <h2 id={id} className="text-2xl font-semibold mb-3 mt-6 text-gray-800 dark:text-gray-200">{children}</h2>
+            );
+          },
+          h3: ({ children }) => {
+            const text = Array.isArray(children) ? children.join('') : String(children || '');
+            const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF-]/g, '');
+            return (
+              <h3 id={id} className="text-xl font-semibold mb-2 mt-4 text-gray-800 dark:text-gray-200">{children}</h3>
+            );
+          },
           p: ({ children }) => (
             <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">{children}</p>
           ),
