@@ -4,8 +4,9 @@ import { useState, use } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { FiArrowLeft, FiSave, FiInfo, FiLoader } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiInfo, FiLoader, FiLayers } from 'react-icons/fi';
 import Link from 'next/link';
+import IIIFCollectionImporter from '@/components/IIIFCollectionImporter';
 
 interface NewCollectionPageProps {
   params: Promise<{
@@ -20,12 +21,29 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
   const t = useTranslations();
   const [creating, setCreating] = useState(false);
   const [creatingMessage, setCreatingMessage] = useState('');
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const [nameJa, setNameJa] = useState('');
+  const [nameEn, setNameEn] = useState('');
+  const [descriptionJa, setDescriptionJa] = useState('');
+  const [descriptionEn, setDescriptionEn] = useState('');
   const [isPublic, setIsPublic] = useState(true);
+  const [importMode, setImportMode] = useState<'manual' | 'iiif'>('manual');
+  const [importedManifests, setImportedManifests] = useState<Array<{ url: string; label: string; thumbnail?: string }>>();
+
+  const handleCollectionImport = (manifests: Array<{ url: string; label: string; thumbnail?: string }>) => {
+    setImportedManifests(manifests);
+    if (!nameJa.trim() && manifests.length > 0) {
+      // Extract collection name from the first manifest label if name is empty
+      const collectionName = manifests[0].label.split(' - ')[0] || 'Imported Collection';
+      setNameJa(collectionName);
+      // Set English name to the same value initially (user can edit later)
+      if (!nameEn.trim()) {
+        setNameEn(collectionName);
+      }
+    }
+  };
 
   const handleCreate = async () => {
-    if (!name.trim()) return;
+    if (!nameJa.trim() && !nameEn.trim()) return;
 
     setCreating(true);
     setCreatingMessage('コレクションを作成中...');
@@ -36,36 +54,193 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name,
-          description,
+          nameJa,
+          nameEn,
+          descriptionJa,
+          descriptionEn,
           isPublic,
         }),
       });
 
       if (response.ok) {
         const collection = await response.json();
-        setCreatingMessage('作成を確認中...');
         
-        // 作成が完了したことを確認するために少し待機
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        // 作成されたことを確認
-        const checkResponse = await fetch(`/api/collections/${collection.id}`);
-        if (checkResponse.ok) {
-          setCreatingMessage('ページへ移動中...');
-          // 作成が確認できたらページへ遷移
-          router.push(`/${resolvedParams.locale}/dashboard/collections/${collection.id}`);
-        } else {
-          console.error('Collection created but not found immediately');
-          setCreatingMessage('もう少しお待ちください...');
-          // 少し待ってから遷移
-          setTimeout(() => {
-            router.push(`/${resolvedParams.locale}/dashboard/collections/${collection.id}`);
-          }, 1000);
+        // If we have imported manifests, create items for them
+        if (importedManifests && importedManifests.length > 0) {
+          setCreatingMessage(`${importedManifests.length}個のアイテムをインポート中...`);
+          
+          let successCount = 0;
+          for (const manifest of importedManifests) {
+            try {
+              // Fetch manifest data
+              const manifestResponse = await fetch('/api/iiif-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: manifest.url, type: 'manifest' }),
+              });
+
+              if (manifestResponse.ok) {
+                const manifestData = await manifestResponse.json();
+                const images = [];
+                let description = '';
+                let metadata = [];
+                let attribution = '';
+                let license = '';
+                
+                // Extract description from v3 format (summary field)
+                if (manifestData.summary) {
+                  const summary = manifestData.summary;
+                  if (typeof summary === 'string') {
+                    description = summary;
+                  } else if (summary && typeof summary === 'object') {
+                    // Try Japanese first, then English, then any language
+                    if (summary.ja && summary.ja[0]) {
+                      description = summary.ja[0];
+                    } else if (summary.en && summary.en[0]) {
+                      description = summary.en[0];
+                    } else if (summary.none && summary.none[0]) {
+                      description = summary.none[0];
+                    } else {
+                      const firstLang = Object.keys(summary)[0];
+                      if (firstLang && Array.isArray(summary[firstLang])) {
+                        description = summary[firstLang][0] || '';
+                      }
+                    }
+                  }
+                }
+                
+                // Extract metadata (v3 format with language maps)
+                if (manifestData.metadata && Array.isArray(manifestData.metadata)) {
+                  metadata = manifestData.metadata.map((item: any) => {
+                    let label = '';
+                    let value = '';
+                    
+                    // Extract label from language map
+                    if (item.label) {
+                      if (typeof item.label === 'string') {
+                        label = item.label;
+                      } else if (item.label.ja && item.label.ja[0]) {
+                        label = item.label.ja[0];
+                      } else if (item.label.en && item.label.en[0]) {
+                        label = item.label.en[0];
+                      } else if (item.label.none && item.label.none[0]) {
+                        label = item.label.none[0];
+                      } else {
+                        const firstLang = Object.keys(item.label)[0];
+                        if (firstLang && Array.isArray(item.label[firstLang])) {
+                          label = item.label[firstLang][0] || '';
+                        }
+                      }
+                    }
+                    
+                    // Extract value from language map
+                    if (item.value) {
+                      if (typeof item.value === 'string') {
+                        value = item.value;
+                      } else if (item.value.ja && item.value.ja[0]) {
+                        value = item.value.ja[0];
+                      } else if (item.value.en && item.value.en[0]) {
+                        value = item.value.en[0];
+                      } else if (item.value.none && item.value.none[0]) {
+                        value = item.value.none[0];
+                      } else {
+                        const firstLang = Object.keys(item.value)[0];
+                        if (firstLang && Array.isArray(item.value[firstLang])) {
+                          value = item.value[firstLang][0] || '';
+                        }
+                      }
+                    }
+                    
+                    return { label, value };
+                  }).filter((item: any) => item.label && item.value);
+                }
+                
+                // Extract required statement (attribution in v3)
+                if (manifestData.requiredStatement) {
+                  const reqStatement = manifestData.requiredStatement;
+                  if (reqStatement.value) {
+                    if (typeof reqStatement.value === 'string') {
+                      attribution = reqStatement.value;
+                    } else if (reqStatement.value.ja && reqStatement.value.ja[0]) {
+                      attribution = reqStatement.value.ja[0];
+                    } else if (reqStatement.value.en && reqStatement.value.en[0]) {
+                      attribution = reqStatement.value.en[0];
+                    } else if (reqStatement.value.none && reqStatement.value.none[0]) {
+                      attribution = reqStatement.value.none[0];
+                    } else {
+                      const firstLang = Object.keys(reqStatement.value)[0];
+                      if (firstLang && Array.isArray(reqStatement.value[firstLang])) {
+                        attribution = reqStatement.value[firstLang][0] || '';
+                      }
+                    }
+                  }
+                }
+                
+                // Extract rights (license in v3)
+                if (manifestData.rights) {
+                  license = typeof manifestData.rights === 'string' ? manifestData.rights : '';
+                }
+                
+                // Extract images from v3 format only (since we convert everything to v3)
+                if (manifestData.items?.[0]) {
+                  const canvas = manifestData.items[0];
+                  const annotationPage = canvas.items?.[0];
+                  const annotation = annotationPage?.items?.[0];
+                  const body = annotation?.body;
+                  const imageBody = Array.isArray(body) ? body[0] : body;
+                  
+                  if (imageBody) {
+                    images.push({
+                      url: imageBody.id || imageBody['@id'],
+                      thumbnailUrl: manifest.thumbnail,
+                      width: canvas.width || imageBody.width || 1000,
+                      height: canvas.height || imageBody.height || 1000,
+                      mimeType: imageBody.format || imageBody.type || 'image/jpeg',
+                    });
+                  }
+                }
+                
+                // Create item if we have images
+                if (images.length > 0) {
+                  const itemData = {
+                    title: manifest.label,
+                    description: description || '',
+                    images,
+                    isPublic,
+                    attribution,
+                    license,
+                    metadata: metadata.length > 0 ? JSON.stringify(metadata) : undefined,
+                  };
+                  
+                  const itemResponse = await fetch(`/api/collections/${collection.id}/items`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(itemData),
+                  });
+                  
+                  if (itemResponse.ok) {
+                    successCount++;
+                    setCreatingMessage(`インポート中... (${successCount}/${importedManifests.length})`);
+                  }
+                }
+              }
+            } catch (error) {
+              console.error(`Failed to import manifest: ${manifest.url}`, error);
+            }
+          }
+          
+          if (successCount > 0) {
+            setCreatingMessage(`${successCount}個のアイテムをインポートしました`);
+          }
         }
+        
+        setCreatingMessage('ページへ移動中...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        router.push(`/${resolvedParams.locale}/dashboard/collections/${collection.id}`);
       }
     } catch (error) {
       console.error('Error creating collection:', error);
+      alert('コレクションの作成に失敗しました');
     } finally {
       setCreating(false);
     }
@@ -102,7 +277,7 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCreate}
-                disabled={!name.trim() || creating}
+                disabled={(!nameJa.trim() && !nameEn.trim()) || creating}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
                 {creating ? (
@@ -127,31 +302,69 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  {t('NewCollection.collectionName')} *
-                </label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  placeholder={t('NewCollection.collectionNamePlaceholder')}
-                  autoFocus
-                />
+              {/* Japanese Fields */}
+              <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <span className="text-blue-600 dark:text-blue-400">🇯🇵</span>
+                  {t('NewCollection.japaneseInfo')}
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('NewCollection.collectionNameJa')} *
+                  </label>
+                  <input
+                    type="text"
+                    value={nameJa}
+                    onChange={(e) => setNameJa(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                    placeholder={t('NewCollection.collectionNameJaPlaceholder')}
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('NewCollection.descriptionJa')}
+                  </label>
+                  <textarea
+                    value={descriptionJa}
+                    onChange={(e) => setDescriptionJa(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                    rows={3}
+                    placeholder={t('NewCollection.descriptionJaPlaceholder')}
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  {t('NewCollection.description')}
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                  rows={4}
-                  placeholder={t('NewCollection.descriptionPlaceholder')}
-                />
+              {/* English Fields */}
+              <div className="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                <h3 className="text-sm font-semibold flex items-center gap-2">
+                  <span className="text-green-600 dark:text-green-400">🇬🇧</span>
+                  {t('NewCollection.englishInfo')}
+                </h3>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('NewCollection.collectionNameEn')}
+                  </label>
+                  <input
+                    type="text"
+                    value={nameEn}
+                    onChange={(e) => setNameEn(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                    placeholder={t('NewCollection.collectionNameEnPlaceholder')}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    {t('NewCollection.descriptionEn')}
+                  </label>
+                  <textarea
+                    value={descriptionEn}
+                    onChange={(e) => setDescriptionEn(e.target.value)}
+                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                    rows={3}
+                    placeholder={t('NewCollection.descriptionEnPlaceholder')}
+                  />
+                </div>
               </div>
 
               <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
@@ -179,6 +392,64 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
                   <p className="text-sm text-blue-800 dark:text-blue-300">
                     {t('NewCollection.publicNote')}
                   </p>
+                </div>
+              )}
+              
+              {/* Import Mode Selection */}
+              <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                <h3 className="text-sm font-semibold mb-3">{t('NewCollection.importMode')}</h3>
+                <div className="flex gap-4">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importMode"
+                      value="manual"
+                      checked={importMode === 'manual'}
+                      onChange={(e) => setImportMode(e.target.value as 'manual' | 'iiif')}
+                      className="text-blue-500"
+                    />
+                    <span className="text-sm">{t('NewCollection.manualMode')}</span>
+                  </label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="importMode"
+                      value="iiif"
+                      checked={importMode === 'iiif'}
+                      onChange={(e) => setImportMode(e.target.value as 'manual' | 'iiif')}
+                      className="text-blue-500"
+                    />
+                    <span className="text-sm flex items-center gap-1">
+                      <FiLayers className="text-xs" />
+                      {t('NewCollection.iiifImportMode')}
+                    </span>
+                  </label>
+                </div>
+              </div>
+              
+              {/* IIIF Collection Import */}
+              {importMode === 'iiif' && (
+                <div className="mt-4">
+                  <IIIFCollectionImporter onImport={handleCollectionImport} />
+                  {importedManifests && importedManifests.length > 0 && (
+                    <div className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                      <p className="text-sm text-green-800 dark:text-green-300">
+                        {importedManifests.length}個のアイテムをインポート準備完了
+                      </p>
+                      <div className="mt-2 max-h-32 overflow-y-auto">
+                        {importedManifests.slice(0, 5).map((manifest, index) => (
+                          <div key={index} className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                            • {manifest.label}
+                          </div>
+                        ))}
+                        {importedManifests.length > 5 && (
+                          <div className="text-xs text-gray-500 dark:text-gray-500">
+                            ... 他 {importedManifests.length - 5} 件
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

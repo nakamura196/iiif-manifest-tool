@@ -24,6 +24,8 @@ interface UploadedImage {
   infoJson?: string;
   isIIIF?: boolean;
   iiifBaseUrl?: string;
+  manifestUrl?: string;
+  label?: string;
 }
 
 export default function NewItemPage({ params }: NewItemPageProps) {
@@ -113,6 +115,87 @@ export default function NewItemPage({ params }: NewItemPageProps) {
     } catch (error) {
       console.error('Error adding URL:', error);
       alert('画像の取得に失敗しました。URLを確認してください。');
+    }
+  };
+
+  const handleCollectionImport = async (manifests: Array<{ url: string; label: string; thumbnail?: string }>) => {
+    try {
+      const newImages: UploadedImage[] = [];
+      
+      for (const manifest of manifests) {
+        try {
+          const response = await fetch('/api/iiif-info', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: manifest.url, type: 'manifest' }),
+          });
+
+          if (response.ok) {
+            const manifestData = await response.json();
+            
+            // IIIF v2 format (sequences/canvases)
+            if (manifestData.sequences?.[0]?.canvases?.[0]) {
+              const canvas = manifestData.sequences[0].canvases[0];
+              const image = canvas.images?.[0];
+              
+              if (image?.resource) {
+                const imageResource = image.resource;
+                newImages.push({
+                  url: imageResource['@id'] || imageResource.id,
+                  thumbnailUrl: manifest.thumbnail,
+                  width: canvas.width || imageResource.width || 1000,
+                  height: canvas.height || imageResource.height || 1000,
+                  mimeType: imageResource.format || 'image/jpeg',
+                  manifestUrl: manifest.url,
+                  label: manifest.label,
+                  isIIIF: false // Set to false since there's no IIIF image service
+                });
+              }
+            }
+            // IIIF v3 format (items/body)
+            else if (manifestData.items?.[0]?.items?.[0]?.items?.[0]?.body) {
+              const canvas = manifestData.items[0];
+              const annotation = canvas.items[0].items[0];
+              const body = annotation.body;
+              
+              // Handle both single body and array of bodies
+              const imageBody = Array.isArray(body) ? body[0] : body;
+              
+              if (imageBody) {
+                // Check if there's a IIIF service
+                const hasService = imageBody.service && (imageBody.service[0] || imageBody.service);
+                const serviceUrl = hasService ? 
+                  (imageBody.service[0]?.['@id'] || imageBody.service[0]?.id || imageBody.service['@id'] || imageBody.service.id) : 
+                  null;
+                
+                newImages.push({
+                  url: imageBody.id || imageBody['@id'],
+                  thumbnailUrl: manifest.thumbnail,
+                  width: canvas.width || imageBody.width || 1000,
+                  height: canvas.height || imageBody.height || 1000,
+                  mimeType: imageBody.format || 'image/jpeg',
+                  manifestUrl: manifest.url,
+                  label: manifest.label,
+                  isIIIF: !!serviceUrl,
+                  iiifBaseUrl: serviceUrl
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to process manifest: ${manifest.url}`, error);
+        }
+      }
+      
+      if (newImages.length > 0) {
+        setUploadedImages([...uploadedImages, ...newImages]);
+        alert(`${newImages.length}個のアイテムをインポートしました`);
+      } else {
+        alert('インポート可能なアイテムが見つかりませんでした');
+      }
+    } catch (error) {
+      console.error('Error importing collection:', error);
+      alert(t('NewItem.collectionImportError'));
     }
   };
 
@@ -344,15 +427,20 @@ export default function NewItemPage({ params }: NewItemPageProps) {
                 </p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                   {uploadedImages.map((img, index) => (
-                    <div key={index} className="relative">
+                    <div key={index} className="relative group">
                       <img
-                        src={img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/200,/0/default.jpg` : img.url}
-                        alt={`Uploaded ${index + 1}`}
+                        src={img.thumbnailUrl || (img.isIIIF && img.iiifBaseUrl ? `${img.iiifBaseUrl}/full/200,/0/default.jpg` : img.url)}
+                        alt={img.label || `Uploaded ${index + 1}`}
                         className="w-full h-24 object-cover rounded-lg"
                       />
                       <div className="absolute top-1 left-1 bg-black bg-opacity-60 text-white text-xs px-1 rounded">
                         {index + 1}
                       </div>
+                      {img.label && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded-b-lg truncate">
+                          {img.label}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -363,6 +451,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
               onUpload={handleUpload}
               onUrlAdd={handleUrlAdd}
               onInfoJsonAdd={handleInfoJsonAdd}
+              onCollectionImport={handleCollectionImport}
             />
             
             {uploading && (

@@ -198,7 +198,13 @@ export async function createIIIFManifest(
     latitude: number;
     longitude: number;
     label?: string;
-  }
+  },
+  attribution?: string,
+  license?: string,
+  metadata?: Array<{
+    label: string;
+    value: string;
+  }>
 ): Promise<{ manifestId: string; manifestUrl: string }> {
   const itemId = uuidv4();
   const manifestKey = `collections/${userId}/${collectionId}/items/${itemId}/manifest.json`;
@@ -336,6 +342,57 @@ export async function createIIIFManifest(
       ja: [description],
       en: [description]
     };
+  }
+
+  // Add metadata if provided
+  if (metadata && metadata.length > 0) {
+    manifest.metadata = [
+      // Add creation date
+      {
+        label: { ja: ['作成日'], en: ['Created'] },
+        value: { ja: [new Date().toISOString()], en: [new Date().toISOString()] }
+      },
+      {
+        label: { ja: ['コレクションID'], en: ['Collection ID'] },
+        value: { ja: [collectionId], en: [collectionId] }
+      },
+      // Add custom metadata
+      ...metadata.map(item => ({
+        label: { 
+          ja: [item.label],
+          en: [item.label] // Could be improved with translation
+        },
+        value: { 
+          ja: [item.value],
+          en: [item.value]
+        }
+      }))
+    ];
+  } else {
+    // Default metadata
+    manifest.metadata = [
+      {
+        label: { ja: ['作成日'], en: ['Created'] },
+        value: { ja: [new Date().toISOString()], en: [new Date().toISOString()] }
+      },
+      {
+        label: { ja: ['コレクションID'], en: ['Collection ID'] },
+        value: { ja: [collectionId], en: [collectionId] }
+      }
+    ];
+  }
+
+  // Add attribution if provided
+  if (attribution) {
+    manifest.requiredStatement = {
+      label: { ja: ['帰属'], en: ['Attribution'] },
+      value: { ja: [attribution], en: [attribution] }
+    };
+  }
+
+  // Add rights/license if provided
+  if (license) {
+    manifest.rights = license;
   }
 
   // Upload manifest to S3

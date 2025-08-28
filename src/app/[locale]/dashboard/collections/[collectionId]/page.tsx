@@ -65,8 +65,16 @@ export default function CollectionPage({ params }: PageProps) {
       const response = await fetch(`/api/collections/${resolvedParams.collectionId}`);
       if (response.ok) {
         const data = await response.json();
-        setCollectionName(data.name || t('Common.collection'));
-        setCollectionDescription(data.description || '');
+        // Handle multilingual names - check if name is an object or string
+        const displayName = typeof data.name === 'string' 
+          ? data.name 
+          : (data.nameJa || data.nameEn || data.name?.ja || data.name?.en || t('Common.collection'));
+        const displayDescription = typeof data.description === 'string'
+          ? data.description
+          : (data.descriptionJa || data.descriptionEn || data.description?.ja || data.description?.en || '');
+        
+        setCollectionName(displayName);
+        setCollectionDescription(displayDescription);
       }
     } catch (error) {
       console.error('Error fetching collection:', error);

@@ -14,11 +14,11 @@ export async function GET() {
 
     const collections = await listUserCollections(session.user.id);
     
-    // Transform to match the expected format
+    // Return collections in IIIF v3 format
     const formattedCollections = collections.map(col => ({
       id: col.id,
-      name: col.name,
-      description: col.description,
+      label: col.label,
+      summary: col.summary,
       isPublic: col.isPublic,
       createdAt: col.createdAt,
       _count: {
@@ -45,9 +45,23 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, description, isPublic = true } = body;
+    const { 
+      name, 
+      nameJa, 
+      nameEn, 
+      description, 
+      descriptionJa, 
+      descriptionEn, 
+      isPublic = true 
+    } = body;
 
-    if (!name) {
+    // Use multilingual names if provided, otherwise fall back to single name
+    const finalNameJa = nameJa || name;
+    const finalNameEn = nameEn || name;
+    const finalDescriptionJa = descriptionJa || description;
+    const finalDescriptionEn = descriptionEn || description;
+
+    if (!finalNameJa && !finalNameEn) {
       return NextResponse.json(
         { error: 'Collection name is required' },
         { status: 400 }
@@ -58,15 +72,27 @@ export async function POST(request: NextRequest) {
     const collectionUrl = await createIIIFCollection(
       session.user.id,
       collectionId,
-      name,
-      description,
+      {
+        ja: finalNameJa || finalNameEn,
+        en: finalNameEn || finalNameJa
+      },
+      {
+        ja: finalDescriptionJa,
+        en: finalDescriptionEn
+      },
       isPublic
     );
 
     return NextResponse.json({
       id: collectionId,
-      name,
-      description,
+      label: {
+        ...(finalNameJa ? { ja: [finalNameJa] } : {}),
+        ...(finalNameEn ? { en: [finalNameEn] } : {})
+      },
+      summary: (finalDescriptionJa || finalDescriptionEn) ? {
+        ...(finalDescriptionJa ? { ja: [finalDescriptionJa] } : {}),
+        ...(finalDescriptionEn ? { en: [finalDescriptionEn] } : {})
+      } : undefined,
       isPublic,
       url: collectionUrl,
       createdAt: new Date().toISOString(),

@@ -65,13 +65,32 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { title, description, images, isPublic = true, location } = body;
+    const { 
+      title, 
+      description, 
+      images, 
+      isPublic = true, 
+      location,
+      attribution,
+      license,
+      metadata 
+    } = body;
 
     if (!title || !images || images.length === 0) {
       return NextResponse.json(
         { error: 'Title and at least one image are required' },
         { status: 400 }
       );
+    }
+
+    // Parse metadata if it's a string (JSON)
+    let parsedMetadata = undefined;
+    if (metadata) {
+      try {
+        parsedMetadata = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+      } catch (error) {
+        console.error('Failed to parse metadata:', error);
+      }
     }
 
     // Create IIIF manifest and save to S3
@@ -83,7 +102,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       images,
       isPublic,
       undefined,
-      location
+      location,
+      attribution,
+      license,
+      parsedMetadata
     );
 
     return NextResponse.json({

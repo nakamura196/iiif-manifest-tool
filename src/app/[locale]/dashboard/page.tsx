@@ -4,13 +4,13 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye, FiSettings, FiMoreVertical, FiEdit, FiTrash2, FiSearch, FiFilter, FiCalendar, FiClock } from 'react-icons/fi';
+import { FiPlus, FiFolder, FiImage, FiLock, FiGlobe, FiBook, FiExternalLink, FiEye, FiSettings, FiMoreVertical, FiEdit, FiTrash2, FiSearch, FiFilter, FiCalendar, FiClock, FiTool } from 'react-icons/fi';
 import { useTranslations } from 'next-intl';
 
 interface Collection {
   id: string;
-  name: string;
-  description: string | null;
+  label: { [key: string]: string[] };
+  summary?: { [key: string]: string[] };
   isPublic: boolean;
   createdAt: string;
   _count: {
@@ -149,8 +149,10 @@ export default function DashboardPage() {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const matchesName = collection.name.toLowerCase().includes(query);
-        const matchesDescription = collection.description?.toLowerCase().includes(query) || false;
+        const collectionName = collection.label.ja?.[0] || collection.label.en?.[0] || collection.label.none?.[0] || '';
+        const collectionDescription = collection.summary?.ja?.[0] || collection.summary?.en?.[0] || collection.summary?.none?.[0] || '';
+        const matchesName = collectionName.toLowerCase().includes(query);
+        const matchesDescription = collectionDescription.toLowerCase().includes(query);
         if (!matchesName && !matchesDescription) return false;
       }
       
@@ -163,7 +165,9 @@ export default function DashboardPage() {
     .sort((a, b) => {
       switch (sortBy) {
         case 'name':
-          return a.name.localeCompare(b.name);
+          const nameA = a.label.ja?.[0] || a.label.en?.[0] || a.label.none?.[0] || '';
+          const nameB = b.label.ja?.[0] || b.label.en?.[0] || b.label.none?.[0] || '';
+          return nameA.localeCompare(nameB);
         case 'updated':
           // For now, use createdAt as we don't have updatedAt
           return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
@@ -192,7 +196,7 @@ export default function DashboardPage() {
               window.open(selfMuseumUrl, '_blank');
             }}
             className="flex items-center gap-2 px-3 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 text-sm sm:text-base"
-            title={t('Dashboard.viewInSelfMuseumTooltip')}
+            title={String(t('Dashboard.viewInSelfMuseumTooltip'))}
           >
             <FiExternalLink className="text-base sm:text-lg" />
             <span className="hidden sm:inline">Self Museum</span>
@@ -210,7 +214,7 @@ export default function DashboardPage() {
             <button
               onClick={() => setShowDropdown(!showDropdown)}
               className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg"
-              title={t('Collection.moreOptions')}
+              title={String(t('Collection.moreOptions'))}
             >
               <FiMoreVertical className="text-xl" />
             </button>
@@ -238,6 +242,15 @@ export default function DashboardPage() {
                   <FiSettings />
                   {t('Dashboard.publicCollectionSettings')}
                 </button>
+                <Link
+                  href="/ja/tools/iiif-parser"
+                  className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 text-left"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  <FiTool />
+                  {t('Dashboard.iiifParser')}
+                  <span className="ml-auto text-xs text-gray-500">実験的</span>
+                </Link>
               </div>
             )}
           </div>
@@ -421,15 +434,17 @@ export default function DashboardPage() {
               <div className="flex items-start justify-between mb-4">
                 <FiFolder className="text-3xl text-blue-500" />
                 {collection.isPublic ? (
-                  <FiGlobe className="text-gray-500" title={t('Collection.public')} />
+                  <FiGlobe className="text-gray-500" title={String(t('Collection.public'))} />
                 ) : (
-                  <FiLock className="text-gray-500" title={t('Collection.private')} />
+                  <FiLock className="text-gray-500" title={String(t('Collection.private'))} />
                 )}
               </div>
-              <h3 className="text-xl font-semibold mb-2">{collection.name}</h3>
-              {collection.description && (
+              <h3 className="text-xl font-semibold mb-2">
+                {collection.label.ja?.[0] || collection.label.en?.[0] || collection.label.none?.[0] || 'Untitled'}
+              </h3>
+              {collection.summary && (collection.summary.ja?.[0] || collection.summary.en?.[0] || collection.summary.none?.[0]) && (
                 <p className="text-gray-600 dark:text-gray-400 text-sm mb-4">
-                  {collection.description}
+                  {collection.summary.ja?.[0] || collection.summary.en?.[0] || collection.summary.none?.[0]}
                 </p>
               )}
               <div className="flex items-center text-sm text-gray-500 mb-4">
@@ -447,7 +462,7 @@ export default function DashboardPage() {
                   <button
                     onClick={() => setShowCollectionDropdown(showCollectionDropdown === collection.id ? null : collection.id)}
                     className="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded text-sm"
-                    title={t('Collection.moreOptions')}
+                    title={String(t('Collection.moreOptions'))}
                   >
                     <FiMoreVertical />
                   </button>
@@ -488,7 +503,8 @@ export default function DashboardPage() {
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(t('Collection.confirmDelete', { title: collection.name }))) {
+                          const collectionName = collection.label.ja?.[0] || collection.label.en?.[0] || collection.label.none?.[0] || 'Untitled';
+                          if (confirm(t('Collection.confirmDelete', { title: collectionName }))) {
                             handleDeleteCollection(collection.id);
                             setShowCollectionDropdown(null);
                           }

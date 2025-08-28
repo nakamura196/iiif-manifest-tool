@@ -3,19 +3,21 @@
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { useTranslations } from 'next-intl';
-import { FiUpload, FiImage, FiLink } from 'react-icons/fi';
+import { FiUpload, FiImage, FiLink, FiLayers } from 'react-icons/fi';
+import IIIFCollectionImporter from './IIIFCollectionImporter';
 
 interface ImageUploaderProps {
   onUpload: (files: File[]) => void;
   onUrlAdd: (url: string) => void;
   onInfoJsonAdd: (url: string) => void;
+  onCollectionImport?: (manifests: Array<{ url: string; label: string; thumbnail?: string }>) => void;
 }
 
-export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: ImageUploaderProps) {
+export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd, onCollectionImport }: ImageUploaderProps) {
   const t = useTranslations();
   const [urlInput, setUrlInput] = useState('');
   const [infoJsonInput, setInfoJsonInput] = useState('');
-  const [activeTab, setActiveTab] = useState<'upload' | 'url' | 'iiif'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'url' | 'iiif' | 'collection'>('upload');
 
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
@@ -83,6 +85,20 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
           <span className="hidden sm:inline">IIIF info.json</span>
           <span className="sm:hidden">IIIF</span>
         </button>
+        {onCollectionImport && (
+          <button
+            onClick={() => setActiveTab('collection')}
+            className={`px-3 py-2 text-sm sm:text-base rounded-lg transition-colors ${
+              activeTab === 'collection'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+            }`}
+          >
+            <FiLayers className="inline mr-2" />
+            <span className="hidden sm:inline">IIIF Collection</span>
+            <span className="sm:hidden">Collection</span>
+          </button>
+        )}
       </div>
 
       {activeTab === 'upload' && (
@@ -164,6 +180,10 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd }: Ima
             Add info.json from high-quality image delivery services
           </p>
         </div>
+      )}
+
+      {activeTab === 'collection' && onCollectionImport && (
+        <IIIFCollectionImporter onImport={onCollectionImport} />
       )}
     </div>
   );

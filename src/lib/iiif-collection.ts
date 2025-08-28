@@ -58,21 +58,35 @@ export interface IIIFCollection {
 export async function createIIIFCollection(
   userId: string,
   collectionId: string,
-  name: string,
-  description?: string,
+  name: string | { ja?: string; en?: string },
+  description?: string | { ja?: string; en?: string },
   isPublic: boolean = true
 ): Promise<string> {
   const collectionKey = `collections/${userId}/${collectionId}/collection.json`;
   const collectionUrl = getS3Url(collectionKey);
+
+  // Handle multilingual names
+  const nameJa = typeof name === 'string' ? name : (name.ja || name.en || 'Collection');
+  const nameEn = typeof name === 'string' ? name : (name.en || name.ja || 'Collection');
+  
+  // Handle multilingual descriptions  
+  const descriptionJa = typeof description === 'string' ? description : (description?.ja || description?.en || '');
+  const descriptionEn = typeof description === 'string' ? description : (description?.en || description?.ja || '');
 
   const collection: IIIFCollection = {
     '@context': 'http://iiif.io/api/presentation/3/context.json',
     id: collectionUrl,
     type: 'Collection',
     label: {
-      ja: [name],
-      en: [name]
+      ja: [nameJa],
+      en: [nameEn]
     },
+    ...(descriptionJa || descriptionEn ? {
+      summary: {
+        ...(descriptionJa ? { ja: [descriptionJa] } : {}),
+        ...(descriptionEn ? { en: [descriptionEn] } : {})
+      }
+    } : {}),
     items: [],
     metadata: [
       {
@@ -219,8 +233,8 @@ export async function updateIIIFCollection(
 
 export async function listUserCollections(userId: string): Promise<Array<{
   id: string;
-  name: string;
-  description?: string;
+  label: { [key: string]: string[] };
+  summary?: { [key: string]: string[] };
   itemCount: number;
   createdAt: string;
   isPublic: boolean;
@@ -252,10 +266,47 @@ export async function listUserCollections(userId: string): Promise<Array<{
             m => m.label.ja?.[0] === '作成日' || m.label.en?.[0] === 'Created'
           )?.value.ja?.[0] || new Date().toISOString();
 
+          // Normalize summary to IIIF v3 format if it's in legacy format
+          let normalizedSummary: { [key: string]: string[] } | undefined;
+          
+          if (collection.summary) {
+            if (typeof collection.summary === 'object') {
+              normalizedSummary = {};
+              
+              // Process each language key
+              for (const [lang, value] of Object.entries(collection.summary)) {
+                if (Array.isArray(value)) {
+                  // Check if the array contains strings or objects
+                  const firstItem = value[0];
+                  if (typeof firstItem === 'string') {
+                    // Correct IIIF v3 format
+                    normalizedSummary[lang] = value;
+                  } else if (typeof firstItem === 'object' && firstItem !== null) {
+                    // Incorrectly nested object - extract the appropriate language value
+                    if (lang === 'ja' && (firstItem as any).ja) {
+                      normalizedSummary[lang] = [(firstItem as any).ja];
+                    } else if (lang === 'en' && (firstItem as any).en) {
+                      normalizedSummary[lang] = [(firstItem as any).en];
+                    } else {
+                      // Fall back to any available value
+                      const extractedValue = (firstItem as any).ja || (firstItem as any).en || (firstItem as any).none;
+                      if (extractedValue) {
+                        normalizedSummary[lang] = [extractedValue];
+                      }
+                    }
+                  }
+                } else if (typeof value === 'string') {
+                  // Legacy format - single string value
+                  normalizedSummary[lang] = [value];
+                }
+              }
+            }
+          }
+
           collections.push({
             id: collectionId,
-            name: collection.label.ja?.[0] || collection.label.en?.[0] || 'Untitled',
-            description: collection.summary?.ja?.[0] || collection.summary?.en?.[0],
+            label: collection.label,  // Already in IIIF v3 format
+            summary: normalizedSummary,
             itemCount: collection.items.length,
             createdAt,
             isPublic
