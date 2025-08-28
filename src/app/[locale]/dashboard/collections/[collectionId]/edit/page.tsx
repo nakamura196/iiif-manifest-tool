@@ -29,29 +29,29 @@ interface CollectionData {
   metadata?: {
     attribution?: string;
     requiredStatement?: {
-      label: { [key: string]: string[] };
-      value: { [key: string]: string[] };
+      label: { [key: string]: string[] | undefined };
+      value: { [key: string]: string[] | undefined };
     };
     rights?: string;
     seeAlso?: Array<{
       id: string;
       type: string;
       format?: string;
-      label?: { [key: string]: string[] };
+      label?: { [key: string]: string[] | undefined };
     }>;
     homepage?: Array<{
       id: string;
       type: string;
-      label?: { [key: string]: string[] };
+      label?: { [key: string]: string[] | undefined };
     }>;
     provider?: Array<{
       id?: string;
       type: string;
-      label?: { [key: string]: string[] };
+      label?: { [key: string]: string[] | undefined };
       homepage?: Array<{
         id: string;
         type: string;
-        label?: { [key: string]: string[] };
+        label?: { [key: string]: string[] | undefined };
       }>;
     }>;
     customFields?: Array<{
@@ -442,75 +442,203 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
 
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        提供者名
+                        提供者情報
                       </label>
-                      <input
-                        type="text"
-                        value={collection.metadata?.provider?.[0]?.label?.ja?.[0] || ''}
-                        onChange={(e) => {
-                          const provider = e.target.value ? [{
-                            type: 'Agent',
-                            label: { ja: [e.target.value] }
-                          }] : undefined;
-                          setCollection({
-                            ...collection,
-                            metadata: { ...collection.metadata, provider }
-                          });
-                        }}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder="例: 〇〇大学図書館"
-                      />
+                      <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">日本語</label>
+                            <input
+                              type="text"
+                              value={collection.metadata?.provider?.[0]?.label?.ja?.[0] || ''}
+                              onChange={(e) => {
+                                const currentProvider = collection.metadata?.provider?.[0] || { type: 'Agent', label: {} };
+                                const provider = [{
+                                  ...currentProvider,
+                                  type: 'Agent',
+                                  label: {
+                                    ...currentProvider.label,
+                                    ja: e.target.value ? [e.target.value] : undefined
+                                  }
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, provider }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="例: メトロポリタン美術館"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">English</label>
+                            <input
+                              type="text"
+                              value={collection.metadata?.provider?.[0]?.label?.en?.[0] || ''}
+                              onChange={(e) => {
+                                const currentProvider = collection.metadata?.provider?.[0] || { type: 'Agent', label: {} };
+                                const provider = [{
+                                  ...currentProvider,
+                                  type: 'Agent',
+                                  label: {
+                                    ...currentProvider.label,
+                                    en: e.target.value ? [e.target.value] : undefined
+                                  }
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, provider }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="e.g. Metropolitan Museum of Art"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">ホームページ URL</label>
+                          <input
+                            type="url"
+                            value={collection.metadata?.provider?.[0]?.homepage?.[0]?.id || ''}
+                            onChange={(e) => {
+                              const currentProvider = collection.metadata?.provider?.[0] || { type: 'Agent', label: {} };
+                              const provider = [{
+                                ...currentProvider,
+                                type: 'Agent',
+                                homepage: e.target.value ? [{
+                                  id: e.target.value,
+                                  type: 'Text'
+                                }] : undefined
+                              }];
+                              setCollection({
+                                ...collection,
+                                metadata: { ...collection.metadata, provider }
+                              });
+                            }}
+                            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="https://www.metmuseum.org/"
+                          />
+                        </div>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        利用条件
+                        帰属表示 (Attribution)
                       </label>
-                      <div className="space-y-2">
-                        <input
-                          type="text"
-                          value={collection.metadata?.requiredStatement?.label?.ja?.[0] || ''}
-                          onChange={(e) => {
-                            const currentStatement = collection.metadata?.requiredStatement || {
-                              label: { ja: [] },
-                              value: { ja: [] }
-                            };
-                            setCollection({
-                              ...collection,
-                              metadata: {
-                                ...collection.metadata,
-                                requiredStatement: {
-                                  ...currentStatement,
-                                  label: { ja: [e.target.value] }
-                                }
-                              }
-                            });
-                          }}
-                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder="項目名（例: 利用にあたって）"
-                        />
-                        <textarea
-                          value={collection.metadata?.requiredStatement?.value?.ja?.[0] || ''}
-                          onChange={(e) => {
-                            const currentStatement = collection.metadata?.requiredStatement || {
-                              label: { ja: [] },
-                              value: { ja: [] }
-                            };
-                            setCollection({
-                              ...collection,
-                              metadata: {
-                                ...collection.metadata,
-                                requiredStatement: {
-                                  ...currentStatement,
-                                  value: { ja: [e.target.value] }
-                                }
-                              }
-                            });
-                          }}
-                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          rows={3}
-                          placeholder="説明（例: 画像の二次利用については事前にご相談ください）"
-                        />
+                      <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">ラベル</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <input
+                                type="text"
+                                value={collection.metadata?.requiredStatement?.label?.ja?.[0] || ''}
+                                onChange={(e) => {
+                                  const currentStatement = collection.metadata?.requiredStatement || {
+                                    label: {},
+                                    value: {}
+                                  };
+                                  setCollection({
+                                    ...collection,
+                                    metadata: {
+                                      ...collection.metadata,
+                                      requiredStatement: {
+                                        ...currentStatement,
+                                        label: {
+                                          ...currentStatement.label,
+                                          ja: e.target.value ? [e.target.value] : undefined
+                                        }
+                                      }
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                placeholder="日本語（例: 帰属）"
+                              />
+                              <input
+                                type="text"
+                                value={collection.metadata?.requiredStatement?.label?.en?.[0] || collection.metadata?.requiredStatement?.label?.none?.[0] || ''}
+                                onChange={(e) => {
+                                  const currentStatement = collection.metadata?.requiredStatement || {
+                                    label: {},
+                                    value: {}
+                                  };
+                                  setCollection({
+                                    ...collection,
+                                    metadata: {
+                                      ...collection.metadata,
+                                      requiredStatement: {
+                                        ...currentStatement,
+                                        label: {
+                                          ...currentStatement.label,
+                                          en: e.target.value ? [e.target.value] : undefined
+                                        }
+                                      }
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                placeholder="English (e.g. Attribution)"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">値</label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <textarea
+                                value={collection.metadata?.requiredStatement?.value?.ja?.[0] || ''}
+                                onChange={(e) => {
+                                  const currentStatement = collection.metadata?.requiredStatement || {
+                                    label: {},
+                                    value: {}
+                                  };
+                                  setCollection({
+                                    ...collection,
+                                    metadata: {
+                                      ...collection.metadata,
+                                      requiredStatement: {
+                                        ...currentStatement,
+                                        value: {
+                                          ...currentStatement.value,
+                                          ja: e.target.value ? [e.target.value] : undefined
+                                        }
+                                      }
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                rows={2}
+                                placeholder="日本語（例: メトロポリタン美術館）"
+                              />
+                              <textarea
+                                value={collection.metadata?.requiredStatement?.value?.en?.[0] || ''}
+                                onChange={(e) => {
+                                  const currentStatement = collection.metadata?.requiredStatement || {
+                                    label: {},
+                                    value: {}
+                                  };
+                                  setCollection({
+                                    ...collection,
+                                    metadata: {
+                                      ...collection.metadata,
+                                      requiredStatement: {
+                                        ...currentStatement,
+                                        value: {
+                                          ...currentStatement.value,
+                                          en: e.target.value ? [e.target.value] : undefined
+                                        }
+                                      }
+                                    }
+                                  });
+                                }}
+                                className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                                rows={2}
+                                placeholder="English (e.g. Metropolitan Museum of Art)"
+                              />
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -534,47 +662,193 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
                       <label className="block text-sm font-medium mb-2">
                         関連ウェブサイト
                       </label>
-                      <input
-                        type="url"
-                        value={collection.metadata?.homepage?.[0]?.id || ''}
-                        onChange={(e) => {
-                          const homepage = e.target.value ? [{
-                            id: e.target.value,
-                            type: 'Text',
-                            label: { ja: ['ホームページ'] }
-                          }] : undefined;
-                          setCollection({
-                            ...collection,
-                            metadata: { ...collection.metadata, homepage }
-                          });
-                        }}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder="https://example.org"
-                      />
+                      <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">URL</label>
+                          <input
+                            type="url"
+                            value={collection.metadata?.homepage?.[0]?.id || ''}
+                            onChange={(e) => {
+                              const currentHomepage = collection.metadata?.homepage?.[0] || { id: '', type: 'Text', label: {} };
+                              const homepage = e.target.value ? [{
+                                ...currentHomepage,
+                                id: e.target.value,
+                                type: 'Text'
+                              }] : undefined;
+                              setCollection({
+                                ...collection,
+                                metadata: { ...collection.metadata, homepage }
+                              });
+                            }}
+                            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="https://example.org"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">ラベル</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input
+                              type="text"
+                              value={collection.metadata?.homepage?.[0]?.label?.ja?.[0] || ''}
+                              onChange={(e) => {
+                                const currentHomepage = collection.metadata?.homepage?.[0] || { id: '', type: 'Text', label: {} };
+                                const homepage = [{
+                                  ...currentHomepage,
+                                  id: currentHomepage.id || '',
+                                  label: {
+                                    ...currentHomepage.label,
+                                    ja: e.target.value ? [e.target.value] : undefined
+                                  }
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, homepage }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="日本語（例: ホームページ）"
+                            />
+                            <input
+                              type="text"
+                              value={collection.metadata?.homepage?.[0]?.label?.en?.[0] || ''}
+                              onChange={(e) => {
+                                const currentHomepage = collection.metadata?.homepage?.[0] || { id: '', type: 'Text', label: {} };
+                                const homepage = [{
+                                  ...currentHomepage,
+                                  id: currentHomepage.id || '',
+                                  label: {
+                                    ...currentHomepage.label,
+                                    en: e.target.value ? [e.target.value] : undefined
+                                  }
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, homepage }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="English (e.g. Homepage)"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium mb-2">
-                        関連資料URL
+                        関連資料
                       </label>
-                      <input
-                        type="url"
-                        value={collection.metadata?.seeAlso?.[0]?.id || ''}
-                        onChange={(e) => {
-                          const seeAlso = e.target.value ? [{
-                            id: e.target.value,
-                            type: 'Dataset',
-                            format: 'application/json',
-                            label: { ja: ['関連データ'] }
-                          }] : undefined;
-                          setCollection({
-                            ...collection,
-                            metadata: { ...collection.metadata, seeAlso }
-                          });
-                        }}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                        placeholder="https://example.org/data.json"
-                      />
+                      <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">URL</label>
+                          <input
+                            type="url"
+                            value={collection.metadata?.seeAlso?.[0]?.id || ''}
+                            onChange={(e) => {
+                              const currentSeeAlso = collection.metadata?.seeAlso?.[0] || { type: 'Dataset', format: 'application/json', label: {} };
+                              const seeAlso = e.target.value ? [{
+                                ...currentSeeAlso,
+                                id: e.target.value
+                              }] : undefined;
+                              setCollection({
+                                ...collection,
+                                metadata: { ...collection.metadata, seeAlso }
+                              });
+                            }}
+                            className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                            placeholder="https://example.org/data.json"
+                          />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">タイプ</label>
+                            <select
+                              value={collection.metadata?.seeAlso?.[0]?.type || 'Dataset'}
+                              onChange={(e) => {
+                                const currentSeeAlso = collection.metadata?.seeAlso?.[0] || { id: '', format: 'application/json', label: {} };
+                                const seeAlso = [{
+                                  ...currentSeeAlso,
+                                  type: e.target.value
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, seeAlso }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                            >
+                              <option value="Dataset">Dataset</option>
+                              <option value="Text">Text</option>
+                              <option value="Image">Image</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">フォーマット</label>
+                            <input
+                              type="text"
+                              value={collection.metadata?.seeAlso?.[0]?.format || ''}
+                              onChange={(e) => {
+                                const currentSeeAlso = collection.metadata?.seeAlso?.[0] || { id: '', type: 'Dataset', label: {} };
+                                const seeAlso = [{
+                                  ...currentSeeAlso,
+                                  format: e.target.value
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, seeAlso }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="e.g. application/json"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">ラベル</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <input
+                              type="text"
+                              value={collection.metadata?.seeAlso?.[0]?.label?.ja?.[0] || ''}
+                              onChange={(e) => {
+                                const currentSeeAlso = collection.metadata?.seeAlso?.[0] || { id: '', type: 'Dataset', format: 'application/json', label: {} };
+                                const seeAlso = [{
+                                  ...currentSeeAlso,
+                                  label: {
+                                    ...currentSeeAlso.label,
+                                    ja: e.target.value ? [e.target.value] : undefined
+                                  }
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, seeAlso }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="日本語（例: 関連データ）"
+                            />
+                            <input
+                              type="text"
+                              value={collection.metadata?.seeAlso?.[0]?.label?.en?.[0] || ''}
+                              onChange={(e) => {
+                                const currentSeeAlso = collection.metadata?.seeAlso?.[0] || { id: '', type: 'Dataset', format: 'application/json', label: {} };
+                                const seeAlso = [{
+                                  ...currentSeeAlso,
+                                  label: {
+                                    ...currentSeeAlso.label,
+                                    en: e.target.value ? [e.target.value] : undefined
+                                  }
+                                }];
+                                setCollection({
+                                  ...collection,
+                                  metadata: { ...collection.metadata, seeAlso }
+                                });
+                              }}
+                              className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                              placeholder="English (e.g. Related Data)"
+                            />
+                          </div>
+                        </div>
+                      </div>
                     </div>
                 </div>
               </div>

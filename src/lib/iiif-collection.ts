@@ -1,5 +1,6 @@
 import { uploadToS3, getS3Url } from './s3';
 import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { IIIFMultilingualText, IIIFCollectionResponse, IIIFTextHelpers } from '@/types/iiif';
 
 const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
@@ -231,14 +232,7 @@ export async function updateIIIFCollection(
   }
 }
 
-export async function listUserCollections(userId: string): Promise<Array<{
-  id: string;
-  label: { [key: string]: string[] };
-  summary?: { [key: string]: string[] };
-  itemCount: number;
-  createdAt: string;
-  isPublic: boolean;
-}>> {
+export async function listUserCollections(userId: string): Promise<IIIFCollectionResponse[]> {
   try {
     const prefix = `collections/${userId}/`;
     const command = new ListObjectsV2Command({
@@ -266,51 +260,18 @@ export async function listUserCollections(userId: string): Promise<Array<{
             m => m.label.ja?.[0] === '作成日' || m.label.en?.[0] === 'Created'
           )?.value.ja?.[0] || new Date().toISOString();
 
-          // Normalize summary to IIIF v3 format if it's in legacy format
-          let normalizedSummary: { [key: string]: string[] } | undefined;
-          
-          if (collection.summary) {
-            if (typeof collection.summary === 'object') {
-              normalizedSummary = {};
-              
-              // Process each language key
-              for (const [lang, value] of Object.entries(collection.summary)) {
-                if (Array.isArray(value)) {
-                  // Check if the array contains strings or objects
-                  const firstItem = value[0];
-                  if (typeof firstItem === 'string') {
-                    // Correct IIIF v3 format
-                    normalizedSummary[lang] = value;
-                  } else if (typeof firstItem === 'object' && firstItem !== null) {
-                    // Incorrectly nested object - extract the appropriate language value
-                    if (lang === 'ja' && (firstItem as any).ja) {
-                      normalizedSummary[lang] = [(firstItem as any).ja];
-                    } else if (lang === 'en' && (firstItem as any).en) {
-                      normalizedSummary[lang] = [(firstItem as any).en];
-                    } else {
-                      // Fall back to any available value
-                      const extractedValue = (firstItem as any).ja || (firstItem as any).en || (firstItem as any).none;
-                      if (extractedValue) {
-                        normalizedSummary[lang] = [extractedValue];
-                      }
-                    }
-                  }
-                } else if (typeof value === 'string') {
-                  // Legacy format - single string value
-                  normalizedSummary[lang] = [value];
-                }
-              }
-            }
-          }
-
-          collections.push({
+          const collectionResponse: IIIFCollectionResponse = {
             id: collectionId,
             label: collection.label,  // Already in IIIF v3 format
-            summary: normalizedSummary,
-            itemCount: collection.items.length,
+            summary: IIIFTextHelpers.normalizeText(collection.summary),
+            isPublic,
             createdAt,
-            isPublic
-          });
+            _count: {
+              items: collection.items.length
+            }
+          };
+
+          collections.push(collectionResponse);
         }
       }
     }

@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import AuthTokenModal from '@/components/AuthTokenModal';
 import { FiArrowLeft, FiPlus, FiEye, FiCopy, FiTrash2, FiKey, FiLock, FiGlobe, FiEdit2, FiBook, FiSettings, FiExternalLink, FiMoreVertical, FiMap, FiGrid, FiImage } from 'react-icons/fi';
 import Link from 'next/link';
+import { IIIFItemResponse, IIIFTextHelpers } from '@/types/iiif';
 
 // Dynamic import for map component to avoid SSR issues
 const LoadingComponent = () => {
@@ -20,24 +21,7 @@ const CollectionMap = dynamic(() => import('@/components/CollectionMap'), {
   loading: LoadingComponent
 });
 
-interface Item {
-  id: string;
-  title: string;
-  description: string | null;
-  isPublic: boolean;
-  thumbnail?: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-    label?: string;
-  };
-  images: Array<{
-    id: string;
-    url: string;
-    width: number;
-    height: number;
-  }>;
-}
+// Using IIIFItemResponse from common types
 
 interface PageProps {
   params: Promise<{ collectionId: string }>;
@@ -48,10 +32,10 @@ export default function CollectionPage({ params }: PageProps) {
   const { data: session, status } = useSession();
   const router = useRouter();
   const t = useTranslations();
-  const [items, setItems] = useState<Item[]>([]);
+  const [items, setItems] = useState<IIIFItemResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<Item | null>(null);
+  const [selectedItem, setSelectedItem] = useState<IIIFItemResponse | null>(null);
   const [collectionName, setCollectionName] = useState<string>('');
   const [collectionDescription, setCollectionDescription] = useState<string>('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -65,13 +49,9 @@ export default function CollectionPage({ params }: PageProps) {
       const response = await fetch(`/api/collections/${resolvedParams.collectionId}`);
       if (response.ok) {
         const data = await response.json();
-        // Handle multilingual names - check if name is an object or string
-        const displayName = typeof data.name === 'string' 
-          ? data.name 
-          : (data.nameJa || data.nameEn || data.name?.ja || data.name?.en || t('Common.collection'));
-        const displayDescription = typeof data.description === 'string'
-          ? data.description
-          : (data.descriptionJa || data.descriptionEn || data.description?.ja || data.description?.en || '');
+        // Use IIIF v3 format
+        const displayName = IIIFTextHelpers.getText(data.label) || t('Common.collection');
+        const displayDescription = IIIFTextHelpers.getText(data.summary) || '';
         
         setCollectionName(displayName);
         setCollectionDescription(displayDescription);
@@ -314,8 +294,8 @@ export default function CollectionPage({ params }: PageProps) {
           <CollectionMap
             items={items.map(item => ({
               id: item.id,
-              title: item.title,
-              description: item.description || undefined,
+              title: IIIFTextHelpers.getText(item.label) || 'Untitled',
+              description: IIIFTextHelpers.getText(item.summary) || undefined,
               thumbnail: item.thumbnail,
               latitude: item.location?.latitude || 0,
               longitude: item.location?.longitude || 0,
@@ -337,7 +317,7 @@ export default function CollectionPage({ params }: PageProps) {
               {item.thumbnail ? (
                 <img
                   src={item.thumbnail}
-                  alt={item.title}
+                  alt={IIIFTextHelpers.getText(item.label) || 'Item'}
                   className="w-full h-48 object-cover rounded-t-lg bg-gray-100"
                   loading="lazy"
                 />
@@ -348,16 +328,16 @@ export default function CollectionPage({ params }: PageProps) {
               )}
               <div className="p-4 relative">
                 <div className="flex items-start justify-between mb-2">
-                  <h3 className="text-lg font-semibold">{item.title}</h3>
+                  <h3 className="text-lg font-semibold">{IIIFTextHelpers.getText(item.label) || 'Untitled'}</h3>
                   {item.isPublic ? (
                     <FiGlobe className="text-gray-500 text-sm" title={t('Collection.public')} />
                   ) : (
                     <FiLock className="text-gray-500 text-sm" title={t('Collection.private')} />
                   )}
                 </div>
-                {item.description && (
+                {item.summary && IIIFTextHelpers.getText(item.summary) && (
                   <p className="text-gray-600 dark:text-gray-400 text-sm mb-3">
-                    {item.description}
+                    {IIIFTextHelpers.getText(item.summary)}
                   </p>
                 )}
                 <div className="flex gap-2 items-center">
@@ -430,7 +410,7 @@ export default function CollectionPage({ params }: PageProps) {
                         )}
                         <button
                           onClick={() => {
-                            if (confirm(t('Collection.confirmDelete', { title: item.title }))) {
+                            if (confirm(t('Collection.confirmDelete', { title: IIIFTextHelpers.getText(item.label) || 'item' }))) {
                               handleDelete(item.id);
                               setShowItemDropdown(null);
                             }

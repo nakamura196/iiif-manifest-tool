@@ -138,6 +138,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     return NextResponse.json({
       id: itemId,
+      // Include full multilingual label and summary for v3 compatibility
+      label: manifest.label,
+      summary: manifest.summary,
+      // Keep legacy fields for backward compatibility
       title: manifest.label.ja?.[0] || manifest.label.en?.[0] || 'Untitled',
       description: manifest.summary?.ja?.[0] || manifest.summary?.en?.[0] || '',
       isPublic,
@@ -173,9 +177,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { title, description, images, isPublic, metadata, canvasAccess, location, geoAnnotations } = body;
+    const { 
+      title, titleJa, titleEn,  // Support both old and new formats
+      description, descriptionJa, descriptionEn,
+      images, isPublic, metadata, canvasAccess, location, geoAnnotations 
+    } = body;
 
-    if (!title || !images || images.length === 0) {
+    // Use multilingual titles if provided, otherwise fall back to old format
+    const finalTitleJa = titleJa || title || '';
+    const finalTitleEn = titleEn || title || '';
+    const finalDescriptionJa = descriptionJa || description || '';
+    const finalDescriptionEn = descriptionEn || description || '';
+
+    if ((!finalTitleJa && !finalTitleEn) || !images || images.length === 0) {
       return NextResponse.json(
         { error: 'Title and at least one image are required' },
         { status: 400 }
@@ -216,8 +230,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       userId,
       collectionId,
       itemId,
-      title,
-      description,
+      { ja: finalTitleJa, en: finalTitleEn },
+      { ja: finalDescriptionJa, en: finalDescriptionEn },
       images,
       isPublic,
       canvasAccess,

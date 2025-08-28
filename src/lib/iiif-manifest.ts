@@ -2,6 +2,7 @@ import { uploadToS3, getS3Url } from './s3';
 import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 import { addItemToCollection, updateItemInCollection } from './iiif-collection';
 import { v4 as uuidv4 } from 'uuid';
+import { IIIFMultilingualText, IIIFItemResponse, IIIFTextHelpers } from '@/types/iiif';
 
 const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
@@ -435,21 +436,7 @@ export async function getIIIFManifest(
 export async function listCollectionItems(
   userId: string,
   collectionId: string
-): Promise<Array<{
-  id: string;
-  title: string;
-  description?: string;
-  imageCount: number;
-  createdAt: string;
-  manifestUrl: string;
-  thumbnail?: string;
-  isPublic?: boolean;
-  location?: {
-    latitude: number;
-    longitude: number;
-    label?: string;
-  };
-}>> {
+): Promise<IIIFItemResponse[]> {
   try {
     const prefix = `collections/${userId}/${collectionId}/items/`;
     const command = new ListObjectsV2Command({
@@ -510,17 +497,24 @@ export async function listCollectionItems(
             }
           }
 
-          items.push({
+          const item: IIIFItemResponse = {
             id: manifestId,
-            title: manifest.label.ja?.[0] || manifest.label.en?.[0] || 'Untitled',
-            description: manifest.summary?.ja?.[0] || manifest.summary?.en?.[0],
-            imageCount: manifest.items.length,
-            createdAt,
-            manifestUrl,
+            label: manifest.label,
+            summary: IIIFTextHelpers.normalizeText(manifest.summary),
             thumbnail,
+            images: manifest.items.map((canvas, index) => ({
+              id: canvas.id,
+              url: canvas.items[0]?.items[0]?.body?.id || '',
+              width: canvas.width,
+              height: canvas.height
+            })),
+            metadata: manifest.metadata,
+            location,
             isPublic,
-            location
-          });
+            createdAt
+          };
+
+          items.push(item);
         }
       }
     }
@@ -538,8 +532,8 @@ export async function updateIIIFManifest(
   userId: string,
   collectionId: string,
   manifestId: string,
-  title: string,
-  description: string | undefined,
+  title: string | { ja?: string; en?: string },
+  description: string | undefined | { ja?: string; en?: string },
   images: Array<{
     url: string;
     thumbnailUrl?: string;
@@ -626,14 +620,36 @@ export async function updateIIIFManifest(
       contexts.push('http://iiif.io/api/extension/navplace/context.json');
     }
     
+    // Handle multilingual title
+    let labelObj: IIIFMultilingualText;
+    if (typeof title === 'string') {
+      labelObj = {
+        ja: [title],
+        en: [title]
+      };
+    } else {
+      labelObj = IIIFTextHelpers.createText(title.ja, title.en) || { none: ['Untitled'] };
+    }
+    
+    // Handle multilingual description
+    let summaryObj: IIIFMultilingualText | undefined;
+    if (description) {
+      if (typeof description === 'string') {
+        summaryObj = {
+          ja: [description],
+          en: [description]
+        };
+      } else {
+        summaryObj = IIIFTextHelpers.createText(description.ja, description.en);
+      }
+    }
+    
     const manifest: IIIFManifest = {
       '@context': contexts.length === 1 ? contexts[0] : contexts,
       id: s3ManifestUrl,
       type: 'Manifest',
-      label: {
-        ja: [title],
-        en: [title]
-      },
+      label: labelObj,
+      ...(summaryObj ? { summary: summaryObj } : {}),
       ...(location ? {
         navPlace: {
           type: 'FeatureCollection',
@@ -641,8 +657,8 @@ export async function updateIIIFManifest(
             type: 'Feature',
             properties: {
               label: {
-                ja: [location.label || title],
-                en: [location.label || title]
+                ja: [location.label || IIIFTextHelpers.getText(labelObj, 'ja') || 'Location'],
+                en: [location.label || IIIFTextHelpers.getText(labelObj, 'en') || 'Location']
               }
             },
             geometry: {

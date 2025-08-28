@@ -94,8 +94,10 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [titleJa, setTitleJa] = useState('');
+  const [titleEn, setTitleEn] = useState('');
+  const [descriptionJa, setDescriptionJa] = useState('');
+  const [descriptionEn, setDescriptionEn] = useState('');
   const [isPublic, setIsPublic] = useState(true);
   const [images, setImages] = useState<ImageData[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -115,8 +117,24 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`);
       if (response.ok) {
         const data = await response.json();
-        setTitle(data.title || '');
-        setDescription(data.description || '');
+        // Extract multilingual titles
+        if (data.label) {
+          setTitleJa(data.label.ja?.[0] || '');
+          setTitleEn(data.label.en?.[0] || '');
+        } else {
+          // Fallback for old format
+          setTitleJa(data.title || '');
+          setTitleEn(data.title || '');
+        }
+        // Extract multilingual descriptions
+        if (data.summary) {
+          setDescriptionJa(data.summary.ja?.[0] || '');
+          setDescriptionEn(data.summary.en?.[0] || '');
+        } else {
+          // Fallback for old format
+          setDescriptionJa(data.description || '');
+          setDescriptionEn(data.description || '');
+        }
         setIsPublic(data.isPublic !== undefined ? data.isPublic : true);
         setImages(data.images || []);
         setMetadata(data.metadata || {});
@@ -300,7 +318,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   };
 
   const handleSave = async () => {
-    if (!title || images.length === 0) return;
+    if ((!titleJa && !titleEn) || images.length === 0) return;
 
     setSaving(true);
     try {
@@ -310,8 +328,10 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          title,
-          description,
+          titleJa,
+          titleEn,
+          descriptionJa,
+          descriptionEn,
           images,
           isPublic,
           metadata,
@@ -704,7 +724,7 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
             <div className="flex items-center gap-2">
               <button
                 onClick={handleSave}
-                disabled={!title || images.length === 0 || saving || uploading}
+                disabled={(!titleJa && !titleEn) || images.length === 0 || saving || uploading}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors"
               >
                 {saving ? (
@@ -804,28 +824,65 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                   <FiInfo />
                   {t('ItemEditPage.basicInfo')}
                 </h2>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">
-                      {t('ItemEditPage.itemTitle')} *
-                    </label>
-                    <input
-                      type="text"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      placeholder={t('ItemEditPage.itemTitlePlaceholder')}
-                    />
+                <div className="space-y-6">
+                  {/* Japanese Fields */}
+                  <div className="space-y-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <span className="text-blue-600 dark:text-blue-400">🇯🇵</span>
+                      {t('ItemEditPage.japaneseInfo')}
+                    </h3>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        {t('ItemEditPage.itemTitleJa')} *
+                      </label>
+                      <input
+                        type="text"
+                        value={titleJa}
+                        onChange={(e) => setTitleJa(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                        placeholder={t('ItemEditPage.itemTitleJaPlaceholder')}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">{t('ItemEditPage.descriptionJa')}</label>
+                      <textarea
+                        value={descriptionJa}
+                        onChange={(e) => setDescriptionJa(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                        rows={3}
+                        placeholder={t('ItemEditPage.descriptionJaPlaceholder')}
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-2">{t('ItemEditPage.description')}</label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                      rows={5}
-                      placeholder={t('ItemEditPage.descriptionPlaceholder')}
-                    />
+
+                  {/* English Fields */}
+                  <div className="space-y-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <span className="text-green-600 dark:text-green-400">🇬🇧</span>
+                      {t('ItemEditPage.englishInfo')}
+                    </h3>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        {t('ItemEditPage.itemTitleEn')} *
+                      </label>
+                      <input
+                        type="text"
+                        value={titleEn}
+                        onChange={(e) => setTitleEn(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                        placeholder={t('ItemEditPage.itemTitleEnPlaceholder')}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">{t('ItemEditPage.descriptionEn')}</label>
+                      <textarea
+                        value={descriptionEn}
+                        onChange={(e) => setDescriptionEn(e.target.value)}
+                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                        rows={3}
+                        placeholder={t('ItemEditPage.descriptionEnPlaceholder')}
+                      />
+                    </div>
                   </div>
                   <div className="flex items-center gap-3">
                     <input

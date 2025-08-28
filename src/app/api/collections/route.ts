@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { createIIIFCollection, listUserCollections } from '@/lib/iiif-collection';
 import { v4 as uuidv4 } from 'uuid';
+import { IIIFCollectionResponse, IIIFTextHelpers } from '@/types/iiif';
 
 export async function GET() {
   try {
@@ -13,20 +14,8 @@ export async function GET() {
     }
 
     const collections = await listUserCollections(session.user.id);
-    
-    // Return collections in IIIF v3 format
-    const formattedCollections = collections.map(col => ({
-      id: col.id,
-      label: col.label,
-      summary: col.summary,
-      isPublic: col.isPublic,
-      createdAt: col.createdAt,
-      _count: {
-        items: col.itemCount
-      }
-    }));
-
-    return NextResponse.json(formattedCollections);
+    // Collections are already in IIIFCollectionResponse format
+    return NextResponse.json(collections);
   } catch (error) {
     console.error('Error fetching collections:', error);
     return NextResponse.json(
@@ -83,23 +72,19 @@ export async function POST(request: NextRequest) {
       isPublic
     );
 
-    return NextResponse.json({
+    const response: IIIFCollectionResponse = {
       id: collectionId,
-      label: {
-        ...(finalNameJa ? { ja: [finalNameJa] } : {}),
-        ...(finalNameEn ? { en: [finalNameEn] } : {})
-      },
-      summary: (finalDescriptionJa || finalDescriptionEn) ? {
-        ...(finalDescriptionJa ? { ja: [finalDescriptionJa] } : {}),
-        ...(finalDescriptionEn ? { en: [finalDescriptionEn] } : {})
-      } : undefined,
+      label: IIIFTextHelpers.createText(finalNameJa, finalNameEn) || { none: ['Untitled'] },
+      summary: IIIFTextHelpers.createText(finalDescriptionJa, finalDescriptionEn),
       isPublic,
       url: collectionUrl,
       createdAt: new Date().toISOString(),
       _count: {
         items: 0
       }
-    });
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error creating collection:', error);
     return NextResponse.json(
