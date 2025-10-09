@@ -126,13 +126,15 @@ You can import and manage external IIIF collections or manifests as new collecti
 ### Visibility Settings
 
 #### Collection Level
-- **Public**: Accessible to everyone
-- **Private**: Only logged-in users
+- **Public**: Accessible to everyone (also displayed on Self Museum)
+- **Private**: Only logged-in users (not displayed on Self Museum)
 
 #### Item Level
 - **Public**: Viewable by anyone when collection is public
 - **Private**: Only viewable by owner
 - **Limited**: Only users with authentication token
+
+💡 **Tip**: To publish your collection on Self Museum, remember to check "Make this collection public" in the collection settings. Collections are public by default, but collections created in the past may be set to private.
 
 ### Sharing Methods
 
@@ -157,6 +159,8 @@ You can import and manage external IIIF collections or manifests as new collecti
 
 1. Click the "Self Museum" button on the collection page
 2. View the published page on Self Museum
+
+⚠️ **Important**: Only **public collections and items** are displayed on Self Museum. Private collections and items will not appear. Make sure to check "Make this collection public" in the collection settings.
 
 ## Search and Filtering
 

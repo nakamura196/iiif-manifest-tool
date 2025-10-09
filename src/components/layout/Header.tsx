@@ -2,7 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu, FiTool, FiHardDrive, FiFolder, FiBook } from 'react-icons/fi';
+import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu, FiTool, FiHardDrive, FiFolder, FiBook, FiUsers } from 'react-icons/fi';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter, usePathname } from 'next/navigation';
@@ -159,7 +159,16 @@ const Header = () => {
                 {isAdmin && (
                   <>
                     <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
-                    
+
+                    <Link
+                      href="/admin/users"
+                      className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      <FiUsers className="w-4 h-4" />
+                      <span>ユーザー管理</span>
+                    </Link>
+
                     <Link
                       href="/admin/backup"
                       className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
