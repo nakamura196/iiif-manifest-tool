@@ -162,41 +162,133 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
     }
   };
 
-  const handleInfoJsonAdd = async (infoJsonUrl: string) => {
+  const handleInfoJsonAdd = async (iiifUrl: string) => {
     try {
-      const response = await fetch(infoJsonUrl);
-      const infoJson = await response.json();
-      
-      // For IIIF images, construct the full image URL
-      const baseUrl = infoJson.id || infoJson['@id'];
-      // Remove trailing slash if present
-      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      
-      // Use appropriate thumbnail size from info.json sizes array
-      let imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
-      if (infoJson.sizes && infoJson.sizes.length > 0) {
-        // Find a suitable thumbnail size (around 400-800px width)
-        const thumbnailSize = infoJson.sizes.find((size: {width: number; height: number}) => 
-          size.width >= 400 && size.width <= 800
-        ) || infoJson.sizes[infoJson.sizes.length - 1]; // Use largest if no suitable size found
-        
-        imageUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
+      // Auto-detect if this is a manifest.json or info.json
+      const isManifest = iiifUrl.includes('manifest.json') || iiifUrl.includes('manifest');
+
+      if (isManifest) {
+        // Handle manifest.json URL
+        const response = await fetch('/api/iiif-info', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: iiifUrl, type: 'manifest' }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch manifest');
+        }
+
+        const manifestData = await response.json();
+        const newImages: ImageData[] = [];
+
+        // Extract images from manifest (v3 format)
+        if (manifestData.items && Array.isArray(manifestData.items)) {
+          for (const canvas of manifestData.items) {
+            if (canvas.items?.[0]?.items?.[0]?.body) {
+              const annotation = canvas.items[0].items[0];
+              const body = annotation.body;
+
+              const imageBody = Array.isArray(body) ? body[0] : body;
+
+              if (imageBody) {
+                const hasService = imageBody.service && (imageBody.service[0] || imageBody.service);
+                const serviceUrl = hasService ?
+                  (imageBody.service[0]?.['@id'] || imageBody.service[0]?.id || imageBody.service['@id'] || imageBody.service.id) :
+                  null;
+
+                newImages.push({
+                  url: imageBody.id || imageBody['@id'],
+                  width: canvas.width || imageBody.width || 1000,
+                  height: canvas.height || imageBody.height || 1000,
+                  mimeType: imageBody.format || 'image/jpeg',
+                  isIIIF: !!serviceUrl,
+                  iiifBaseUrl: serviceUrl
+                });
+              }
+            }
+          }
+        }
+        // Handle v2 format
+        else if (manifestData.sequences?.[0]?.canvases && Array.isArray(manifestData.sequences[0].canvases)) {
+          const canvases = manifestData.sequences[0].canvases;
+
+          for (const canvas of canvases) {
+            const image = canvas.images?.[0];
+
+            if (image?.resource) {
+              const imageResource = image.resource;
+
+              newImages.push({
+                url: imageResource['@id'] || imageResource.id,
+                width: canvas.width || imageResource.width || 1000,
+                height: canvas.height || imageResource.height || 1000,
+                mimeType: imageResource.format || 'image/jpeg',
+                isIIIF: false
+              });
+            }
+          }
+        }
+
+        if (newImages.length > 0) {
+          setImages([...images, ...newImages]);
+          alert(`マニフェストから${newImages.length}個の画像を追加しました`);
+          return;
+        }
+
+        throw new Error('マニフェストから画像を取得できませんでした');
+      } else {
+        // Handle info.json URL
+        const response = await fetch('/api/iiif-info', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: iiifUrl }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch info.json');
+        }
+
+        const infoJson = await response.json();
+
+        const baseUrl = infoJson.id || infoJson['@id'];
+        if (!baseUrl) {
+          throw new Error('info.jsonにIDが見つかりません');
+        }
+
+        const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+        let imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+        if (infoJson.sizes && infoJson.sizes.length > 0) {
+          const thumbnailSize = infoJson.sizes.find((size: {width: number; height: number}) =>
+            size.width >= 400 && size.width <= 800
+          ) || infoJson.sizes[infoJson.sizes.length - 1];
+
+          imageUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
+        }
+
+        setImages([
+          ...images,
+          {
+            url: imageUrl,
+            width: infoJson.width,
+            height: infoJson.height,
+            mimeType: 'image/jpeg',
+            infoJson: JSON.stringify(infoJson),
+            isIIIF: true,
+            iiifBaseUrl: cleanBaseUrl
+          },
+        ]);
+
+        alert('info.jsonから画像を追加しました');
       }
-      
-      setImages([
-        ...images,
-        {
-          url: imageUrl,
-          width: infoJson.width,
-          height: infoJson.height,
-          mimeType: 'image/jpeg',
-          infoJson: JSON.stringify(infoJson),
-          isIIIF: true,  // Mark as IIIF image
-          iiifBaseUrl: cleanBaseUrl  // Store the base URL for service info
-        },
-      ]);
     } catch (error) {
-      console.error('Error adding info.json:', error);
+      console.error('Error adding IIIF resource:', error);
+      alert(`IIIFリソースの追加に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}\n\n入力したURLが正しいか確認してください。`);
     }
   };
 

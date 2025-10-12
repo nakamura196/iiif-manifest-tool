@@ -82,7 +82,7 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd, onCol
           }`}
         >
           <FiImage className="inline mr-2" />
-          <span className="hidden sm:inline">IIIF info.json</span>
+          <span className="hidden sm:inline">{t('ImageUploader.iiifTab')}</span>
           <span className="sm:hidden">IIIF</span>
         </button>
         {onCollectionImport && (
@@ -176,9 +176,15 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd, onCol
               {t('ImageUploader.add')}
             </button>
           </div>
-          <p className="text-xs sm:text-sm text-gray-500">
-            Add info.json from high-quality image delivery services
-          </p>
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 space-y-2">
+            <p className="font-medium">{t('ImageUploader.iiifDescription')}</p>
+            <div className="space-y-1">
+              <p>• <span className="font-semibold">{t('ImageUploader.iiifManifestExample')}</span></p>
+              <p className="text-xs pl-4 break-all">https://example.com/iiif/object/123/manifest.json</p>
+              <p>• <span className="font-semibold">{t('ImageUploader.iiifInfoJsonExample')}</span></p>
+              <p className="text-xs pl-4 break-all">https://example.com/iiif/image/456/info.json</p>
+            </div>
+          </div>
         </div>
       )}
 

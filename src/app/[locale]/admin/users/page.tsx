@@ -118,6 +118,45 @@ export default function AdminUsersPage() {
     setExpandedUsers(newExpanded);
   };
 
+  const toggleCollectionVisibility = async (userId: string, collectionId: string, currentIsPublic: boolean) => {
+    try {
+      const response = await fetch(`/api/admin/collections/${userId}/${collectionId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          isPublic: !currentIsPublic
+        }),
+      });
+
+      if (response.ok) {
+        // Update local state
+        setUsers(prev =>
+          prev.map(user => {
+            if (user.userId === userId && user.collections) {
+              return {
+                ...user,
+                collections: user.collections.map(col =>
+                  col.id === collectionId
+                    ? { ...col, isPublic: !currentIsPublic }
+                    : col
+                )
+              };
+            }
+            return user;
+          })
+        );
+      } else {
+        console.error('Failed to update collection visibility');
+        alert('コレクションの公開設定の変更に失敗しました');
+      }
+    } catch (error) {
+      console.error('Error toggling collection visibility:', error);
+      alert('エラーが発生しました');
+    }
+  };
+
   const exportData = async (format: 'json' | 'csv' | 'txt') => {
     try {
       const response = await fetch(`/api/admin/users/export?format=${format}`);
@@ -355,12 +394,18 @@ export default function AdminUsersPage() {
                                   className="bg-white dark:bg-gray-800 p-3 rounded border dark:border-gray-700"
                                 >
                                   <div className="flex items-start justify-between mb-2">
-                                    <h5 className="font-medium text-sm">{collection.name}</h5>
-                                    {collection.isPublic ? (
-                                      <FiGlobe className="text-green-500 text-xs" title="公開" />
-                                    ) : (
-                                      <FiLock className="text-gray-500 text-xs" title="非公開" />
-                                    )}
+                                    <h5 className="font-medium text-sm flex-1">{collection.name}</h5>
+                                    <button
+                                      onClick={() => toggleCollectionVisibility(user.userId, collection.id, collection.isPublic)}
+                                      className="ml-2 p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                      title={collection.isPublic ? '公開中（クリックで非公開に変更）' : '非公開中（クリックで公開に変更）'}
+                                    >
+                                      {collection.isPublic ? (
+                                        <FiGlobe className="text-green-500 text-sm" />
+                                      ) : (
+                                        <FiLock className="text-gray-500 text-sm" />
+                                      )}
+                                    </button>
                                   </div>
                                   <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                                     <div className="flex items-center gap-1">
@@ -374,18 +419,20 @@ export default function AdminUsersPage() {
                                       </div>
                                     )}
                                   </div>
-                                  <button
-                                    onClick={() => {
-                                      const baseUrl = window.location.origin;
-                                      const collectionUrl = `${baseUrl}/api/iiif/2/collection/${user.userId}_${collection.id}`;
-                                      const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(collectionUrl)}`;
-                                      window.open(selfMuseumUrl, '_blank');
-                                    }}
-                                    className="mt-2 text-xs text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1"
-                                  >
-                                    <FiExternalLink />
-                                    表示
-                                  </button>
+                                  <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        const baseUrl = window.location.origin;
+                                        const collectionUrl = `${baseUrl}/api/iiif/2/collection/${user.userId}_${collection.id}`;
+                                        const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(collectionUrl)}`;
+                                        window.open(selfMuseumUrl, '_blank');
+                                      }}
+                                      className="text-xs text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 flex items-center gap-1"
+                                    >
+                                      <FiExternalLink />
+                                      表示
+                                    </button>
+                                  </div>
                                 </div>
                               ))}
                             </div>

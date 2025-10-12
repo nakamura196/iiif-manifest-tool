@@ -199,73 +199,184 @@ export default function NewItemPage({ params }: NewItemPageProps) {
     }
   };
 
-  const handleInfoJsonAdd = async (infoJsonUrl: string) => {
+  const handleInfoJsonAdd = async (iiifUrl: string) => {
     try {
-      // Use server-side API to fetch info.json to avoid CORS issues
-      const response = await fetch('/api/iiif-info', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ url: infoJsonUrl }),
-      });
+      // Auto-detect if this is a manifest.json or info.json
+      const isManifest = iiifUrl.includes('manifest.json') || iiifUrl.includes('manifest');
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch info.json');
-      }
+      if (isManifest) {
+        // Handle manifest.json URL
+        const response = await fetch('/api/iiif-info', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: iiifUrl, type: 'manifest' }),
+        });
 
-      const infoJson = await response.json();
-      
-      const baseUrl = infoJson.id || infoJson['@id'];
-      const cleanBaseUrl = baseUrl.replace(/\/$/, '');
-      
-      // Full size image URL
-      const imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
-      
-      // Generate thumbnail URL with appropriate size
-      let thumbnailUrl = imageUrl; // Default to full size
-      if (infoJson.sizes && infoJson.sizes.length > 0) {
-        // Find a suitable thumbnail size (around 400px width)
-        const thumbnailSize = infoJson.sizes.find((size: {width: number; height: number}) => 
-          size.width >= 400 && size.width <= 800
-        );
-        
-        if (thumbnailSize) {
-          // Use specific width AND height from sizes array
-          thumbnailUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
-        } else {
-          // If no suitable size in range, find the largest available size
-          // Sort sizes by width to ensure we get the largest
-          const sortedSizes = [...infoJson.sizes].sort((a, b) => b.width - a.width);
-          const largestSize = sortedSizes[0];
-          if (largestSize) {
-            thumbnailUrl = `${cleanBaseUrl}/full/${largestSize.width},${largestSize.height}/0/default.jpg`;
-          } else {
-            // Fallback to a small fixed size
-            thumbnailUrl = `${cleanBaseUrl}/full/400,/0/default.jpg`;
+        if (!response.ok) {
+          throw new Error('Failed to fetch manifest');
+        }
+
+        const manifestData = await response.json();
+        const newImages: UploadedImage[] = [];
+
+        // Extract label from manifest
+        const manifestLabelData = manifestData.label;
+        let manifestLabel = 'Untitled';
+        if (typeof manifestLabelData === 'string') {
+          manifestLabel = manifestLabelData;
+        } else if (manifestLabelData && typeof manifestLabelData === 'object') {
+          manifestLabel = manifestLabelData.ja?.[0] || manifestLabelData.en?.[0] || manifestLabelData.none?.[0] || 'Untitled';
+        }
+
+        // Extract images from manifest (v3 format)
+        if (manifestData.items && Array.isArray(manifestData.items)) {
+          for (const canvas of manifestData.items) {
+            if (canvas.items?.[0]?.items?.[0]?.body) {
+              const annotation = canvas.items[0].items[0];
+              const body = annotation.body;
+
+              // Handle both single body and array of bodies
+              const imageBody = Array.isArray(body) ? body[0] : body;
+
+              if (imageBody) {
+                // Check if there's a IIIF service
+                const hasService = imageBody.service && (imageBody.service[0] || imageBody.service);
+                const serviceUrl = hasService ?
+                  (imageBody.service[0]?.['@id'] || imageBody.service[0]?.id || imageBody.service['@id'] || imageBody.service.id) :
+                  null;
+
+                // Extract canvas label
+                const canvasLabelData = canvas.label;
+                let canvasLabel = manifestLabel;
+                if (typeof canvasLabelData === 'string') {
+                  canvasLabel = canvasLabelData;
+                } else if (canvasLabelData && typeof canvasLabelData === 'object') {
+                  canvasLabel = canvasLabelData.ja?.[0] || canvasLabelData.en?.[0] || canvasLabelData.none?.[0] || manifestLabel;
+                }
+
+                newImages.push({
+                  url: imageBody.id || imageBody['@id'],
+                  width: canvas.width || imageBody.width || 1000,
+                  height: canvas.height || imageBody.height || 1000,
+                  mimeType: imageBody.format || 'image/jpeg',
+                  manifestUrl: iiifUrl,
+                  label: canvasLabel,
+                  isIIIF: !!serviceUrl,
+                  iiifBaseUrl: serviceUrl
+                });
+              }
+            }
           }
         }
-      } else if (infoJson.width) {
-        // If no sizes array but width is available, calculate proportional thumbnail
-        const targetWidth = Math.min(400, infoJson.width);
-        thumbnailUrl = `${cleanBaseUrl}/full/${targetWidth},/0/default.jpg`;
+        // Handle v2 format
+        else if (manifestData.sequences?.[0]?.canvases && Array.isArray(manifestData.sequences[0].canvases)) {
+          const canvases = manifestData.sequences[0].canvases;
+
+          for (const canvas of canvases) {
+            const image = canvas.images?.[0];
+
+            if (image?.resource) {
+              const imageResource = image.resource;
+
+              // Extract canvas label
+              const canvasLabel = typeof canvas.label === 'string' ? canvas.label : manifestLabel;
+
+              newImages.push({
+                url: imageResource['@id'] || imageResource.id,
+                width: canvas.width || imageResource.width || 1000,
+                height: canvas.height || imageResource.height || 1000,
+                mimeType: imageResource.format || 'image/jpeg',
+                manifestUrl: iiifUrl,
+                label: canvasLabel,
+                isIIIF: false
+              });
+            }
+          }
+        }
+
+        if (newImages.length > 0) {
+          setUploadedImages([...uploadedImages, ...newImages]);
+          alert(`マニフェストから${newImages.length}個の画像を追加しました`);
+          return;
+        }
+
+        throw new Error('マニフェストから画像を取得できませんでした');
+      } else {
+        // Handle info.json URL
+        const response = await fetch('/api/iiif-info', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url: iiifUrl }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch info.json');
+        }
+
+        const infoJson = await response.json();
+
+        const baseUrl = infoJson.id || infoJson['@id'];
+        if (!baseUrl) {
+          throw new Error('info.jsonにIDが見つかりません');
+        }
+
+        const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+
+        // Full size image URL
+        const imageUrl = `${cleanBaseUrl}/full/full/0/default.jpg`;
+
+        // Generate thumbnail URL with appropriate size
+        let thumbnailUrl = imageUrl; // Default to full size
+        if (infoJson.sizes && infoJson.sizes.length > 0) {
+          // Find a suitable thumbnail size (around 400px width)
+          const thumbnailSize = infoJson.sizes.find((size: {width: number; height: number}) =>
+            size.width >= 400 && size.width <= 800
+          );
+
+          if (thumbnailSize) {
+            // Use specific width AND height from sizes array
+            thumbnailUrl = `${cleanBaseUrl}/full/${thumbnailSize.width},${thumbnailSize.height}/0/default.jpg`;
+          } else {
+            // If no suitable size in range, find the largest available size
+            // Sort sizes by width to ensure we get the largest
+            const sortedSizes = [...infoJson.sizes].sort((a, b) => b.width - a.width);
+            const largestSize = sortedSizes[0];
+            if (largestSize) {
+              thumbnailUrl = `${cleanBaseUrl}/full/${largestSize.width},${largestSize.height}/0/default.jpg`;
+            } else {
+              // Fallback to a small fixed size
+              thumbnailUrl = `${cleanBaseUrl}/full/400,/0/default.jpg`;
+            }
+          }
+        } else if (infoJson.width) {
+          // If no sizes array but width is available, calculate proportional thumbnail
+          const targetWidth = Math.min(400, infoJson.width);
+          thumbnailUrl = `${cleanBaseUrl}/full/${targetWidth},/0/default.jpg`;
+        }
+
+        setUploadedImages([
+          ...uploadedImages,
+          {
+            url: imageUrl,
+            thumbnailUrl: thumbnailUrl,
+            width: infoJson.width,
+            height: infoJson.height,
+            mimeType: 'image/jpeg',
+            infoJson: JSON.stringify(infoJson),
+            isIIIF: true,
+            iiifBaseUrl: cleanBaseUrl
+          },
+        ]);
+
+        alert('info.jsonから画像を追加しました');
       }
-      
-      setUploadedImages([
-        ...uploadedImages,
-        {
-          url: imageUrl,
-          thumbnailUrl: thumbnailUrl,
-          width: infoJson.width,
-          height: infoJson.height,
-          mimeType: 'image/jpeg',
-          infoJson: JSON.stringify(infoJson),
-          isIIIF: true,
-          iiifBaseUrl: cleanBaseUrl
-        },
-      ]);
     } catch (error) {
-      console.error('Error adding info.json:', error);
+      console.error('Error adding IIIF resource:', error);
+      alert(`IIIFリソースの追加に失敗しました: ${error instanceof Error ? error.message : '不明なエラー'}\n\n入力したURLが正しいか確認してください。`);
     }
   };
 

@@ -70,7 +70,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       
       if (bodyString) {
         const metadata = JSON.parse(bodyString);
-        
+
         // Fix any nested format issues in label and summary
         if (metadata.label) {
           metadata.label = cleanMultilingualText(metadata.label);
@@ -78,7 +78,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         if (metadata.summary) {
           metadata.summary = cleanMultilingualText(metadata.summary);
         }
-        
+
         // Clean customFields if they exist
         if (metadata.metadata?.customFields) {
           metadata.metadata.customFields = metadata.metadata.customFields.map((field: unknown) => {
@@ -89,7 +89,45 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             };
           });
         }
-        
+
+        // Sync isPublic to collection.json if there's a mismatch
+        try {
+          const collectionManifestKey = `collections/${session.user.id}/${collectionId}/collection.json`;
+          const getCollectionCommand = new GetObjectCommand({
+            Bucket: process.env.S3_BUCKET_NAME!,
+            Key: collectionManifestKey,
+          });
+
+          const collectionResponse = await s3Client.send(getCollectionCommand);
+          const collectionBodyString = await collectionResponse.Body?.transformToString();
+
+          if (collectionBodyString) {
+            const collectionManifest = JSON.parse(collectionBodyString);
+            const currentXAccessPublic = collectionManifest['x-access']?.isPublic;
+
+            // If there's a mismatch, update collection.json
+            if (currentXAccessPublic !== metadata.isPublic) {
+              collectionManifest['x-access'] = {
+                ...collectionManifest['x-access'],
+                isPublic: metadata.isPublic,
+                owner: session.user.id
+              };
+
+              const updateCommand = new PutObjectCommand({
+                Bucket: process.env.S3_BUCKET_NAME!,
+                Key: collectionManifestKey,
+                Body: JSON.stringify(collectionManifest, null, 2),
+                ContentType: 'application/json'
+              });
+
+              await s3Client.send(updateCommand);
+              console.log(`Synced isPublic=${metadata.isPublic} to collection.json for ${collectionId}`);
+            }
+          }
+        } catch (syncError) {
+          console.log('Could not sync isPublic to collection.json:', syncError);
+        }
+
         return NextResponse.json(metadata);
       }
     } catch {
@@ -229,10 +267,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         if (cleanedData.label && Object.keys(cleanedData.label).length > 0) {
           collectionManifest.label = cleanedData.label;
         }
-        
+
         if (cleanedData.summary && Object.keys(cleanedData.summary).length > 0) {
           collectionManifest.summary = cleanedData.summary;
         }
+
+        // Update x-access field with isPublic setting
+        collectionManifest['x-access'] = {
+          ...collectionManifest['x-access'],
+          isPublic: cleanedData.isPublic,
+          owner: session.user.id
+        };
         
         // Skip the old label/summary handling since we're using cleaned data
         /*
@@ -384,7 +429,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(_request: NextRequest, { params }: RouteParams) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.id) {

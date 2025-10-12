@@ -284,10 +284,14 @@
     "supportedFormats": "Supported formats: JPG, PNG, GIF, WebP (Max 10MB per file)",
     "fromUrl": "Add from URL",
     "fromInfoJson": "Add from info.json",
+    "iiifTab": "IIIF",
     "urlPlaceholder": "https://example.com/image.jpg",
-    "infoJsonPlaceholder": "https://example.com/info.json",
+    "infoJsonPlaceholder": "IIIF manifest.json or info.json URL",
     "uploading": "Uploading...",
-    "add": "Add"
+    "add": "Add",
+    "iiifDescription": "Enter one of the following URLs (automatically detected):",
+    "iiifManifestExample": "IIIF Manifest URL (recommended)",
+    "iiifInfoJsonExample": "IIIF info.json URL"
   },
   "IIIFCollectionImporter": {
     "placeholder": "Enter IIIF Collection URL",
