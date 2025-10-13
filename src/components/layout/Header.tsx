@@ -2,7 +2,7 @@
 
 import { Link } from '@/i18n/routing';
 import { useSession, signIn, signOut } from 'next-auth/react';
-import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu, FiTool, FiHardDrive, FiFolder, FiBook, FiUsers } from 'react-icons/fi';
+import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu, FiTool, FiHardDrive, FiFolder, FiBook, FiUsers, FiHelpCircle } from 'react-icons/fi';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter, usePathname } from 'next/navigation';
@@ -154,6 +154,15 @@ const Header = () => {
                 >
                   <FiBook className="w-4 h-4" />
                   <span>{t('Header.documentation')}</span>
+                </Link>
+
+                <Link
+                  href="/faq"
+                  className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FiHelpCircle className="w-4 h-4" />
+                  <span>{t('Header.faq')}</span>
                 </Link>
 
                 {isAdmin && (
