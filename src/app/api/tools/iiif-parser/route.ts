@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     } else if (type === 'json' && json) {
       try {
         inputData = JSON.parse(json);
-      } catch (e) {
+      } catch {
         throw new Error('Invalid JSON format');
       }
     } else {

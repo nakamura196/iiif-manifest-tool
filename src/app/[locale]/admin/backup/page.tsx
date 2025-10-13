@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { FiDownload, FiHardDrive, FiFile, FiAlertCircle, FiRefreshCw, FiLoader, FiCheck, FiX, FiUsers, FiFileText } from 'react-icons/fi';
+import { FiDownload, FiHardDrive, FiFile, FiAlertCircle, FiRefreshCw, FiLoader, FiX, FiUsers, FiFileText } from 'react-icons/fi';
 
 interface FileInfo {
   key: string;
@@ -25,7 +25,6 @@ export default function AdminBackupPage() {
   const [backupInfo, setBackupInfo] = useState<BackupInfo | null>(null);
   const [error, setError] = useState<string>('');
   const [downloading, setDownloading] = useState(false);
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [filterPattern, setFilterPattern] = useState('');
   const [showPreview, setShowPreview] = useState(false);
 

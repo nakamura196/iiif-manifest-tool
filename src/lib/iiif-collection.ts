@@ -1,6 +1,6 @@
 import { uploadToS3, getS3Url } from './s3';
 import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
-import { IIIFMultilingualText, IIIFCollectionResponse, IIIFTextHelpers } from '@/types/iiif';
+import { IIIFCollectionResponse, IIIFTextHelpers } from '@/types/iiif';
 
 const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT,

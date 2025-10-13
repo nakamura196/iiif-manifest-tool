@@ -45,7 +45,7 @@ interface PreviewData {
 }
 
 export default function S3BrowserPage() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState('');

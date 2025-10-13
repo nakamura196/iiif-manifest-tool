@@ -87,7 +87,6 @@ async function listAllFiles() {
 async function downloadAllFiles() {
   try {
     // Create a stream for the response
-    const encoder = new TextEncoder();
     const stream = new ReadableStream({
       async start(controller) {
         try {

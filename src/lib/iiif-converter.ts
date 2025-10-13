@@ -3,37 +3,6 @@
  * Converts IIIF Presentation API v2 manifests/collections to v3 format
  */
 
-interface IIIFV2Manifest {
-  '@context': string | string[];
-  '@id': string;
-  '@type': string;
-  label: string | { '@value': string } | { [key: string]: string }[];
-  description?: string | { '@value': string } | { [key: string]: string }[];
-  sequences?: Array<{
-    '@id': string;
-    canvases: Array<{
-      '@id': string;
-      width: number;
-      height: number;
-      images: Array<{
-        resource: {
-          '@id': string;
-          '@type': string;
-          format?: string;
-          width?: number;
-          height?: number;
-        };
-      }>;
-    }>;
-  }>;
-  metadata?: Array<{
-    label: string | { '@value': string };
-    value: string | { '@value': string };
-  }>;
-  attribution?: string | string[];
-  license?: string;
-}
-
 interface IIIFV3Manifest {
   '@context': string | string[];
   id: string;

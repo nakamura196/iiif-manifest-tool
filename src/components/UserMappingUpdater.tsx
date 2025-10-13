@@ -15,7 +15,7 @@ export default function UserMappingUpdater() {
         console.log('Failed to update user mapping:', error);
       });
     }
-  }, [session?.user?.id]);
+  }, [session?.user]);
   
   return null;
 }

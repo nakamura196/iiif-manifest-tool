@@ -196,7 +196,7 @@ async function collectUserData(includeCollections: boolean = false, specificUser
                       createdAt: object.LastModified,
                     });
                   }
-                } catch (error) {
+                } catch {
                   console.log(`Could not read collection for ${object.Key}`);
                 }
               }
@@ -223,7 +223,7 @@ async function collectUserData(includeCollections: boolean = false, specificUser
                     userInfo.name = metadata.userName;
                   }
                 }
-              } catch (error) {
+              } catch {
                 console.log(`Could not read metadata for ${object.Key}`);
               }
             }

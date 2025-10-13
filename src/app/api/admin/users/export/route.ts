@@ -161,7 +161,7 @@ async function collectUserData(): Promise<UserInfo[]> {
                       userInfo.name = metadata.userName;
                     }
                   }
-                } catch (error) {
+                } catch {
                   // Ignore errors reading individual files
                   console.log(`Could not read metadata for ${object.Key}`);
                 }

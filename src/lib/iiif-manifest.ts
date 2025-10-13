@@ -509,11 +509,7 @@ export async function listCollectionItems(
             thumbnail = manifest.items[0]?.items[0]?.items[0]?.body?.id;
           }
           const isPublic = manifest['x-access']?.isPublic ?? true;
-          
-          // Use new IIIF URL structure for manifest
-          const combinedId = `${userId}_${collectionId}_${manifestId}`;
-          const manifestUrl = `${process.env.NEXTAUTH_URL}/api/iiif/${combinedId}/manifest`;
-          
+
           // Always use API proxy URL for thumbnail
           if (thumbnail && process.env.S3_ENDPOINT && thumbnail.includes(process.env.S3_ENDPOINT)) {
             const thumbPath = thumbnail.replace(
@@ -541,7 +537,7 @@ export async function listCollectionItems(
             label: manifest.label,
             summary: IIIFTextHelpers.normalizeText(manifest.summary),
             thumbnail,
-            images: manifest.items.map((canvas, index) => ({
+            images: manifest.items.map((canvas) => ({
               id: canvas.id,
               url: canvas.items[0]?.items[0]?.body?.id || '',
               width: canvas.width,
