@@ -2,9 +2,10 @@
 
 import React, { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { useTranslations } from 'next-intl';
-import { FiUpload, FiImage, FiLink, FiLayers } from 'react-icons/fi';
+import { useTranslations, useLocale } from 'next-intl';
+import { FiUpload, FiImage, FiLink, FiLayers, FiExternalLink } from 'react-icons/fi';
 import IIIFCollectionImporter from './IIIFCollectionImporter';
+import Link from 'next/link';
 
 interface ImageUploaderProps {
   onUpload: (files: File[]) => void;
@@ -15,6 +16,7 @@ interface ImageUploaderProps {
 
 export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd, onCollectionImport }: ImageUploaderProps) {
   const t = useTranslations();
+  const locale = useLocale();
   const [urlInput, setUrlInput] = useState('');
   const [infoJsonInput, setInfoJsonInput] = useState('');
   const [activeTab, setActiveTab] = useState<'upload' | 'url' | 'iiif' | 'collection'>('upload');
@@ -183,6 +185,17 @@ export default function ImageUploader({ onUpload, onUrlAdd, onInfoJsonAdd, onCol
               <p className="text-xs pl-4 break-all">https://example.com/iiif/object/123/manifest.json</p>
               <p>• <span className="font-semibold">{t('ImageUploader.iiifInfoJsonExample')}</span></p>
               <p className="text-xs pl-4 break-all">https://example.com/iiif/image/456/info.json</p>
+            </div>
+            <div className="pt-2 border-t border-gray-300 dark:border-gray-600">
+              <Link
+                href={`https://github.com/nakamura196/iiif-manifest-tool/blob/main/docs/${locale === 'en' ? 'en/' : ''}iiif-resources.md`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline"
+              >
+                <FiExternalLink className="text-xs" />
+                <span>{t('ImageUploader.learnMoreAboutIIIF')}</span>
+              </Link>
             </div>
           </div>
         </div>

@@ -291,7 +291,8 @@
     "add": "追加",
     "iiifDescription": "以下のいずれかのURLを入力してください（自動判別されます）：",
     "iiifManifestExample": "IIIFマニフェストURL（推奨）",
-    "iiifInfoJsonExample": "IIIF info.json URL"
+    "iiifInfoJsonExample": "IIIF info.json URL",
+    "learnMoreAboutIIIF": "IIIFリソースの種類について詳しく見る"
   },
   "IIIFCollectionImporter": {
     "placeholder": "IIIF Collection URLを入力",

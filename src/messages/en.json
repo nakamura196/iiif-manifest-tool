@@ -291,7 +291,8 @@
     "add": "Add",
     "iiifDescription": "Enter one of the following URLs (automatically detected):",
     "iiifManifestExample": "IIIF Manifest URL (recommended)",
-    "iiifInfoJsonExample": "IIIF info.json URL"
+    "iiifInfoJsonExample": "IIIF info.json URL",
+    "learnMoreAboutIIIF": "Learn more about IIIF resource types"
   },
   "IIIFCollectionImporter": {
     "placeholder": "Enter IIIF Collection URL",
