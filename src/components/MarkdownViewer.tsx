@@ -37,6 +37,13 @@ export const MarkdownViewer: React.FC<MarkdownViewerProps> = ({ content, classNa
               <h3 id={id} className="text-xl font-semibold mb-2 mt-4 text-gray-800 dark:text-gray-200">{children}</h3>
             );
           },
+          h4: ({ children }) => {
+            const text = Array.isArray(children) ? children.join('') : String(children || '');
+            const id = text.toLowerCase().replace(/\s+/g, '-').replace(/[^\w\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF-]/g, '');
+            return (
+              <h4 id={id} className="text-lg font-semibold mb-2 mt-3 text-gray-800 dark:text-gray-200">{children}</h4>
+            );
+          },
           p: ({ children }) => (
             <p className="mb-4 text-gray-700 dark:text-gray-300 leading-relaxed">{children}</p>
           ),
