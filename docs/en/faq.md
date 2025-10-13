@@ -26,7 +26,7 @@ To use a manifest URL, add it from the "IIIF Manifest" tab.
 
 ### Where can I get IIIF images?
 
-Many museums, libraries, and galleries publish images in IIIF format. Examples include Keio University (https://dcollections.lib.keio.ac.jp/), National Diet Library Digital Collections, and the Metropolitan Museum of Art. Search for "IIIF" or "manifest.json" on their websites.
+Many museums, libraries, and galleries publish images in IIIF format. Examples include Keio University, National Diet Library Digital Collections, and the Metropolitan Museum of Art. Search for "IIIF" or "manifest.json" on their websites.
 
 ## Adding Images
 
