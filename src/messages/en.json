@@ -277,7 +277,13 @@
     "addInfo": "Add Information",
     "fieldLabel": "Field Name (e.g. Creation Year)",
     "fieldValue": "Content (e.g. 1850)",
-    "detailEdit": "Advanced Edit"
+    "detailEdit": "Advanced Edit",
+    "physicalDimensions": "Physical Dimensions (Optional)",
+    "physicalDimensionsNote": "Specify the real-world physical size to record it as a PhysicalDimensions service in the IIIF manifest.",
+    "physicalWidthCm": "Width (cm)",
+    "physicalWidthCmPlaceholder": "e.g. 32.6",
+    "physicalHeightCm": "Height (cm)",
+    "physicalHeightCmPlaceholder": "e.g. 21.2"
   },
   "ImageUploader": {
     "title": "Add Images",
@@ -372,6 +378,12 @@
     "addCustomField": "Add Custom Field",
     "customFieldsMultilingual": "Custom fields support multiple languages. You can set labels and values in Japanese and English.",
     "multilineNote": "To enter multiple values, separate them with line breaks",
+    "physicalDimensions": "Physical Dimensions (Optional)",
+    "physicalDimensionsNote": "Specify the real-world physical size to record it as a PhysicalDimensions service in the IIIF manifest.",
+    "physicalWidthCm": "Width (cm)",
+    "physicalWidthCmPlaceholder": "e.g. 32.6",
+    "physicalHeightCm": "Height (cm)",
+    "physicalHeightCmPlaceholder": "e.g. 21.2",
     "annotations": "Georeference",
     "georeferencing": "Georeferencing",
     "addImagesFirst": "Please add images first",

@@ -114,12 +114,26 @@ export interface IIIFManifest {
         };
       }>;
     }>;
+    service?: Array<{
+      '@context'?: string;
+      '@id'?: string;
+      id?: string;
+      '@type'?: string;
+      type?: string;
+      profile?: string;
+      physicalScale?: number;
+      physicalUnits?: string;
+    }>;
     'x-canvas-access'?: {  // Per-canvas access control (internal only)
       isPublic?: boolean;
       allowedUsers?: string[];
       allowedGroups?: string[];
     };
   }>;
+  'x-physical-dimensions'?: {  // Physical dimensions for easy access
+    widthCm?: number;
+    heightCm?: number;
+  };
   metadata?: Array<{
     label: { [key: string]: string[] };
     value: { [key: string]: string[] };
@@ -227,6 +241,10 @@ export async function createIIIFManifest(
       label: { [key: string]: string[] };
       value: { [key: string]: string[] };
     }>;
+  },
+  physicalDimensions?: {
+    widthCm?: number;
+    heightCm?: number;
   }
 ): Promise<{ manifestId: string; manifestUrl: string }> {
   const itemId = uuidv4();
@@ -343,13 +361,27 @@ export async function createIIIFManifest(
         ]
       };
       
+      // Add PhysicalDimensions service if provided
+      if (physicalDimensions?.widthCm && physicalDimensions?.heightCm && img.width > 0) {
+        const physicalScale = physicalDimensions.widthCm / img.width;
+        canvas.service = [
+          {
+            '@context': 'http://iiif.io/api/annex/services/physdim/1/context.json',
+            '@id': `${canvasId}/physical-dimensions`,
+            profile: 'http://iiif.io/api/annex/services/physdim',
+            physicalScale: physicalScale,
+            physicalUnits: 'cm'
+          }
+        ];
+      }
+
       // Add per-canvas access control if provided
       if (canvasAccess && canvasAccess[index]) {
         canvas['x-canvas-access'] = canvasAccess[index];
       } else if (img.access) {
         canvas['x-canvas-access'] = img.access;
       }
-      
+
       return canvas;
     }),
     metadata: [
@@ -368,6 +400,14 @@ export async function createIIIFManifest(
       isPublic: isPublic
     }
   };
+
+  // Add x-physical-dimensions if provided
+  if (physicalDimensions?.widthCm || physicalDimensions?.heightCm) {
+    (manifest as unknown as Record<string, unknown>)['x-physical-dimensions'] = {
+      widthCm: physicalDimensions.widthCm,
+      heightCm: physicalDimensions.heightCm
+    };
+  }
 
   if (summaryObj) {
     manifest.summary = summaryObj;
@@ -637,7 +677,11 @@ export async function updateIIIFManifest(
     }>;
     transformationType?: 'polynomial' | 'thin-plate-spline';
     transformationOrder?: number;
-  }}
+  }},
+  physicalDimensions?: {
+    widthCm?: number;
+    heightCm?: number;
+  }
 ): Promise<boolean> {
   try {
     const manifestKey = `collections/${userId}/${collectionId}/items/${manifestId}/manifest.json`;
@@ -772,13 +816,27 @@ export async function updateIIIFManifest(
           ]
         };
         
+        // Add PhysicalDimensions service if provided
+        if (physicalDimensions?.widthCm && physicalDimensions?.heightCm && img.width > 0) {
+          const physicalScale = physicalDimensions.widthCm / img.width;
+          canvas.service = [
+            {
+              '@context': 'http://iiif.io/api/annex/services/physdim/1/context.json',
+              '@id': `${canvasId}/physical-dimensions`,
+              profile: 'http://iiif.io/api/annex/services/physdim',
+              physicalScale: physicalScale,
+              physicalUnits: 'cm'
+            }
+          ];
+        }
+
         // Add per-canvas access control if provided
         if (canvasAccess && canvasAccess[index]) {
           canvas['x-canvas-access'] = canvasAccess[index];
         } else if (img.access) {
           canvas['x-canvas-access'] = img.access;
         }
-        
+
         return canvas;
       }),
       metadata: [
@@ -865,6 +923,14 @@ export async function updateIIIFManifest(
     // Add georeferencing annotations if provided
     if (geoAnnotations && Object.keys(geoAnnotations).length > 0) {
       (manifest as unknown as Record<string, unknown>)['x-geo-annotations'] = geoAnnotations;
+    }
+
+    // Add x-physical-dimensions if provided
+    if (physicalDimensions?.widthCm || physicalDimensions?.heightCm) {
+      (manifest as unknown as Record<string, unknown>)['x-physical-dimensions'] = {
+        widthCm: physicalDimensions.widthCm,
+        heightCm: physicalDimensions.heightCm
+      };
     }
 
     // Upload updated manifest to S3

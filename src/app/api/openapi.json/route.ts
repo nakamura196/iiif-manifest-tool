@@ -20,15 +20,15 @@ const openApiSpec = {
   tags: [
     {
       name: 'Collections',
-      description: 'Operations related to IIIF collections',
+      description: 'CRUD operations for IIIF collections',
     },
     {
       name: 'Items',
-      description: 'Operations related to IIIF manifest items',
+      description: 'CRUD operations for IIIF manifest items within collections',
     },
     {
       name: 'Manifests',
-      description: 'IIIF manifest endpoints',
+      description: 'IIIF Presentation API manifest endpoints',
     },
     {
       name: 'IIIF',
@@ -36,7 +36,7 @@ const openApiSpec = {
     },
     {
       name: 'Authentication',
-      description: 'Authentication and authorization endpoints',
+      description: 'Authentication, authorization, and API token management',
     },
     {
       name: 'Upload',
@@ -49,7 +49,7 @@ const openApiSpec = {
         tags: ['Collections'],
         summary: 'List user collections',
         description: 'Retrieve all collections owned by the authenticated user',
-        security: [{ sessionAuth: [] }],
+        security: [{ bearerAuth: [] }],
         responses: {
           200: {
             description: 'List of collections',
@@ -76,7 +76,7 @@ const openApiSpec = {
         tags: ['Collections'],
         summary: 'Create a new collection',
         description: 'Create a new IIIF collection',
-        security: [{ sessionAuth: [] }],
+        security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -107,6 +107,139 @@ const openApiSpec = {
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/collections/{collectionId}': {
+      get: {
+        tags: ['Collections'],
+        summary: 'Get collection detail',
+        description: 'Retrieve detailed metadata for a specific collection owned by the authenticated user',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'collectionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'Collection ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Collection detail',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CollectionDetail' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Collection not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        tags: ['Collections'],
+        summary: 'Update a collection',
+        description: 'Update collection metadata (label, summary, visibility, custom fields)',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'collectionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'Collection ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  label: { $ref: '#/components/schemas/MultilingualText' },
+                  summary: { $ref: '#/components/schemas/MultilingualText' },
+                  isPublic: { type: 'boolean' },
+                  metadata: {
+                    type: 'object',
+                    description: 'IIIF metadata fields (attribution, rights, requiredStatement, homepage, seeAlso, provider, customFields)',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Collection updated',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/CollectionDetail' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['Collections'],
+        summary: 'Delete a collection',
+        description: 'Delete a collection and all its contents from S3',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'collectionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'Collection ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Collection deleted',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    success: { type: 'boolean' },
+                  },
+                },
               },
             },
           },
@@ -169,7 +302,7 @@ const openApiSpec = {
         tags: ['Items'],
         summary: 'Create a new item',
         description: 'Create a new IIIF manifest item in a collection',
-        security: [{ sessionAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'collectionId',
@@ -249,7 +382,71 @@ const openApiSpec = {
       get: {
         tags: ['Items'],
         summary: 'Get a specific item',
-        description: 'Retrieve a specific item by ID',
+        description: 'Retrieve a specific item (manifest) by ID, including images, metadata, and location',
+        security: [{ bearerAuth: [] }],
+        parameters: [
+          {
+            name: 'collectionId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'Collection ID',
+          },
+          {
+            name: 'itemId',
+            in: 'path',
+            required: true,
+            schema: { type: 'string', format: 'uuid' },
+            description: 'Item ID',
+          },
+          {
+            name: 'ownerId',
+            in: 'query',
+            required: false,
+            schema: { type: 'string' },
+            description: 'Owner user ID (defaults to authenticated user)',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Item details with images, metadata, and location',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ItemDetail' },
+              },
+            },
+          },
+          400: {
+            description: 'Owner ID required (when not authenticated)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized (private item)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Item not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+      patch: {
+        tags: ['Items'],
+        summary: 'Update an item (PATCH)',
+        description: 'Update an existing IIIF manifest item. Alias for PUT.',
+        security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'collectionId',
@@ -264,12 +461,28 @@ const openApiSpec = {
             schema: { type: 'string', format: 'uuid' },
           },
         ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ItemUpdateRequest' },
+            },
+          },
+        },
         responses: {
           200: {
-            description: 'Item details',
+            description: 'Item updated',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Item' },
+              },
+            },
+          },
+          400: {
+            description: 'Invalid request',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
               },
             },
           },
@@ -293,9 +506,9 @@ const openApiSpec = {
       },
       put: {
         tags: ['Items'],
-        summary: 'Update an item',
+        summary: 'Update an item (PUT)',
         description: 'Update an existing IIIF manifest item',
-        security: [{ sessionAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'collectionId',
@@ -379,7 +592,7 @@ const openApiSpec = {
         tags: ['Items'],
         summary: 'Delete an item',
         description: 'Delete an existing IIIF manifest item',
-        security: [{ sessionAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'collectionId',
@@ -418,6 +631,169 @@ const openApiSpec = {
           },
           404: {
             description: 'Item not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/auth/api-token': {
+      get: {
+        tags: ['Authentication'],
+        summary: 'List API tokens',
+        description: 'List all active long-lived API tokens for the authenticated user',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'List of API tokens',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'array',
+                      items: { $ref: '#/components/schemas/ApiTokenInfo' },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        tags: ['Authentication'],
+        summary: 'Generate API token',
+        description: 'Generate a new long-lived API token. The raw token is returned only once in the response -- store it securely.',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['name'],
+                properties: {
+                  name: {
+                    type: 'string',
+                    description: 'Human-readable name for the token',
+                    example: 'iOS App',
+                  },
+                  expiresInDays: {
+                    type: 'integer',
+                    nullable: true,
+                    description: 'Token lifetime in days. Omit or null for no expiry.',
+                    example: 365,
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'API token created. The token value is shown only once.',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'object',
+                      properties: {
+                        token: { type: 'string', description: 'Raw API token (store securely, shown only once)', example: 'pkt_abc123...' },
+                        name: { type: 'string' },
+                        lastFour: { type: 'string', example: 'c123' },
+                        createdAt: { type: 'string', format: 'date-time' },
+                        expiresAt: { type: 'string', format: 'date-time', nullable: true },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Token name is required',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['Authentication'],
+        summary: 'Revoke API token',
+        description: 'Revoke (delete) an API token by its hash',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['tokenHash'],
+                properties: {
+                  tokenHash: {
+                    type: 'string',
+                    description: 'SHA-256 hash of the token to revoke (from the list endpoint)',
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          200: {
+            description: 'Token revoked',
+            content: {
+              'application/json': {
+                schema: {
+                  type: 'object',
+                  properties: {
+                    data: {
+                      type: 'object',
+                      properties: {
+                        success: { type: 'boolean' },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Error' },
+              },
+            },
+          },
+          404: {
+            description: 'Token not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/Error' },
@@ -518,7 +894,7 @@ const openApiSpec = {
         tags: ['Upload'],
         summary: 'Upload an image',
         description: 'Upload an image to mdx object storage',
-        security: [{ sessionAuth: [] }],
+        security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
           content: {
@@ -614,7 +990,7 @@ const openApiSpec = {
         tags: ['Authentication'],
         summary: 'Generate IIIF Auth token',
         description: 'Generate an access token for a protected item',
-        security: [{ sessionAuth: [] }],
+        security: [{ bearerAuth: [] }],
         parameters: [
           {
             name: 'itemId',
@@ -968,24 +1344,29 @@ const openApiSpec = {
       bearerAuth: {
         type: 'http',
         scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'JWT token for IIIF Auth API (for non-public items)',
-      },
-      sessionAuth: {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'Firebase ID Token',
-        description: 'Firebase Auth ID token (obtained from Firebase Auth SDK)',
+        bearerFormat: 'JWT or API Token',
+        description: 'Firebase Auth ID token (from Firebase Auth SDK) or a long-lived API token (prefixed with pkt_). Both are passed as Bearer tokens in the Authorization header.',
       },
     },
     schemas: {
+      MultilingualText: {
+        type: 'object',
+        description: 'IIIF v3 multilingual text: keys are language codes, values are arrays of strings',
+        example: { ja: ['Japanese text'], en: ['English text'] },
+        additionalProperties: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
       Collection: {
         type: 'object',
+        description: 'Collection summary as returned by the list endpoint',
         properties: {
           id: { type: 'string', format: 'uuid' },
-          name: { type: 'string' },
-          description: { type: 'string', nullable: true },
+          label: { $ref: '#/components/schemas/MultilingualText' },
+          summary: { $ref: '#/components/schemas/MultilingualText' },
           isPublic: { type: 'boolean' },
+          url: { type: 'string', description: 'IIIF Collection manifest URL' },
           createdAt: { type: 'string', format: 'date-time' },
           _count: {
             type: 'object',
@@ -995,33 +1376,153 @@ const openApiSpec = {
           },
         },
       },
-      Item: {
+      CollectionDetail: {
         type: 'object',
+        description: 'Full collection metadata as returned by the detail endpoint',
         properties: {
           id: { type: 'string', format: 'uuid' },
-          title: { type: 'string' },
-          description: { type: 'string', nullable: true },
-          collectionId: { type: 'string', format: 'uuid' },
-          manifest: { type: 'string' },
+          label: { $ref: '#/components/schemas/MultilingualText' },
+          summary: { $ref: '#/components/schemas/MultilingualText' },
+          isPublic: { type: 'boolean' },
+          metadata: {
+            type: 'object',
+            properties: {
+              attribution: { type: 'string', nullable: true },
+              rights: { type: 'string', nullable: true },
+              requiredStatement: { type: 'object', nullable: true },
+              homepage: { type: 'array', nullable: true },
+              seeAlso: { type: 'array', nullable: true },
+              provider: { type: 'array', nullable: true },
+              customFields: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    label: { $ref: '#/components/schemas/MultilingualText' },
+                    value: { $ref: '#/components/schemas/MultilingualText' },
+                  },
+                },
+              },
+            },
+          },
+          updatedAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      Item: {
+        type: 'object',
+        description: 'Item summary',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          label: { $ref: '#/components/schemas/MultilingualText' },
+          summary: { $ref: '#/components/schemas/MultilingualText' },
+          title: { type: 'string', description: 'Backward-compatible single title string' },
+          description: { type: 'string', nullable: true, description: 'Backward-compatible description' },
+          isPublic: { type: 'boolean' },
+          manifestUrl: { type: 'string', format: 'uri' },
+          imageCount: { type: 'integer' },
+          thumbnail: { type: 'string', format: 'uri', nullable: true },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      ItemDetail: {
+        type: 'object',
+        description: 'Full item detail including images, metadata, and location',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          label: { $ref: '#/components/schemas/MultilingualText' },
+          summary: { $ref: '#/components/schemas/MultilingualText' },
+          title: { type: 'string', description: 'Backward-compatible title' },
+          description: { type: 'string', nullable: true, description: 'Backward-compatible description' },
           isPublic: { type: 'boolean' },
           images: {
             type: 'array',
             items: { $ref: '#/components/schemas/Image' },
           },
-          createdAt: { type: 'string', format: 'date-time' },
-          updatedAt: { type: 'string', format: 'date-time' },
+          metadata: {
+            type: 'object',
+            properties: {
+              attribution: { type: 'string', nullable: true },
+              rights: { type: 'string', nullable: true },
+              requiredStatement: { type: 'object', nullable: true },
+              homepage: { type: 'array', nullable: true },
+              seeAlso: { type: 'array', nullable: true },
+              provider: { type: 'array', nullable: true },
+              customFields: { type: 'array', nullable: true },
+            },
+          },
+          location: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              latitude: { type: 'number' },
+              longitude: { type: 'number' },
+              label: { type: 'string' },
+            },
+          },
+          geoAnnotations: { type: 'object', nullable: true },
+        },
+      },
+      ItemUpdateRequest: {
+        type: 'object',
+        required: ['images'],
+        properties: {
+          title: { type: 'string', description: 'Legacy single title' },
+          titleJa: { type: 'string' },
+          titleEn: { type: 'string' },
+          label: { $ref: '#/components/schemas/MultilingualText' },
+          description: { type: 'string', nullable: true },
+          descriptionJa: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+          descriptionEn: { oneOf: [{ type: 'string' }, { type: 'array', items: { type: 'string' } }] },
+          summary: { $ref: '#/components/schemas/MultilingualText' },
+          images: {
+            type: 'array',
+            minItems: 1,
+            items: {
+              type: 'object',
+              properties: {
+                url: { type: 'string', format: 'uri' },
+                width: { type: 'integer' },
+                height: { type: 'integer' },
+                mimeType: { type: 'string' },
+              },
+            },
+          },
+          isPublic: { type: 'boolean' },
+          metadata: { type: 'object' },
+          location: {
+            type: 'object',
+            nullable: true,
+            properties: {
+              latitude: { type: 'number' },
+              longitude: { type: 'number' },
+              label: { type: 'string' },
+            },
+          },
         },
       },
       Image: {
         type: 'object',
         properties: {
-          id: { type: 'string', format: 'uuid' },
+          id: { type: 'string' },
           url: { type: 'string', format: 'uri' },
           width: { type: 'integer', nullable: true },
           height: { type: 'integer', nullable: true },
           mimeType: { type: 'string', nullable: true },
           order: { type: 'integer' },
-          infoJson: { type: 'string', nullable: true },
+          isIIIF: { type: 'boolean', description: 'Whether this image is served via IIIF Image API' },
+          iiifBaseUrl: { type: 'string', format: 'uri', nullable: true, description: 'IIIF Image API base URL if available' },
+        },
+      },
+      ApiTokenInfo: {
+        type: 'object',
+        description: 'API token metadata (raw token value is never included)',
+        properties: {
+          tokenHash: { type: 'string', description: 'SHA-256 hash, used as token identifier for revocation' },
+          name: { type: 'string' },
+          lastFour: { type: 'string', description: 'Last 4 characters of the raw token' },
+          createdAt: { type: 'string', format: 'date-time' },
+          expiresAt: { type: 'string', format: 'date-time', nullable: true },
+          lastUsedAt: { type: 'string', format: 'date-time', nullable: true },
         },
       },
       IIIFManifest: {

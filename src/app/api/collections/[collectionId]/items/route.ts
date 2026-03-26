@@ -64,15 +64,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { 
+    const {
       title,  // Legacy single title string
       label,  // IIIF v3 format: { [lang]: string[] }
       description,  // Legacy single description string
       summary,  // IIIF v3 format: { [lang]: string[] }
-      images, 
-      isPublic = true, 
+      images,
+      isPublic = true,
       location,
-      metadata  // Now includes all IIIF metadata fields
+      metadata,  // Now includes all IIIF metadata fields
+      physicalWidthCm,
+      physicalHeightCm
     } = body;
 
     // Convert to IIIF v3 format if needed
@@ -109,6 +111,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Build physical dimensions if provided
+    const physicalDimensions = (physicalWidthCm || physicalHeightCm) ? {
+      widthCm: physicalWidthCm ? parseFloat(physicalWidthCm) : undefined,
+      heightCm: physicalHeightCm ? parseFloat(physicalHeightCm) : undefined
+    } : undefined;
+
     // Create IIIF manifest and save to S3
     const { manifestId, manifestUrl } = await createIIIFManifest(
       userId,
@@ -119,7 +127,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       isPublic,
       undefined,  // canvasAccess
       location,
-      parsedMetadata  // This now includes all metadata fields
+      parsedMetadata,  // This now includes all metadata fields
+      physicalDimensions
     );
 
     // Extract single values for backward compatibility in response

@@ -277,7 +277,13 @@
     "addInfo": "情報を追加",
     "fieldLabel": "項目名（例: 作成年）",
     "fieldValue": "内容（例: 1850年）",
-    "detailEdit": "詳細編集"
+    "detailEdit": "詳細編集",
+    "physicalDimensions": "実寸情報（任意）",
+    "physicalDimensionsNote": "実物の物理的なサイズを指定すると、IIIFマニフェストにPhysicalDimensionsサービスとして記録されます。",
+    "physicalWidthCm": "幅 (cm)",
+    "physicalWidthCmPlaceholder": "例: 32.6",
+    "physicalHeightCm": "高さ (cm)",
+    "physicalHeightCmPlaceholder": "例: 21.2"
   },
   "ImageUploader": {
     "title": "画像を追加",
@@ -372,6 +378,12 @@
     "addCustomField": "カスタムフィールドを追加",
     "customFieldsMultilingual": "カスタムフィールドは多言語対応しています。日本語と英語で項目名と値を設定できます。",
     "multilineNote": "複数の値を入力する場合は、改行で区切ってください",
+    "physicalDimensions": "実寸情報（任意）",
+    "physicalDimensionsNote": "実物の物理的なサイズを指定すると、IIIFマニフェストにPhysicalDimensionsサービスとして記録されます。",
+    "physicalWidthCm": "幅 (cm)",
+    "physicalWidthCmPlaceholder": "例: 32.6",
+    "physicalHeightCm": "高さ (cm)",
+    "physicalHeightCmPlaceholder": "例: 21.2",
     "annotations": "ジオリファレンス",
     "georeferencing": "地理参照",
     "addImagesFirst": "先に画像を追加してください",
