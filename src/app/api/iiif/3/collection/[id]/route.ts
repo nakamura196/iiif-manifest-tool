@@ -46,7 +46,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         let itemOnlyId: string | null = null;
 
         if (item.manifestId) {
-          itemOnlyId = item.manifestId;
+          const prefix = `${userId}_${collectionId}_`;
+          if (item.manifestId.startsWith(prefix)) {
+            itemOnlyId = item.manifestId.slice(prefix.length);
+          } else {
+            itemOnlyId = item.manifestId;
+          }
         }
 
         if (!itemOnlyId && item.id) {
