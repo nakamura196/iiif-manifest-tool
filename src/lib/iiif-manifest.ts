@@ -3,6 +3,7 @@ import { S3Client, GetObjectCommand, ListObjectsV2Command } from '@aws-sdk/clien
 import { addItemToCollection, updateItemInCollection } from './iiif-collection';
 import { v4 as uuidv4 } from 'uuid';
 import { IIIFMultilingualText, IIIFItemResponse, IIIFTextHelpers } from '@/types/iiif';
+import { buildManifestUrl } from './iiif-ids';
 
 const s3Client = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
@@ -253,10 +254,9 @@ export async function createIIIFManifest(
   // Always use S3 URL for storage
   const s3ManifestUrl = getS3Url(manifestKey);
   
-  // Use versioned IIIF URL structure
+  // Use RESTful IIIF URL structure
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-  const manifestId = `${userId}_${collectionId}_${itemId}`;
-  const publicManifestUrl = `${baseUrl}/api/iiif/3/${manifestId}/manifest`;
+  const publicManifestUrl = buildManifestUrl(baseUrl, userId, collectionId, itemId);
 
   const contexts: string[] = ['http://iiif.io/api/presentation/3/context.json'];
   if (location) {
@@ -486,7 +486,7 @@ export async function createIIIFManifest(
   const finalLabel = typeof title === 'string' ? undefined : title;
   const thumbnailUrl = manifest.thumbnail?.[0]?.id ||
     (images[0]?.thumbnailUrl || images[0]?.url || undefined);
-  await addItemToCollection(userId, collectionId, publicManifestUrl, manifestId, titleString, {
+  await addItemToCollection(userId, collectionId, publicManifestUrl, itemId, titleString, {
     label: finalLabel,
     summary: manifest.summary,
     thumbnailUrl,

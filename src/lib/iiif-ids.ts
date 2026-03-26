@@ -81,7 +81,13 @@ export function extractItemIdFromReference(
     return extractItemId(s3Match[1], userId, collectionId);
   }
 
-  // 3. API URL: .../api/iiif/(3/)?{combinedId}/manifest
+  // 3a. RESTful API URL: .../api/iiif/{version}/users/{userId}/collections/{collectionId}/items/{itemId}/manifest
+  const restfulMatch = item.id.match(/\/api\/iiif\/\d+\/users\/[^/]+\/collections\/[^/]+\/items\/([^/]+)\/manifest/);
+  if (restfulMatch) {
+    return restfulMatch[1];
+  }
+
+  // 3b. Legacy API URL: .../api/iiif/(3/)?{combinedId}/manifest
   const apiMatch = item.id.match(/\/api\/iiif\/(?:3\/)?([^/]+)\/manifest/);
   if (apiMatch) {
     return extractItemId(apiMatch[1], userId, collectionId);
@@ -99,7 +105,7 @@ export function extractItemIdFromReference(
 // Manifest URL builder
 // ---------------------------------------------------------------------------
 
-/** Build a public IIIF v3 manifest URL. */
+/** Build a public IIIF v3 manifest URL (RESTful format). */
 export function buildManifestUrl(
   baseUrl: string,
   userId: string,
@@ -107,18 +113,29 @@ export function buildManifestUrl(
   itemId: string,
   version: 2 | 3 = 3
 ): string {
-  const combinedId = buildCombinedId(userId, collectionId, itemId);
-  return `${baseUrl}/api/iiif/${version === 2 ? '' : '3/'}${combinedId}/manifest`;
+  return `${baseUrl}/api/iiif/${version}/users/${userId}/collections/${collectionId}/items/${itemId}/manifest`;
 }
 
-/** Build a public IIIF collection URL. */
+/** Build a public IIIF collection URL (RESTful format). */
 export function buildCollectionUrl(
   baseUrl: string,
   userId: string,
   collectionId: string,
   version: 2 | 3 = 3
 ): string {
-  return `${baseUrl}/api/iiif/${version}/collection/${userId}_${collectionId}`;
+  return `${baseUrl}/api/iiif/${version}/users/${userId}/collections/${collectionId}`;
+}
+
+/** Parse a RESTful manifest URL into its parts. Returns null if the format is invalid. */
+export function parseManifestUrl(url: string): { userId: string; collectionId: string; itemId: string; version: number } | null {
+  const match = url.match(/\/api\/iiif\/(\d+)\/users\/([^/]+)\/collections\/([^/]+)\/items\/([^/]+)\/manifest/);
+  if (!match) return null;
+  return {
+    version: parseInt(match[1], 10),
+    userId: match[2],
+    collectionId: match[3],
+    itemId: match[4],
+  };
 }
 
 // ---------------------------------------------------------------------------

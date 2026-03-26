@@ -178,8 +178,87 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 }
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
-  // PATCH delegates to the same logic as PUT for backward compatibility
-  return PUT(request, { params });
+  try {
+    const { collectionId, itemId } = await params;
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const userId = user.id;
+
+    // Verify ownership
+    const existingManifest = await getIIIFManifest(userId, collectionId, itemId);
+    if (!existingManifest || existingManifest['x-access']?.owner !== userId) {
+      return NextResponse.json({ error: 'Item not found or unauthorized' }, { status: 404 });
+    }
+
+    const body = await request.json();
+
+    // Partial update: merge metadata into existing manifest
+    if (body.metadata) {
+      const meta = body.metadata;
+
+      if (meta.requiredStatement) {
+        existingManifest.requiredStatement = meta.requiredStatement;
+      }
+      if (meta.rights) {
+        existingManifest.rights = meta.rights;
+      }
+      if (meta.provider) {
+        existingManifest.provider = meta.provider;
+      }
+      if (meta.homepage) {
+        existingManifest.homepage = meta.homepage;
+      }
+      if (meta.seeAlso) {
+        existingManifest.seeAlso = meta.seeAlso;
+      }
+      if (meta.customFields && Array.isArray(meta.customFields)) {
+        // Replace existing metadata (except system fields like Created, Collection ID)
+        const systemLabels = ['作成日', 'Created', 'コレクションID', 'Collection ID', '更新日', 'Updated'];
+        const systemMetadata = (existingManifest.metadata || []).filter(
+          (m: { label?: Record<string, string[]> }) => {
+            const labels = Object.values(m.label || {}).flat();
+            return labels.some(l => systemLabels.includes(l));
+          }
+        );
+        existingManifest.metadata = [...systemMetadata, ...meta.customFields];
+      }
+    }
+
+    // Partial update: physical dimensions
+    if (body.physicalWidthCm !== undefined || body.physicalHeightCm !== undefined) {
+      existingManifest['x-physical-dimensions'] = {
+        ...(existingManifest['x-physical-dimensions'] || {}),
+        ...(body.physicalWidthCm !== undefined ? { widthCm: parseFloat(body.physicalWidthCm) } : {}),
+        ...(body.physicalHeightCm !== undefined ? { heightCm: parseFloat(body.physicalHeightCm) } : {}),
+      };
+    }
+
+    // Partial update: label/summary
+    if (body.label) {
+      existingManifest.label = body.label;
+    }
+    if (body.summary) {
+      existingManifest.summary = body.summary;
+    }
+
+    // Save back to S3
+    const { uploadToS3 } = await import('@/lib/s3');
+    const manifestKey = `collections/${userId}/${collectionId}/items/${itemId}/manifest.json`;
+    await uploadToS3(
+      manifestKey,
+      JSON.stringify(existingManifest, null, 2),
+      'application/json'
+    );
+
+    return NextResponse.json({ success: true, id: itemId });
+  } catch (error) {
+    console.error('Error patching item:', error);
+    return NextResponse.json({ error: 'Failed to update item' }, { status: 500 });
+  }
 }
 
 export async function PUT(request: NextRequest, { params }: RouteParams) {

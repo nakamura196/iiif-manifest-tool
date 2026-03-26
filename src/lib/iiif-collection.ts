@@ -316,7 +316,7 @@ export async function addItemToCollection(
       }];
     }
 
-    collection.items.push(itemReference);
+    collection.items.push(itemReference as typeof collection.items[0]);
 
     return await updateIIIFCollection(userId, collectionId, {
       items: collection.items
