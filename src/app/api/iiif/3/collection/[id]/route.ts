@@ -43,35 +43,44 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     if (collection.items) {
       collection.items = collection.items.map((item) => {
         let manifestId = item.manifestId;
-        
-        // If no manifestId, extract from the S3 URL
+
+        // If no manifestId, try to extract from various URL formats
         if (!manifestId && item.id) {
-          // Extract from URL like: .../items/2018583e-8940-469c-ae79-891a6d255f8a/manifest.json
-          const match = item.id.match(/\/items\/([^\/]+)\/manifest\.json/);
-          if (match) {
-            manifestId = match[1];
+          // Format: .../items/{itemId}/manifest.json (S3 path)
+          const s3Match = item.id.match(/\/items\/([^\/]+)\/manifest/);
+          if (s3Match) {
+            manifestId = s3Match[1];
+          }
+
+          // Format: .../api/iiif/3/{userId}_{collectionId}_{itemId}/manifest (API URL)
+          if (!manifestId) {
+            const apiMatch = item.id.match(/\/api\/iiif\/(?:3\/)?([^\/]+)\/manifest/);
+            if (apiMatch) {
+              const idPart = apiMatch[1];
+              // If already combined format, extract itemId
+              const parts = idPart.split('_');
+              if (parts.length === 3) {
+                manifestId = parts[2]; // itemId is the third part
+              } else {
+                manifestId = idPart;
+              }
+            }
           }
         }
-        
-        // Fallback to extracting from the end of the URL
+
+        // Fallback: extract from the end of the URL
         if (!manifestId) {
-          manifestId = item.id.split('/').pop()?.replace('.json', '') || item.id;
+          const segments = item.id.split('/').filter((s: string) => s && s !== 'manifest' && s !== 'manifest.json');
+          manifestId = segments.pop() || item.id;
         }
-        
-        // Check if manifestId already contains the full combined ID format
-        let combinedId: string;
-        if (manifestId.includes('_') && manifestId.split('_').length === 3) {
-          // Already in combined format, use as is
-          combinedId = manifestId;
-        } else {
-          // Just the item ID, need to create combined format
-          combinedId = `${userId}_${collectionId}_${manifestId}`;
-        }
-        
+
+        const combinedId = `${userId}_${collectionId}_${manifestId}`;
+
         return {
-          id: `${baseUrl}/api/iiif/${combinedId}/manifest`,
+          id: `${baseUrl}/api/iiif/3/${combinedId}/manifest`,
           type: 'Manifest',
-          label: item.label
+          label: item.label,
+          ...(item.thumbnail ? { thumbnail: item.thumbnail } : {}),
         };
       });
     }

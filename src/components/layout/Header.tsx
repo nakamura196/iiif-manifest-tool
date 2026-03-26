@@ -130,6 +130,15 @@ const Header = () => {
                 </Link>
 
                 <Link
+                  href="/dashboard/api-keys"
+                  className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <FiKey className="w-4 h-4" />
+                  <span>{t('Header.apiKeys')}</span>
+                </Link>
+
+                <Link
                   href="/api-doc/auth-info"
                   className="flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                   onClick={() => setIsMenuOpen(false)}
