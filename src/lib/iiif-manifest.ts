@@ -481,9 +481,16 @@ export async function createIIIFManifest(
   );
 
   // Add item reference to collection (use public URL for collection reference)
-  const titleString = typeof title === 'string' ? title : 
+  const titleString = typeof title === 'string' ? title :
     (title.ja?.[0] || title.en?.[0] || Object.values(title)[0]?.[0] || 'Untitled');
-  await addItemToCollection(userId, collectionId, publicManifestUrl, manifestId, titleString);
+  const finalLabel = typeof title === 'string' ? undefined : title;
+  const thumbnailUrl = manifest.thumbnail?.[0]?.id ||
+    (images[0]?.thumbnailUrl || images[0]?.url || undefined);
+  await addItemToCollection(userId, collectionId, publicManifestUrl, manifestId, titleString, {
+    label: finalLabel,
+    summary: manifest.summary,
+    thumbnailUrl,
+  });
 
   return { manifestId: itemId, manifestUrl: publicManifestUrl };
 }

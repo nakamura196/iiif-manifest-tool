@@ -286,21 +286,35 @@ export async function addItemToCollection(
   collectionId: string,
   manifestUrl: string,
   itemId: string,
-  title: string
+  title: string,
+  options?: {
+    label?: Record<string, string[]>;
+    summary?: Record<string, string[]>;
+    thumbnailUrl?: string;
+  }
 ): Promise<boolean> {
   try {
     const collection = await getIIIFCollection(userId, collectionId);
     if (!collection) return false;
 
-    const itemReference = {
+    const itemReference: Record<string, unknown> = {
       id: manifestUrl,
       type: 'Manifest' as const,
-      label: {
-        ja: [title],
-        en: [title]
-      },
-      manifestId: itemId  // Store the actual item ID for later reference
+      label: options?.label || { ja: [title], en: [title] },
+      manifestId: itemId
     };
+
+    if (options?.summary) {
+      itemReference.summary = options.summary;
+    }
+
+    if (options?.thumbnailUrl) {
+      itemReference.thumbnail = [{
+        id: options.thumbnailUrl,
+        type: 'Image',
+        format: 'image/jpeg'
+      }];
+    }
 
     collection.items.push(itemReference);
 
