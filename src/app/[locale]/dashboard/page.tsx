@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -21,7 +22,7 @@ interface Collection {
 }
 
 export default function DashboardPage() {
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const t = useTranslations();
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -49,10 +50,10 @@ export default function DashboardPage() {
   const { showSnackbar } = useSnackbar();
 
   useEffect(() => {
-    if (status === 'unauthenticated') {
+    if (!authLoading && !user) {
       router.push('/');
     }
-  }, [status, router]);
+  }, [authLoading, user, router]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -91,14 +92,14 @@ export default function DashboardPage() {
   }, [showCollectionDropdown, showFilterMenu]);
 
   useEffect(() => {
-    if (session) {
+    if (user) {
       fetchCollections();
     }
-  }, [session]);
+  }, [user]);
 
   const fetchCollections = async () => {
     try {
-      const response = await fetch('/api/collections');
+      const response = await apiFetch('/api/collections');
       if (response.ok) {
         const data = await response.json();
         setCollections(data);
@@ -115,7 +116,7 @@ export default function DashboardPage() {
     setDeleteDialog(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const response = await fetch(`/api/collections/${collectionId}`, {
+      const response = await apiFetch(`/api/collections/${collectionId}`, {
         method: 'DELETE',
       });
 
@@ -149,14 +150,14 @@ export default function DashboardPage() {
 
   const openCollectionInMirador = (collectionId: string) => {
     // Generate collection manifest URL using new IIIF structure
-    const combinedId = `${session?.user?.id}_${collectionId}`;
+    const combinedId = `${user?.uid}_${collectionId}`;
     const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
     const encodedUrl = encodeURIComponent(collectionUrl);
     const miradorUrl = `/mirador/index.html?manifest=${encodedUrl}`;
     window.open(miradorUrl, '_blank');
   };
 
-  if (status === 'loading' || loading) {
+  if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-lg">{t('Common.loading')}</div>
@@ -211,7 +212,7 @@ export default function DashboardPage() {
           <button
             onClick={() => {
               // Create a v2 public collection URL
-              const userId = session?.user?.id;
+              const userId = user?.uid;
               const baseUrl = `${window.location.origin}/api/iiif/2/public/${userId}/collections`;
               const selfMuseumUrl = `https://self-museum.cultural.jp/?collection=${encodeURIComponent(baseUrl)}`;
               window.open(selfMuseumUrl, '_blank');
@@ -243,7 +244,7 @@ export default function DashboardPage() {
               <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border dark:border-gray-700 z-50 max-w-[calc(100vw-2rem)]">
                 <button
                   onClick={() => {
-                    const userId = session?.user?.id;
+                    const userId = user?.uid;
                     const jsonUrl = `${window.location.origin}/api/iiif/2/public/${userId}/collections`;
                     window.open(jsonUrl, '_blank');
                     setShowDropdown(false);
@@ -503,7 +504,7 @@ export default function DashboardPage() {
                       </button>
                       <button
                         onClick={() => {
-                          const combinedId = `${session?.user?.id}_${collection.id}`;
+                          const combinedId = `${user?.uid}_${collection.id}`;
                           const collectionUrl = `${window.location.origin}/api/iiif/3/collection/${combinedId}`;
                           window.open(collectionUrl, '_blank');
                           setShowCollectionDropdown(null);

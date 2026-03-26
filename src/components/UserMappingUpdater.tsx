@@ -1,21 +1,22 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useEffect } from 'react';
 
 export default function UserMappingUpdater() {
-  const { data: session } = useSession();
-  
+  const { user } = useAuth();
+
   useEffect(() => {
-    if (session?.user) {
+    if (user) {
       // Update user mapping when user logs in
-      fetch('/api/auth/user-mapping', {
+      apiFetch('/api/auth/user-mapping', {
         method: 'POST',
       }).catch(error => {
         console.log('Failed to update user mapping:', error);
       });
     }
-  }, [session?.user]);
-  
+  }, [user]);
+
   return null;
 }

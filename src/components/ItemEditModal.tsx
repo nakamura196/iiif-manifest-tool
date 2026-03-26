@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { FiX, FiTrash2, FiEdit2, FiSettings, FiPlus, FiExternalLink } from 'react-icons/fi';
@@ -76,6 +77,8 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
   const [uploading, setUploading] = useState(false);
   const [showAccessControl, setShowAccessControl] = useState(false);
   const [metadata, setMetadata] = useState<ManifestMetadata>({});
+  const [physicalWidthCm, setPhysicalWidthCm] = useState<string>('');
+  const [physicalHeightCm, setPhysicalHeightCm] = useState<string>('');
 
   const fetchItem = useCallback(async () => {
     try {
@@ -95,6 +98,12 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
           setLatitude(data.location.latitude?.toString() || '');
           setLongitude(data.location.longitude?.toString() || '');
           setLocationLabel(data.location.label || '');
+        }
+        if (data.physicalWidthCm) {
+          setPhysicalWidthCm(data.physicalWidthCm.toString());
+        }
+        if (data.physicalHeightCm) {
+          setPhysicalHeightCm(data.physicalHeightCm.toString());
         }
       } else {
         console.error('Failed to fetch item:', response.status);
@@ -118,7 +127,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await apiFetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -184,8 +193,31 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
         const manifestData = await response.json();
         const newImages: ImageData[] = [];
 
+        // Extract physical dimensions from source manifest
+        const xPhysDim = manifestData['x-physical-dimensions'];
+        if (xPhysDim) {
+          if (xPhysDim.widthCm && !physicalWidthCm) setPhysicalWidthCm(xPhysDim.widthCm.toString());
+          if (xPhysDim.heightCm && !physicalHeightCm) setPhysicalHeightCm(xPhysDim.heightCm.toString());
+        }
+
         // Extract images from manifest (v3 format)
         if (manifestData.items && Array.isArray(manifestData.items)) {
+          // Try to extract physical dimensions from first canvas service
+          const firstCanvas = manifestData.items[0];
+          if (firstCanvas?.service && !xPhysDim) {
+            const services = Array.isArray(firstCanvas.service) ? firstCanvas.service : [firstCanvas.service];
+            const physDimService = services.find(
+              (s: Record<string, unknown>) => s.profile === 'http://iiif.io/api/annex/services/physdim'
+            );
+            if (physDimService?.physicalScale && physDimService?.physicalUnits === 'cm') {
+              const scale = physDimService.physicalScale;
+              const w = (firstCanvas.width || 0) * scale;
+              const h = (firstCanvas.height || 0) * scale;
+              if (w > 0 && !physicalWidthCm) setPhysicalWidthCm(parseFloat(w.toFixed(1)).toString());
+              if (h > 0 && !physicalHeightCm) setPhysicalHeightCm(parseFloat(h.toFixed(1)).toString());
+            }
+          }
+
           for (const canvas of manifestData.items) {
             if (canvas.items?.[0]?.items?.[0]?.body) {
               const annotation = canvas.items[0].items[0];
@@ -303,7 +335,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
 
     setSaving(true);
     try {
-      const response = await fetch(`/api/collections/${collectionId}/items/${itemId}`, {
+      const response = await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -319,7 +351,9 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
             latitude: parseFloat(latitude),
             longitude: parseFloat(longitude),
             label: locationLabel || title
-          } : undefined
+          } : undefined,
+          physicalWidthCm: physicalWidthCm ? physicalWidthCm : undefined,
+          physicalHeightCm: physicalHeightCm ? physicalHeightCm : undefined
         }),
       });
 
@@ -449,6 +483,38 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
                 className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
                 placeholder={t('ItemEditModal.locationNamePlaceholder')}
               />
+            </div>
+          </div>
+
+          {/* 実寸情報 */}
+          <div className="space-y-3">
+            <h3 className="text-base sm:text-lg font-semibold">{t('ItemEditModal.physicalDimensions')}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{t('ItemEditModal.physicalDimensionsNote')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('ItemEditModal.physicalWidthCm')}</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={physicalWidthCm}
+                  onChange={(e) => setPhysicalWidthCm(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                  placeholder={t('ItemEditModal.physicalWidthCmPlaceholder')}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">{t('ItemEditModal.physicalHeightCm')}</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  value={physicalHeightCm}
+                  onChange={(e) => setPhysicalHeightCm(e.target.value)}
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 text-sm"
+                  placeholder={t('ItemEditModal.physicalHeightCmPlaceholder')}
+                />
+              </div>
             </div>
           </div>
 

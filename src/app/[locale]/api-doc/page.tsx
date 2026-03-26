@@ -1,13 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import SwaggerUIWrapper from '@/components/SwaggerUIWrapper';
 
 export default function ApiDocPage() {
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
+  const status = loading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
+  const session = user ? { user: { id: user.uid, email: user.email, name: user.displayName, image: user.photoURL } } : null;
   const router = useRouter();
   const [spec, setSpec] = useState(null);
 

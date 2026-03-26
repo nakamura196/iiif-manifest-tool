@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { FiX, FiPlus, FiTrash2, FiExternalLink } from 'react-icons/fi';
 
@@ -62,7 +63,7 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
 
   const fetchCollection = useCallback(async () => {
     try {
-      const response = await fetch(`/api/collections/${collectionId}`);
+      const response = await apiFetch(`/api/collections/${collectionId}`);
       if (response.ok) {
         const data = await response.json();
         setCollection({
@@ -86,7 +87,7 @@ export default function CollectionEditModal({ collectionId, onClose, onUpdate }:
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch(`/api/collections/${collectionId}`, {
+      const response = await apiFetch(`/api/collections/${collectionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

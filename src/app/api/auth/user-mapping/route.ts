@@ -1,26 +1,25 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client } from '@/lib/s3';
 
 // This endpoint updates the user mapping when a user logs in
-export async function POST() {
+export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
+    const user = await getAuthUser(request);
+
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     // Create/update user mapping
-    const userMappingKey = `user-mappings/${session.user.id}.json`;
-    
+    const userMappingKey = `user-mappings/${user.id}.json`;
+
     const mappingData = {
-      userId: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      image: session.user.image,
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
       lastLogin: new Date().toISOString(),
       provider: 'google',
     };
@@ -37,7 +36,7 @@ export async function POST() {
     return NextResponse.json({
       success: true,
       message: 'User mapping updated',
-      userId: session.user.id,
+      userId: user.id,
     });
   } catch (error) {
     console.error('Error updating user mapping:', error);
@@ -49,15 +48,15 @@ export async function POST() {
 }
 
 // Get user mapping for current user
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user) {
+    const user = await getAuthUser(request);
+
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    const userMappingKey = `user-mappings/${session.user.id}.json`;
+
+    const userMappingKey = `user-mappings/${user.id}.json`;
     
     try {
       const command = new GetObjectCommand({
@@ -77,10 +76,10 @@ export async function GET() {
       if (error instanceof Error && error.name === 'NoSuchKey') {
         // No mapping exists yet
         return NextResponse.json({
-          userId: session.user.id,
-          email: session.user.email,
-          name: session.user.name,
-          image: session.user.image,
+          userId: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
           mappingExists: false,
         });
       }
@@ -88,10 +87,10 @@ export async function GET() {
     }
     
     return NextResponse.json({
-      userId: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      image: session.user.image,
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      image: user.image,
     });
   } catch (error) {
     console.error('Error getting user mapping:', error);

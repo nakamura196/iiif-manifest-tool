@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -88,7 +89,8 @@ interface GeoAnnotation {
 
 export default function ItemEditPage({ params }: ItemEditPageProps) {
   const resolvedParams = use(params);
-  const { status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const t = useTranslations();
   
@@ -111,10 +113,13 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const [geoAnnotations, setGeoAnnotations] = useState<{ [key: number]: GeoAnnotation }>({});
   const [csvInput, setCsvInput] = useState<{ [key: number]: string }>({});
   const [showCsvImport, setShowCsvImport] = useState<{ [key: number]: boolean }>({});
+  const [physicalWidthCm, setPhysicalWidthCm] = useState<string>('');
+  const [physicalHeightCm, setPhysicalHeightCm] = useState<string>('');
+
 
   const fetchItem = useCallback(async () => {
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`);
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`);
       if (response.ok) {
         const data = await response.json();
         // Extract multilingual titles
@@ -146,6 +151,12 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
           setLongitude(data.location.longitude?.toString() || '');
           setLocationLabel(data.location.label || '');
         }
+        if (data.physicalWidthCm) {
+          setPhysicalWidthCm(data.physicalWidthCm.toString());
+        }
+        if (data.physicalHeightCm) {
+          setPhysicalHeightCm(data.physicalHeightCm.toString());
+        }
       } else {
         console.error('Failed to fetch item:', response.status);
       }
@@ -170,7 +181,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await apiFetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -263,8 +274,31 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
         const manifestData = await response.json();
         const newImages: ImageData[] = [];
 
+        // Extract physical dimensions from source manifest
+        const xPhysDim = manifestData['x-physical-dimensions'];
+        if (xPhysDim) {
+          if (xPhysDim.widthCm && !physicalWidthCm) setPhysicalWidthCm(xPhysDim.widthCm.toString());
+          if (xPhysDim.heightCm && !physicalHeightCm) setPhysicalHeightCm(xPhysDim.heightCm.toString());
+        }
+
         // Extract images from manifest (v3 format)
         if (manifestData.items && Array.isArray(manifestData.items)) {
+          // Try to extract physical dimensions from first canvas service
+          const firstCanvas = manifestData.items[0];
+          if (firstCanvas?.service && !xPhysDim) {
+            const services = Array.isArray(firstCanvas.service) ? firstCanvas.service : [firstCanvas.service];
+            const physDimService = services.find(
+              (s: Record<string, unknown>) => s.profile === 'http://iiif.io/api/annex/services/physdim'
+            );
+            if (physDimService?.physicalScale && physDimService?.physicalUnits === 'cm') {
+              const scale = physDimService.physicalScale;
+              const w = (firstCanvas.width || 0) * scale;
+              const h = (firstCanvas.height || 0) * scale;
+              if (w > 0 && !physicalWidthCm) setPhysicalWidthCm(parseFloat(w.toFixed(1)).toString());
+              if (h > 0 && !physicalHeightCm) setPhysicalHeightCm(parseFloat(h.toFixed(1)).toString());
+            }
+          }
+
           for (const canvas of manifestData.items) {
             if (canvas.items?.[0]?.items?.[0]?.body) {
               const annotation = canvas.items[0].items[0];
@@ -406,7 +440,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
 
     setSaving(true);
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`, {
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -425,7 +459,9 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
             latitude: parseFloat(latitude),
             longitude: parseFloat(longitude),
             label: locationLabel || titleJa
-          } : undefined
+          } : undefined,
+          physicalWidthCm: physicalWidthCm ? physicalWidthCm : undefined,
+          physicalHeightCm: physicalHeightCm ? physicalHeightCm : undefined
         }),
       });
 
@@ -1024,6 +1060,47 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                       </div>
                     </div>
                   </div>
+                  {/* Physical Dimensions */}
+                  <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <FiTarget className="text-orange-600 dark:text-orange-400" />
+                      {t('ItemEditPage.physicalDimensions')}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {t('ItemEditPage.physicalDimensionsNote')}
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {t('ItemEditPage.physicalWidthCm')}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={physicalWidthCm}
+                          onChange={(e) => setPhysicalWidthCm(e.target.value)}
+                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          placeholder={t('ItemEditPage.physicalWidthCmPlaceholder')}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-2">
+                          {t('ItemEditPage.physicalHeightCm')}
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          value={physicalHeightCm}
+                          onChange={(e) => setPhysicalHeightCm(e.target.value)}
+                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                          placeholder={t('ItemEditPage.physicalHeightCmPlaceholder')}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"

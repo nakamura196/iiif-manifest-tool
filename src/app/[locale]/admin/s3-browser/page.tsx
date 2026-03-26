@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -45,7 +46,8 @@ interface PreviewData {
 }
 
 export default function S3BrowserPage() {
-  const { status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [currentPath, setCurrentPath] = useState('');
@@ -71,7 +73,7 @@ export default function S3BrowserPage() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch(`/api/admin/s3-browser?path=${encodeURIComponent(path)}`);
+      const response = await apiFetch(`/api/admin/s3-browser?path=${encodeURIComponent(path)}`);
       
       if (!response.ok) {
         if (response.status === 403) {
@@ -99,7 +101,7 @@ export default function S3BrowserPage() {
 
   const handleDownload = async (file: S3Object) => {
     try {
-      const response = await fetch(`/api/admin/s3-browser?action=download&key=${encodeURIComponent(file.key)}`);
+      const response = await apiFetch(`/api/admin/s3-browser?action=download&key=${encodeURIComponent(file.key)}`);
       
       if (!response.ok) {
         throw new Error('Failed to download file');
@@ -127,7 +129,7 @@ export default function S3BrowserPage() {
     setPreviewData(null);
     
     try {
-      const response = await fetch(`/api/admin/s3-browser?action=preview&key=${encodeURIComponent(file.key)}`);
+      const response = await apiFetch(`/api/admin/s3-browser?action=preview&key=${encodeURIComponent(file.key)}`);
       
       if (!response.ok) {
         const error = await response.json();
@@ -152,7 +154,7 @@ export default function S3BrowserPage() {
     
     setDeleting(file.key);
     try {
-      const response = await fetch('/api/admin/s3-browser', {
+      const response = await apiFetch('/api/admin/s3-browser', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',

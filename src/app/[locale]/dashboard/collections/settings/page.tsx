@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, use } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { FiArrowLeft, FiSave, FiInfo } from 'react-icons/fi';
 import Link from 'next/link';
@@ -25,7 +26,8 @@ interface UserSettings {
 
 export default function PublicCollectionSettingsPage({ params }: SettingsPageProps) {
   const resolvedParams = use(params);
-  const { status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -50,7 +52,7 @@ export default function PublicCollectionSettingsPage({ params }: SettingsPagePro
 
   const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/user/settings');
+      const response = await apiFetch('/api/user/settings');
       if (response.ok) {
         const data = await response.json();
         setSettings(data);
@@ -65,7 +67,7 @@ export default function PublicCollectionSettingsPage({ params }: SettingsPagePro
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/user/settings', {
+      const response = await apiFetch('/api/user/settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

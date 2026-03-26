@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -55,7 +56,8 @@ interface CollectionData {
 
 export default function CollectionEditPage({ params }: CollectionEditPageProps) {
   const resolvedParams = use(params);
-  const { status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const t = useTranslations();
   
@@ -71,7 +73,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
 
   const fetchCollection = useCallback(async () => {
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}`);
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}`);
       if (response.ok) {
         const data = await response.json();
         setCollection({
@@ -99,7 +101,7 @@ export default function CollectionEditPage({ params }: CollectionEditPageProps) 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}`, {
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

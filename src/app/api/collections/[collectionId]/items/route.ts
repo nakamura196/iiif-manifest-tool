@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { createIIIFManifest, listCollectionItems } from '@/lib/iiif-manifest';
 import { getIIIFCollection } from '@/lib/iiif-collection';
 import { requireCollectionAccess } from '@/lib/iiif-auth-check';
@@ -12,18 +11,18 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId } = await params;
-    const session = await getServerSession(authOptions);
-    
+    const user = await getAuthUser(request);
+
     // Get userId from query parameter or session
     const url = new URL(request.url);
-    const userId = url.searchParams.get('userId') || session?.user?.id;
+    const userId = url.searchParams.get('userId') || user?.id;
 
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
     // Check access permissions
-    const accessCheck = await requireCollectionAccess(userId, collectionId);
+    const accessCheck = await requireCollectionAccess(userId, collectionId, user?.id);
     if (!accessCheck.allowed) {
       return NextResponse.json(
         { error: accessCheck.error || 'Access denied' },
@@ -45,13 +44,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId } = await params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Verify the collection exists and user owns it
     const collection = await getIIIFCollection(userId, collectionId);
@@ -65,15 +64,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { 
+    const {
       title,  // Legacy single title string
       label,  // IIIF v3 format: { [lang]: string[] }
       description,  // Legacy single description string
       summary,  // IIIF v3 format: { [lang]: string[] }
-      images, 
-      isPublic = true, 
+      images,
+      isPublic = true,
       location,
-      metadata  // Now includes all IIIF metadata fields
+      metadata,  // Now includes all IIIF metadata fields
+      physicalWidthCm,
+      physicalHeightCm
     } = body;
 
     // Convert to IIIF v3 format if needed
@@ -110,6 +111,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Build physical dimensions if provided
+    const physicalDimensions = (physicalWidthCm || physicalHeightCm) ? {
+      widthCm: physicalWidthCm ? parseFloat(physicalWidthCm) : undefined,
+      heightCm: physicalHeightCm ? parseFloat(physicalHeightCm) : undefined
+    } : undefined;
+
     // Create IIIF manifest and save to S3
     const { manifestId, manifestUrl } = await createIIIFManifest(
       userId,
@@ -120,7 +127,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       isPublic,
       undefined,  // canvasAccess
       location,
-      parsedMetadata  // This now includes all metadata fields
+      parsedMetadata,  // This now includes all metadata fields
+      physicalDimensions
     );
 
     // Extract single values for backward compatibility in response

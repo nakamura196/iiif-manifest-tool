@@ -1,12 +1,12 @@
 'use client';
 
-import { useSession, signIn } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
 import { FiImage, FiUpload, FiLock, FiGlobe, FiArrowRight, FiLogIn, FiAlertCircle } from 'react-icons/fi';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 
 export default function HomePage() {
-  const { data: session } = useSession();
+  const { user, signIn } = useAuth();
   const locale = useLocale();
   
   const content = locale === 'ja' ? {
@@ -72,7 +72,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        {session ? (
+        {user ? (
           <div className="mb-12">
             <Link
               href={`/${locale}/dashboard`}

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -9,9 +8,9 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const session = await getAuthUser(request);
+
+    if (!session?.id) {
       // Redirect to login
       const loginUrl = `${process.env.NEXTAUTH_URL}/api/auth/signin?callbackUrl=${encodeURIComponent(request.url)}`;
       return NextResponse.redirect(loginUrl);
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const [userId] = parts;
 
     // Check if user owns the item
-    if (userId !== session.user.id) {
+    if (userId !== session.id) {
       return new NextResponse(
         `<!DOCTYPE html>
         <html>

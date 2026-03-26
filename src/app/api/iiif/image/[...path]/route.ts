@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 const s3Client = new S3Client({
@@ -88,10 +87,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 console.log('[Image Proxy] Canvas', targetCanvasIndex, 'isPublic:', canvasIsPublic, 'requiresAuth:', requiresAuth);
                 
                 if (requiresAuth) {
-                  const session = await getServerSession(authOptions);
-                  console.log('[Image Proxy] Session user:', session?.user?.email);
-                  
-                  if (!session?.user?.id) {
+                  const session = await getAuthUser(request);
+                  console.log('[Image Proxy] Session user:', session?.email);
+
+                  if (!session?.id) {
                     console.log('[Image Proxy] No authenticated user, returning 401');
                     return NextResponse.json(
                       { error: 'Authentication required' },
@@ -101,10 +100,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                   
                   // Check if user is in allowed users list
                   const allowedUsers = canvas['x-canvas-access'].allowedUsers || [];
-                  const isOwner = manifest['x-access']?.owner === session.user.id;
-                  const isAllowed = isOwner || allowedUsers.includes(session.user.email || session.user.id);
-                  
-                  console.log('[Image Proxy] Access check:', { isOwner, allowedUsers, userEmail: session.user.email, isAllowed });
+                  const isOwner = manifest['x-access']?.owner === session.id;
+                  const isAllowed = isOwner || allowedUsers.includes(session.email || session.id);
+
+                  console.log('[Image Proxy] Access check:', { isOwner, allowedUsers, userEmail: session.email, isAllowed });
                   
                   if (!isAllowed) {
                     console.log('[Image Proxy] Access denied, returning 403');
@@ -116,10 +115,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 }
               } else if (requiresAuth) {
                 // Use manifest-level access control
-                const session = await getServerSession(authOptions);
-                console.log('[Image Proxy] Using manifest-level auth, session:', session?.user?.email);
-                
-                if (!session?.user?.id) {
+                const session = await getAuthUser(request);
+                console.log('[Image Proxy] Using manifest-level auth, session:', session?.email);
+
+                if (!session?.id) {
                   console.log('[Image Proxy] No authenticated user for private manifest, returning 401');
                   return NextResponse.json(
                     { error: 'Authentication required' },
@@ -127,7 +126,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                   );
                 }
                 
-                const isOwner = manifest['x-access']?.owner === session.user.id;
+                const isOwner = manifest['x-access']?.owner === session.id;
                 
                 if (!isOwner) {
                   console.log('[Image Proxy] Not owner of private manifest, returning 403');
@@ -139,9 +138,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               }
             } else if (requiresAuth) {
               // Manifest is private but we couldn't find the specific canvas
-              const session = await getServerSession(authOptions);
-              
-              if (!session?.user?.id) {
+              const session = await getAuthUser(request);
+
+              if (!session?.id) {
                 console.log('[Image Proxy] No authenticated user for private manifest (no canvas), returning 401');
                 return NextResponse.json(
                   { error: 'Authentication required' },
@@ -149,7 +148,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
                 );
               }
               
-              const isOwner = manifest['x-access']?.owner === session.user.id;
+              const isOwner = manifest['x-access']?.owner === session.id;
               
               if (!isOwner) {
                 console.log('[Image Proxy] Not owner of private manifest (no canvas), returning 403');

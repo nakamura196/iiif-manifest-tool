@@ -1,19 +1,22 @@
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { getAuthUser } from '@/lib/auth-helpers';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session) {
+    const user = await getAuthUser(request);
+
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
-    // Return session information
+
+    // Return user information
     return NextResponse.json({
-      user: session.user,
-      expires: session.expires,
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+      },
     });
   } catch (error) {
     console.error('Error getting session token:', error);

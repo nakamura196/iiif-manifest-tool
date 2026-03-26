@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuthToken } from '@/lib/iiif-auth';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { IIIFManifest } from '@/lib/iiif-manifest';
 
 const s3Client = new S3Client({
@@ -301,12 +300,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // For non-public manifests, check authentication
     if (!isPublic) {
       const authHeader = request.headers.get('authorization');
-      const session = await getServerSession(authOptions);
-      
+      const session = await getAuthUser(request);
+
       let hasAccess = false;
-      
+
       // Check if user is authenticated and is the owner
-      if (session?.user?.id && owner === session.user.id) {
+      if (session?.id && owner === session.id) {
         hasAccess = true;
       }
       

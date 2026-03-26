@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { getUserSettings, saveUserSettings, UserSettings } from '@/lib/user-settings';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const settings = await getUserSettings(session.user.id);
+    const settings = await getUserSettings(user.id);
     
     return NextResponse.json(settings);
   } catch (error) {
@@ -25,15 +24,15 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const settings: UserSettings = await request.json();
-    
-    const success = await saveUserSettings(session.user.id, settings);
+
+    const success = await saveUserSettings(user.id, settings);
     
     if (success) {
       return NextResponse.json({ message: 'Settings saved successfully' });

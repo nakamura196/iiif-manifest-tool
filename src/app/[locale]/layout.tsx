@@ -10,7 +10,7 @@ import { ThemeProvider } from 'next-themes';
 import { Inter } from 'next/font/google';
 import { getMetadata } from '@/constants/metadata';
 import type { Metadata } from 'next';
-import SessionProvider from '@/components/SessionProvider';
+import { FirebaseAuthProvider } from '@/components/providers/FirebaseAuthProvider';
 import { SnackbarProvider } from '@/contexts/SnackbarContext';
 import UserMappingUpdater from '@/components/UserMappingUpdater';
 
@@ -42,7 +42,7 @@ export default async function RootLayout({ children, params }: LayoutProps) {
   return (
     <html lang={locale} suppressHydrationWarning>
       <body className={inter.className}>
-        <SessionProvider>
+        <FirebaseAuthProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
@@ -58,7 +58,7 @@ export default async function RootLayout({ children, params }: LayoutProps) {
               </SnackbarProvider>
             </NextIntlClientProvider>
           </ThemeProvider>
-        </SessionProvider>
+        </FirebaseAuthProvider>
       </body>
     </html>
   );

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { getIIIFManifest, updateIIIFManifest, deleteIIIFManifest } from '@/lib/iiif-manifest';
 
 interface RouteParams {
@@ -10,10 +9,10 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId, itemId } = await params;
-    const session = await getServerSession(authOptions);
-    
-    // Get userId from session
-    const userId = session?.user?.id;
+    const user = await getAuthUser(request);
+
+    // Get userId from auth
+    const userId = user?.id;
     
     // For now, assume the owner is from the collection path
     // In production, you'd need to look this up properly
@@ -136,6 +135,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
+    // Extract physical dimensions from manifest
+    const physicalDimensions = (manifest as unknown as Record<string, unknown>)['x-physical-dimensions'] as { widthCm?: number; heightCm?: number } | undefined;
+    // Also try to extract from canvas service if x-physical-dimensions is not present
+    let physicalWidthCm = physicalDimensions?.widthCm;
+    let physicalHeightCm = physicalDimensions?.heightCm;
+    if (!physicalWidthCm && !physicalHeightCm && manifest.items?.[0]?.service) {
+      const physDimService = manifest.items[0].service.find(
+        (s: Record<string, unknown>) => s.profile === 'http://iiif.io/api/annex/services/physdim'
+      );
+      if (physDimService?.physicalScale && physDimService?.physicalUnits === 'cm') {
+        const scale = physDimService.physicalScale;
+        const canvas = manifest.items[0];
+        physicalWidthCm = canvas.width * scale;
+        physicalHeightCm = canvas.height * scale;
+      }
+    }
+
     return NextResponse.json({
       id: itemId,
       // Include full multilingual label and summary for v3 compatibility
@@ -148,7 +164,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       images,
       metadata,
       location,
-      geoAnnotations: manifest['x-geo-annotations'] || {}
+      geoAnnotations: manifest['x-geo-annotations'] || {},
+      physicalWidthCm,
+      physicalHeightCm
     });
   } catch (error) {
     console.error('Error fetching item:', error);
@@ -159,16 +177,21 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  // PATCH delegates to the same logic as PUT for backward compatibility
+  return PUT(request, { params });
+}
+
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId, itemId } = await params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Verify ownership by checking the manifest
     const existingManifest = await getIIIFManifest(userId, collectionId, itemId);
@@ -177,10 +200,11 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { 
+    const {
       title, titleJa, titleEn,  // Support both old and new formats
       description, descriptionJa, descriptionEn,
-      images, isPublic, metadata, canvasAccess, location, geoAnnotations 
+      images, isPublic, metadata, canvasAccess, location, geoAnnotations,
+      physicalWidthCm, physicalHeightCm
     } = body;
 
     // Use multilingual titles if provided, otherwise fall back to old format
@@ -243,6 +267,12 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       });
     }
 
+    // Build physical dimensions if provided
+    const physicalDimensions = (physicalWidthCm !== undefined || physicalHeightCm !== undefined) ? {
+      widthCm: physicalWidthCm ? parseFloat(physicalWidthCm) : undefined,
+      heightCm: physicalHeightCm ? parseFloat(physicalHeightCm) : undefined
+    } : undefined;
+
     // Update manifest in S3
     const success = await updateIIIFManifest(
       userId,
@@ -255,7 +285,8 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       canvasAccess,
       location,
       metadata,
-      geoAnnotations
+      geoAnnotations,
+      physicalDimensions
     );
 
     if (success) {
@@ -284,13 +315,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId, itemId } = await params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Verify ownership by checking the manifest
     const existingManifest = await getIIIFManifest(userId, collectionId, itemId);
