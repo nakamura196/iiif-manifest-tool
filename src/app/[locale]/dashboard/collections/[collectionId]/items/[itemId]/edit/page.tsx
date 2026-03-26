@@ -5,7 +5,7 @@ import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { FiArrowLeft, FiSave, FiTrash2, FiPlus, FiSettings, FiImage, FiMapPin, FiInfo, FiLock, FiLoader, FiTarget, FiUpload, FiDownload, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiTrash2, FiPlus, FiSettings, FiImage, FiMapPin, FiInfo, FiLock, FiLoader, FiTarget, FiUpload, FiDownload, FiX, FiMaximize2 } from 'react-icons/fi';
 import ImageUploader from '@/components/ImageUploader';
 import ImageAccessControl from '@/components/ImageAccessControl';
 import Link from 'next/link';
@@ -109,7 +109,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
   const [latitude, setLatitude] = useState<string>('');
   const [longitude, setLongitude] = useState<string>('');
   const [locationLabel, setLocationLabel] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'additional' | 'location' | 'annotations' | 'settings'>('basic');
+  const [activeTab, setActiveTab] = useState<'basic' | 'images' | 'additional' | 'location' | 'annotations' | 'physicalDimensions' | 'settings'>('basic');
   const [geoAnnotations, setGeoAnnotations] = useState<{ [key: number]: GeoAnnotation }>({});
   const [csvInput, setCsvInput] = useState<{ [key: number]: string }>({});
   const [showCsvImport, setShowCsvImport] = useState<{ [key: number]: boolean }>({});
@@ -922,6 +922,17 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                   <span>{t('ItemEditPage.annotations')}</span>
                 </button>
                 <button
+                  onClick={() => setActiveTab('physicalDimensions')}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                    activeTab === 'physicalDimensions'
+                      ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                      : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <FiMaximize2 className="text-lg" />
+                  <span>{t('ItemEditPage.physicalDimensionsTab')}</span>
+                </button>
+                <button
                   onClick={() => setActiveTab('settings')}
                   className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                     activeTab === 'settings'
@@ -1060,47 +1071,6 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                       </div>
                     </div>
                   </div>
-                  {/* Physical Dimensions */}
-                  <div className="space-y-4 p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                    <h3 className="text-sm font-semibold flex items-center gap-2">
-                      <FiTarget className="text-orange-600 dark:text-orange-400" />
-                      {t('ItemEditPage.physicalDimensions')}
-                    </h3>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {t('ItemEditPage.physicalDimensionsNote')}
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          {t('ItemEditPage.physicalWidthCm')}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          value={physicalWidthCm}
-                          onChange={(e) => setPhysicalWidthCm(e.target.value)}
-                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder={t('ItemEditPage.physicalWidthCmPlaceholder')}
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-2">
-                          {t('ItemEditPage.physicalHeightCm')}
-                        </label>
-                        <input
-                          type="number"
-                          step="0.1"
-                          min="0"
-                          value={physicalHeightCm}
-                          onChange={(e) => setPhysicalHeightCm(e.target.value)}
-                          className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
-                          placeholder={t('ItemEditPage.physicalHeightCmPlaceholder')}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
                   <div className="flex items-center gap-3">
                     <input
                       type="checkbox"
@@ -1579,6 +1549,48 @@ point_10,10517,7862,35.7121183,139.7627108,,,,`;
                   >
                     {t('ItemEditPage.learnMore')} →
                   </a>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'physicalDimensions' && (
+              <div className="bg-white dark:bg-gray-800 rounded-lg p-6 space-y-6">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <FiMaximize2 />
+                  {t('ItemEditPage.physicalDimensionsTab')}
+                </h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {t('ItemEditPage.physicalDimensionsNote')}
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {t('ItemEditPage.physicalWidthCm')}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={physicalWidthCm}
+                      onChange={(e) => setPhysicalWidthCm(e.target.value)}
+                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                      placeholder={t('ItemEditPage.physicalWidthCmPlaceholder')}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">
+                      {t('ItemEditPage.physicalHeightCm')}
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      value={physicalHeightCm}
+                      onChange={(e) => setPhysicalHeightCm(e.target.value)}
+                      className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600"
+                      placeholder={t('ItemEditPage.physicalHeightCmPlaceholder')}
+                    />
+                  </div>
                 </div>
               </div>
             )}

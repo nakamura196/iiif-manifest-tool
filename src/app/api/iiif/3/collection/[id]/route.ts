@@ -42,44 +42,51 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // Update item references with correct combined ID format
     if (collection.items) {
       collection.items = collection.items.map((item) => {
-        let manifestId = item.manifestId;
+        // Extract the item-only ID from various URL/path formats
+        let itemOnlyId: string | null = null;
 
-        // If no manifestId, try to extract from various URL formats
-        if (!manifestId && item.id) {
+        if (item.manifestId) {
+          itemOnlyId = item.manifestId;
+        }
+
+        if (!itemOnlyId && item.id) {
           // Format: .../items/{itemId}/manifest.json (S3 path)
           const s3Match = item.id.match(/\/items\/([^\/]+)\/manifest/);
           if (s3Match) {
-            manifestId = s3Match[1];
+            itemOnlyId = s3Match[1];
           }
+        }
 
-          // Format: .../api/iiif/3/{userId}_{collectionId}_{itemId}/manifest (API URL)
-          if (!manifestId) {
-            const apiMatch = item.id.match(/\/api\/iiif\/(?:3\/)?([^\/]+)\/manifest/);
-            if (apiMatch) {
-              const idPart = apiMatch[1];
-              // If already combined format, extract itemId
-              const parts = idPart.split('_');
-              if (parts.length === 3) {
-                manifestId = parts[2]; // itemId is the third part
-              } else {
-                manifestId = idPart;
-              }
+        if (!itemOnlyId && item.id) {
+          // Format: .../api/iiif/3/{combinedId}/manifest or .../api/iiif/{combinedId}/manifest
+          const apiMatch = item.id.match(/\/api\/iiif\/(?:3\/)?([^\/]+)\/manifest/);
+          if (apiMatch) {
+            const combinedId = apiMatch[1];
+            // combinedId may be: userId_collectionId_itemId
+            // We need to strip the userId_collectionId_ prefix if present
+            const prefix = `${userId}_${collectionId}_`;
+            if (combinedId.startsWith(prefix)) {
+              itemOnlyId = combinedId.slice(prefix.length);
+            } else {
+              // May just be the itemId itself
+              itemOnlyId = combinedId;
             }
           }
         }
 
-        // Fallback: extract from the end of the URL
-        if (!manifestId) {
+        // Fallback
+        if (!itemOnlyId) {
           const segments = item.id.split('/').filter((s: string) => s && s !== 'manifest' && s !== 'manifest.json');
-          manifestId = segments.pop() || item.id;
+          itemOnlyId = segments.pop() || item.id;
         }
 
-        const combinedId = `${userId}_${collectionId}_${manifestId}`;
+        const combinedId = `${userId}_${collectionId}_${itemOnlyId}`;
 
         return {
           id: `${baseUrl}/api/iiif/3/${combinedId}/manifest`,
           type: 'Manifest',
           label: item.label,
+          ...(item.summary ? { summary: item.summary } : {}),
           ...(item.thumbnail ? { thumbnail: item.thumbnail } : {}),
         };
       });

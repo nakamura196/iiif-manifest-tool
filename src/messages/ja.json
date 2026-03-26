@@ -385,6 +385,7 @@
     "physicalWidthCmPlaceholder": "例: 32.6",
     "physicalHeightCm": "高さ (cm)",
     "physicalHeightCmPlaceholder": "例: 21.2",
+    "physicalDimensionsTab": "実寸情報",
     "annotations": "ジオリファレンス",
     "georeferencing": "地理参照",
     "addImagesFirst": "先に画像を追加してください",

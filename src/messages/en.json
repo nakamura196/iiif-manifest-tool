@@ -385,6 +385,7 @@
     "physicalWidthCmPlaceholder": "e.g. 32.6",
     "physicalHeightCm": "Height (cm)",
     "physicalHeightCmPlaceholder": "e.g. 21.2",
+    "physicalDimensionsTab": "Physical Dimensions",
     "annotations": "Georeference",
     "georeferencing": "Georeferencing",
     "addImagesFirst": "Please add images first",
