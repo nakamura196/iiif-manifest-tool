@@ -80,7 +80,7 @@ export default function CollectionPage({ params }: PageProps) {
 
   const fetchItems = useCallback(async () => {
     try {
-      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items?userId=${session?.user?.id}`);
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items?userId=${user?.uid}`);
       if (response.ok) {
         const data = await response.json();
         setItems(data);
@@ -90,7 +90,7 @@ export default function CollectionPage({ params }: PageProps) {
     } finally {
       setLoading(false);
     }
-  }, [resolvedParams.collectionId, session?.user?.id]);
+  }, [resolvedParams.collectionId, user?.uid]);
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -99,11 +99,11 @@ export default function CollectionPage({ params }: PageProps) {
   }, [status, router]);
 
   useEffect(() => {
-    if (session) {
+    if (user) {
       fetchCollectionData();
       fetchItems();
     }
-  }, [session, fetchItems, fetchCollectionData]);
+  }, [user, fetchItems, fetchCollectionData]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
