@@ -972,10 +972,10 @@ const openApiSpec = {
         description: 'JWT token for IIIF Auth API (for non-public items)',
       },
       sessionAuth: {
-        type: 'apiKey',
-        in: 'cookie',
-        name: 'next-auth.session-token',
-        description: 'NextAuth session cookie (automatically included when logged in via Google)',
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'Firebase ID Token',
+        description: 'Firebase Auth ID token (obtained from Firebase Auth SDK)',
       },
     },
     schemas: {

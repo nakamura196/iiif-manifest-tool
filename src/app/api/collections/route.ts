@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { createIIIFCollection, listUserCollections } from '@/lib/iiif-collection';
 import { v4 as uuidv4 } from 'uuid';
 import { IIIFCollectionResponse, IIIFTextHelpers } from '@/types/iiif';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const collections = await listUserCollections(session.user.id);
+    const collections = await listUserCollections(user.id);
     // Collections are already in IIIFCollectionResponse format
     return NextResponse.json(collections);
   } catch (error) {
@@ -27,21 +26,21 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const { 
-      name, 
-      nameJa, 
-      nameEn, 
-      description, 
-      descriptionJa, 
-      descriptionEn, 
-      isPublic = true 
+    const {
+      name,
+      nameJa,
+      nameEn,
+      description,
+      descriptionJa,
+      descriptionEn,
+      isPublic = true
     } = body;
 
     // Use multilingual names if provided, otherwise fall back to single name
@@ -59,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const collectionId = uuidv4();
     const collectionUrl = await createIIIFCollection(
-      session.user.id,
+      user.id,
       collectionId,
       {
         ja: finalNameJa || finalNameEn,

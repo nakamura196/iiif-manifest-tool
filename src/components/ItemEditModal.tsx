@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { FiX, FiTrash2, FiEdit2, FiSettings, FiPlus, FiExternalLink } from 'react-icons/fi';
@@ -118,7 +119,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await apiFetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -303,7 +304,7 @@ export default function ItemEditModal({ itemId, collectionId, ownerId, onClose, 
 
     setSaving(true);
     try {
-      const response = await fetch(`/api/collections/${collectionId}/items/${itemId}`, {
+      const response = await apiFetch(`/api/collections/${collectionId}/items/${itemId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -24,10 +24,10 @@ const apiDocumentation = createSwaggerSpec({
           description: 'JWT token for IIIF Auth API',
         },
         sessionAuth: {
-          type: 'apiKey',
-          in: 'cookie',
-          name: 'next-auth.session-token',
-          description: 'NextAuth session cookie',
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'Firebase ID Token',
+          description: 'Firebase Auth ID token',
         },
       },
       schemas: {

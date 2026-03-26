@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, use, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -31,7 +32,9 @@ interface PageProps {
 
 export default function CollectionPage({ params }: PageProps) {
   const resolvedParams = use(params);
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
+  const session = user ? { user: { id: user.uid, email: user.email, name: user.displayName, image: user.photoURL } } : null;
   const router = useRouter();
   const t = useTranslations();
   const [items, setItems] = useState<IIIFItemResponse[]>([]);
@@ -60,7 +63,7 @@ export default function CollectionPage({ params }: PageProps) {
 
   const fetchCollectionData = useCallback(async () => {
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}`);
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}`);
       if (response.ok) {
         const data = await response.json();
         // Use IIIF v3 format
@@ -77,7 +80,7 @@ export default function CollectionPage({ params }: PageProps) {
 
   const fetchItems = useCallback(async () => {
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items?userId=${session?.user?.id}`);
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items?userId=${session?.user?.id}`);
       if (response.ok) {
         const data = await response.json();
         setItems(data);
@@ -151,7 +154,7 @@ export default function CollectionPage({ params }: PageProps) {
     setDeleteDialog(prev => ({ ...prev, isLoading: true }));
     
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${itemId}`, {
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items/${itemId}`, {
         method: 'DELETE',
       });
 

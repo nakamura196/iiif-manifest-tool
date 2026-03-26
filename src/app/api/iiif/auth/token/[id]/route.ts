@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { generateAuthToken } from '@/lib/iiif-auth';
 
 interface RouteParams {
@@ -11,9 +10,9 @@ interface RouteParams {
 export async function POST(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const session = await getAuthUser(request);
+
+    if (!session?.id) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
@@ -29,7 +28,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const [userId] = parts;
 
     // Check if user is the owner
-    if (userId !== session.user.id) {
+    if (userId !== session.id) {
       return NextResponse.json(
         { error: 'Access denied' },
         { status: 403 }
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     // Generate access token using the combined ID
-    const accessToken = generateAuthToken(id, session.user.id);
+    const accessToken = generateAuthToken(id, session.id);
 
     return NextResponse.json({
       accessToken,
@@ -61,9 +60,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const origin = request.nextUrl.searchParams.get('origin');
     
     // Check if user is authenticated
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const session = await getAuthUser(request);
+
+    if (!session?.id) {
       // Return HTML page with error
       return new NextResponse(
         `<!DOCTYPE html>
@@ -121,7 +120,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const [userId] = parts;
 
     // Check if user owns the item
-    if (userId !== session.user.id) {
+    if (userId !== session.id) {
       return new NextResponse(
         `<!DOCTYPE html>
         <html>
@@ -148,7 +147,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // Generate access token using the combined ID
-    const accessToken = generateAuthToken(id, session.user.id);
+    const accessToken = generateAuthToken(id, session.id);
 
     // Return HTML page with token
     return new NextResponse(

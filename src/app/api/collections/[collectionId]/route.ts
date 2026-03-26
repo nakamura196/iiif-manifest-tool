@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client } from '@/lib/s3';
 
@@ -49,15 +48,15 @@ function cleanMultilingualText(text: unknown): { [key: string]: string[] } {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { collectionId } = await params;
     
     // First try to get collection metadata from S3
-    const metadataKey = `collections/${session.user.id}/${collectionId}/metadata.json`;
+    const metadataKey = `collections/${user.id}/${collectionId}/metadata.json`;
     
     try {
       const command = new GetObjectCommand({
@@ -92,7 +91,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
         // Sync isPublic to collection.json if there's a mismatch
         try {
-          const collectionManifestKey = `collections/${session.user.id}/${collectionId}/collection.json`;
+          const collectionManifestKey = `collections/${user.id}/${collectionId}/collection.json`;
           const getCollectionCommand = new GetObjectCommand({
             Bucket: process.env.S3_BUCKET_NAME!,
             Key: collectionManifestKey,
@@ -110,7 +109,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
               collectionManifest['x-access'] = {
                 ...collectionManifest['x-access'],
                 isPublic: metadata.isPublic,
-                owner: session.user.id
+                owner: user.id
               };
 
               const updateCommand = new PutObjectCommand({
@@ -135,7 +134,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
     
     // Try to get collection manifest from S3
-    const collectionKey = `collections/${session.user.id}/${collectionId}/collection.json`;
+    const collectionKey = `collections/${user.id}/${collectionId}/collection.json`;
     
     try {
       const command = new GetObjectCommand({
@@ -212,8 +211,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
 export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -221,7 +220,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     const data = await request.json();
     
     // Store collection metadata in S3
-    const metadataKey = `collections/${session.user.id}/${collectionId}/metadata.json`;
+    const metadataKey = `collections/${user.id}/${collectionId}/metadata.json`;
     
     // Clean the data to ensure proper format
     const cleanedData = {
@@ -233,7 +232,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     
     const collectionData = {
       id: collectionId,
-      userId: session.user.id,
+      userId: user.id,
       ...cleanedData,
       updatedAt: new Date().toISOString()
     };
@@ -248,7 +247,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
     await s3Client.send(command);
     
     // Also update the collection manifest if it exists
-    const collectionManifestKey = `collections/${session.user.id}/${collectionId}/collection.json`;
+    const collectionManifestKey = `collections/${user.id}/${collectionId}/collection.json`;
     
     try {
       const getCommand = new GetObjectCommand({
@@ -276,7 +275,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
         collectionManifest['x-access'] = {
           ...collectionManifest['x-access'],
           isPublic: cleanedData.isPublic,
-          owner: session.user.id
+          owner: user.id
         };
         
         // Skip the old label/summary handling since we're using cleaned data
@@ -429,18 +428,18 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function DELETE(_request: NextRequest, { params }: RouteParams) {
+export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { collectionId } = await params;
     
     // Delete collection metadata from S3
-    // const metadataKey = `collections/${session.user.id}/${collectionId}/metadata.json`;
-    // const collectionKey = `collections/${session.user.id}/${collectionId}/collection.json`;
+    // const metadataKey = `collections/${user.id}/${collectionId}/metadata.json`;
+    // const collectionKey = `collections/${user.id}/${collectionId}/collection.json`;
     
     // Import DeleteObjectCommand from AWS SDK
     const { DeleteObjectCommand, ListObjectsV2Command } = await import('@aws-sdk/client-s3');
@@ -448,7 +447,7 @@ export async function DELETE(_request: NextRequest, { params }: RouteParams) {
     // List all objects in the collection folder
     const listCommand = new ListObjectsV2Command({
       Bucket: process.env.S3_BUCKET_NAME!,
-      Prefix: `collections/${session.user.id}/${collectionId}/`,
+      Prefix: `collections/${user.id}/${collectionId}/`,
     });
     
     const listResponse = await s3Client.send(listCommand);

@@ -112,3 +112,4 @@ public/uploads/
 .turbo/
 .docusaurus/
 .cache-loader/
+.env*.local

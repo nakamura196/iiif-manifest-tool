@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 
 interface RouteParams {
   params: Promise<{ userId: string }>;
@@ -38,10 +37,10 @@ interface IIIFV2Collection {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { userId } = await params;
-    const session = await getServerSession(authOptions);
-    
+    const session = await getAuthUser(request);
+
     // Allow access to own collections or when accessing without authentication
-    const isOwner = session?.user?.id === userId;
+    const isOwner = session?.id === userId;
     
     // For now, allow public access to user collections for Self Museum
     // In the future, you might want to check if collections are public
@@ -58,7 +57,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       // If owner, get all collections using authenticated endpoint
       const collectionsResponse = await fetch(`${baseUrl}/api/collections`, {
         headers: {
-          cookie: request.headers.get('cookie') || '',
+          'Authorization': request.headers.get('Authorization') || '',
         },
       });
       
@@ -79,7 +78,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           // Get the collection details including manifests
           const collectionResponse = await fetch(`${baseUrl}/api/iiif/2/collection/${userId}_${collection.id}`, {
             headers: {
-              cookie: request.headers.get('cookie') || '',
+              'Authorization': request.headers.get('Authorization') || '',
             },
           });
           
@@ -132,11 +131,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       "label": [
         {
           "@language": "ja",
-          "@value": `${session?.user?.name || session?.user?.email || `ユーザー ${userId}`}のコレクション`
+          "@value": `${session?.name || session?.email || `ユーザー ${userId}`}のコレクション`
         },
         {
           "@language": "en",
-          "@value": `${session?.user?.name || session?.user?.email || `User ${userId}`}'s Collections`
+          "@value": `${session?.name || session?.email || `User ${userId}`}'s Collections`
         }
       ],
       "description": "ユーザーのすべてのコレクション / All collections by this user",
@@ -148,8 +147,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             { "@language": "en", "@value": "Owner" }
           ],
           "value": [
-            { "@language": "ja", "@value": session?.user?.name || session?.user?.email || `ユーザー ${userId}` },
-            { "@language": "en", "@value": session?.user?.name || session?.user?.email || `User ${userId}` }
+            { "@language": "ja", "@value": session?.name || session?.email || `ユーザー ${userId}` },
+            { "@language": "en", "@value": session?.name || session?.email || `User ${userId}` }
           ]
         },
         {

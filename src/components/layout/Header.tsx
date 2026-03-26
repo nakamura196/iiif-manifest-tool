@@ -1,7 +1,7 @@
 'use client';
 
 import { Link } from '@/i18n/routing';
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
 import { FiUser, FiLogIn, FiLogOut, FiHome, FiGrid, FiKey, FiSun, FiMoon, FiGlobe, FiMenu, FiTool, FiHardDrive, FiFolder, FiBook, FiUsers, FiHelpCircle } from 'react-icons/fi';
 import { useState, useRef, useEffect } from 'react';
 import { useTheme } from 'next-themes';
@@ -9,7 +9,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 
 const Header = () => {
-  const { data: session, status } = useSession();
+  const { user, loading, signIn, signOut } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -23,7 +23,7 @@ const Header = () => {
 
   // Check if user is admin
   const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [];
-  const isAdmin = session?.user?.email && ADMIN_EMAILS.includes(session.user.email);
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 
   // マウント状態を管理（ハイドレーションエラー回避）
   useEffect(() => {
@@ -67,19 +67,19 @@ const Header = () => {
         </Link>
       </div>
       <div className="flex items-center">
-        {status === 'loading' ? (
+        {loading ? (
           <div className="text-gray-500">...</div>
-        ) : session ? (
+        ) : user ? (
           <div className="relative" ref={menuRef}>
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               aria-label={t('Header.menu')}
             >
-              {session.user?.image ? (
+              {user?.photoURL ? (
                 <img
-                  src={session.user.image}
-                  alt={session.user.name || ''}
+                  src={user?.photoURL || ''}
+                  alt={user?.displayName || ''}
                   className="w-8 h-8 rounded-full"
                 />
               ) : (
@@ -91,10 +91,10 @@ const Header = () => {
               <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
                 <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center space-x-2">
-                    {session.user?.image ? (
+                    {user?.photoURL ? (
                       <img
-                        src={session.user.image}
-                        alt={session.user.name || ''}
+                        src={user?.photoURL || ''}
+                        alt={user?.displayName || ''}
                         className="w-10 h-10 rounded-full"
                       />
                     ) : (
@@ -102,10 +102,10 @@ const Header = () => {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {session.user?.name}
+                        {user?.displayName}
                       </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {session.user?.email}
+                        {user?.email}
                       </p>
                     </div>
                   </div>
@@ -243,7 +243,7 @@ const Header = () => {
         ) : (
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => signIn('google')}
+              onClick={() => signIn()}
               className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
             >
               <FiLogIn className="w-5 h-5" />

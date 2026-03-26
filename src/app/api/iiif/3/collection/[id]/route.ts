@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIIIFCollection } from '@/lib/iiif-collection';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -10,7 +9,7 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params;
-    const session = await getServerSession(authOptions);
+    const session = await getAuthUser(request);
     
     // Parse the collection ID to extract userId and collectionId
     // Expected format: userId_collectionId or userId-collectionId
@@ -30,7 +29,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     // Check access permissions
     const isPublic = collection['x-access']?.isPublic ?? true;
-    const isOwner = collection['x-access']?.owner === session?.user?.id;
+    const isOwner = collection['x-access']?.owner === session?.id;
     
     if (!isPublic && !isOwner) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

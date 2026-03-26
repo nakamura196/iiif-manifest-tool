@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -88,7 +89,8 @@ interface GeoAnnotation {
 
 export default function ItemEditPage({ params }: ItemEditPageProps) {
   const resolvedParams = use(params);
-  const { status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const t = useTranslations();
   
@@ -114,7 +116,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
 
   const fetchItem = useCallback(async () => {
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`);
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`);
       if (response.ok) {
         const data = await response.json();
         // Extract multilingual titles
@@ -170,7 +172,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await apiFetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -406,7 +408,7 @@ export default function ItemEditPage({ params }: ItemEditPageProps) {
 
     setSaving(true);
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`, {
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items/${resolvedParams.itemId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

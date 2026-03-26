@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, use } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { FiArrowLeft, FiSave, FiInfo, FiLoader, FiLayers } from 'react-icons/fi';
@@ -16,7 +17,8 @@ interface NewCollectionPageProps {
 
 export default function NewCollectionPage({ params }: NewCollectionPageProps) {
   const resolvedParams = use(params);
-  const { status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const t = useTranslations();
   const [creating, setCreating] = useState(false);
@@ -69,7 +71,7 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
     setCreating(true);
     setCreatingMessage('コレクションを作成中...');
     try {
-      const response = await fetch('/api/collections', {
+      const response = await apiFetch('/api/collections', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +262,7 @@ export default function NewCollectionPage({ params }: NewCollectionPageProps) {
                     }
                   };
                   
-                  const itemResponse = await fetch(`/api/collections/${collection.id}/items`, {
+                  const itemResponse = await apiFetch(`/api/collections/${collection.id}/items`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(itemData),

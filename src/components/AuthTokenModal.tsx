@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import { FiKey, FiCopy, FiCheck } from 'react-icons/fi';
 
 interface AuthTokenModalProps {
@@ -17,7 +18,7 @@ export default function AuthTokenModal({ itemId, itemTitle, onClose }: AuthToken
   const generateToken = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/iiif/auth/token/${itemId}`, {
+      const response = await apiFetch(`/api/iiif/auth/token/${itemId}`, {
         method: 'POST',
       });
       

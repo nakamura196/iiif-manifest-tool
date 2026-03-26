@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import jwt from 'jsonwebtoken';
 
 // IIIF Auth API v1 Token Service
@@ -12,9 +11,9 @@ export async function GET(request: NextRequest) {
   // Check for authentication cookie or session
   const cookieName = process.env.IIIF_AUTH_COOKIE_NAME || 'iiif-auth-token';
   const authCookie = request.cookies.get(cookieName);
-  const session = await getServerSession(authOptions);
-  
-  if (!authCookie && !session?.user) {
+  const session = await getAuthUser(request);
+
+  if (!authCookie && !session) {
     // Not authenticated
     return NextResponse.json({
       "@context": "http://iiif.io/api/auth/1/context.json",
@@ -35,7 +34,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Generate access token
-  const userId = authCookie?.value || session?.user?.id;
+  const userId = authCookie?.value || session?.id;
   const accessToken = jwt.sign(
     { 
       userId,

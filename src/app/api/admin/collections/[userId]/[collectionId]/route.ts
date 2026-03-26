@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client } from '@/lib/s3';
 
@@ -14,13 +13,13 @@ interface RouteParams {
 export async function PATCH(_request: NextRequest, { params }: RouteParams) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions);
-    if (!session?.user?.email) {
+    const user = await getAuthUser(_request);
+    if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Check if user is admin
-    if (!ADMIN_EMAILS.includes(session.user.email)) {
+    if (!ADMIN_EMAILS.includes(user.email)) {
       return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
     }
 
@@ -46,7 +45,7 @@ export async function PATCH(_request: NextRequest, { params }: RouteParams) {
         if (typeof data.isPublic === 'boolean') {
           metadata.isPublic = data.isPublic;
           metadata.updatedAt = new Date().toISOString();
-          metadata.updatedBy = session.user.email;
+          metadata.updatedBy = user.email;
 
           // Save updated metadata
           const putCommand = new PutObjectCommand({
@@ -84,7 +83,7 @@ export async function PATCH(_request: NextRequest, { params }: RouteParams) {
             ...collection['x-access'],
             isPublic: data.isPublic,
             owner: userId,
-            updatedBy: session.user.email,
+            updatedBy: user.email,
             updatedAt: new Date().toISOString()
           };
 

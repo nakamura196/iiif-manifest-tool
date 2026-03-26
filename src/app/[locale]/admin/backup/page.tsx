@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FiDownload, FiHardDrive, FiFile, FiAlertCircle, FiRefreshCw, FiLoader, FiX, FiUsers, FiFileText } from 'react-icons/fi';
@@ -19,7 +20,8 @@ interface BackupInfo {
 }
 
 export default function AdminBackupPage() {
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [backupInfo, setBackupInfo] = useState<BackupInfo | null>(null);
@@ -40,7 +42,7 @@ export default function AdminBackupPage() {
     setLoading(true);
     setError('');
     try {
-      const response = await fetch('/api/admin/backup?action=list');
+      const response = await apiFetch('/api/admin/backup?action=list');
       
       if (!response.ok) {
         if (response.status === 403) {
@@ -66,7 +68,7 @@ export default function AdminBackupPage() {
     setError('');
     
     try {
-      const response = await fetch('/api/admin/backup');
+      const response = await apiFetch('/api/admin/backup');
       
       if (!response.ok) {
         if (response.status === 403) {
@@ -141,7 +143,7 @@ export default function AdminBackupPage() {
             </div>
             <div className="text-right">
               <p className="text-sm text-gray-500">ログインユーザー</p>
-              <p className="font-medium">{session?.user?.email}</p>
+              <p className="font-medium">{user?.email}</p>
             </div>
           </div>
 

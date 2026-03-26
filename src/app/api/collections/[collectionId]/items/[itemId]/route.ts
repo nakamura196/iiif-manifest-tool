@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { getIIIFManifest, updateIIIFManifest, deleteIIIFManifest } from '@/lib/iiif-manifest';
 
 interface RouteParams {
@@ -10,10 +9,10 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId, itemId } = await params;
-    const session = await getServerSession(authOptions);
-    
-    // Get userId from session
-    const userId = session?.user?.id;
+    const user = await getAuthUser(request);
+
+    // Get userId from auth
+    const userId = user?.id;
     
     // For now, assume the owner is from the collection path
     // In production, you'd need to look this up properly
@@ -162,13 +161,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId, itemId } = await params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Verify ownership by checking the manifest
     const existingManifest = await getIIIFManifest(userId, collectionId, itemId);
@@ -284,13 +283,13 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { collectionId, itemId } = await params;
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.id) {
+    const user = await getAuthUser(request);
+
+    if (!user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userId = session.user.id;
+    const userId = user.id;
 
     // Verify ownership by checking the manifest
     const existingManifest = await getIIIFManifest(userId, collectionId, itemId);

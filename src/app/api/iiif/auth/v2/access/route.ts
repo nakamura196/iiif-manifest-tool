@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import jwt from 'jsonwebtoken';
 
 // IIIF Auth API v2 Access Service
@@ -8,9 +7,9 @@ export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const origin = url.searchParams.get('origin') || '*';
   
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user) {
+  const session = await getAuthUser(request);
+
+  if (!session) {
     // Return auth location for unauthenticated users
     return NextResponse.json({
       "@context": "http://iiif.io/api/auth/2/context.json",
@@ -44,7 +43,7 @@ export async function GET(request: NextRequest) {
   // Generate access token for authenticated user
   const accessToken = jwt.sign(
     { 
-      userId: session.user.id,
+      userId: session.id,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(Date.now() / 1000) + (60 * 60) // 1 hour
     },

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 
 // IIIF Auth API v1 Login Service
 export async function GET(request: NextRequest) {
@@ -97,10 +96,10 @@ export async function GET(request: NextRequest) {
 }
 
 // Handle login callback
-export async function POST() {
-  const session = await getServerSession(authOptions);
-  
-  if (!session?.user) {
+export async function POST(request: NextRequest) {
+  const session = await getAuthUser(request);
+
+  if (!session) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
@@ -109,7 +108,7 @@ export async function POST() {
   
   response.cookies.set(
     process.env.IIIF_AUTH_COOKIE_NAME || 'iiif-auth-token',
-    session.user.id,
+    session.id,
     {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',

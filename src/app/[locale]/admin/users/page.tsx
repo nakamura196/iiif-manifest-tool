@@ -1,6 +1,7 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
@@ -37,7 +38,8 @@ interface UserInfo {
 }
 
 export default function AdminUsersPage() {
-  const { data: session, status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function AdminUsersPage() {
 
   // Check if user is admin
   const ADMIN_EMAILS = process.env.NEXT_PUBLIC_ADMIN_EMAILS?.split(',') || [];
-  const isAdmin = session?.user?.email && ADMIN_EMAILS.includes(session.user.email);
+  const isAdmin = user?.email && ADMIN_EMAILS.includes(user.email);
 
   useEffect(() => {
     if (status === 'unauthenticated' || (status === 'authenticated' && !isAdmin)) {
@@ -63,7 +65,7 @@ export default function AdminUsersPage() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/admin/users');
+      const response = await apiFetch('/api/admin/users');
       if (response.ok) {
         const data = await response.json();
         setUsers(data.data);
@@ -80,7 +82,7 @@ export default function AdminUsersPage() {
   const fetchUserCollections = async (userId: string) => {
     try {
       setLoadingCollections(prev => new Set(prev).add(userId));
-      const response = await fetch(`/api/admin/users?includeCollections=true&userId=${userId}`);
+      const response = await apiFetch(`/api/admin/users?includeCollections=true&userId=${userId}`);
       if (response.ok) {
         const data = await response.json();
         if (data.data.length > 0) {
@@ -120,7 +122,7 @@ export default function AdminUsersPage() {
 
   const toggleCollectionVisibility = async (userId: string, collectionId: string, currentIsPublic: boolean) => {
     try {
-      const response = await fetch(`/api/admin/collections/${userId}/${collectionId}`, {
+      const response = await apiFetch(`/api/admin/collections/${userId}/${collectionId}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +161,7 @@ export default function AdminUsersPage() {
 
   const exportData = async (format: 'json' | 'csv' | 'txt') => {
     try {
-      const response = await fetch(`/api/admin/users/export?format=${format}`);
+      const response = await apiFetch(`/api/admin/users/export?format=${format}`);
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);

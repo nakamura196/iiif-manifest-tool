@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
 import { useState, useEffect } from 'react';
 import { FiCopy, FiCheck, FiInfo, FiKey } from 'react-icons/fi';
 import { useRouter, useParams } from 'next/navigation';
@@ -8,7 +8,8 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
 export default function AuthInfoPage() {
-  const { data: session, status } = useSession();
+  const { user, loading } = useAuth();
+  const status = loading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const params = useParams();
   const locale = params?.locale || 'ja';
@@ -36,9 +37,12 @@ export default function AuthInfoPage() {
     );
   }
 
-  if (!session) {
+  if (!user) {
     return null;
   }
+
+  // Create a session-like object for backward compatibility in the template
+  const session = { user: { id: user.uid, email: user.email || '', name: user.displayName || '', image: user.photoURL || '' } };
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-4xl">

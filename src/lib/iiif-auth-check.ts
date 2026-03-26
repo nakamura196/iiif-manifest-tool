@@ -1,5 +1,3 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from './auth';
 import { getIIIFCollection } from './iiif-collection';
 
 export async function checkCollectionAccess(
@@ -75,30 +73,29 @@ export async function filterAccessibleCollections(
 // Middleware function to check access in API routes
 export async function requireCollectionAccess(
   userId: string,
-  collectionId: string
+  collectionId: string,
+  requestUserId?: string | null
 ): Promise<{ allowed: boolean; error?: string }> {
-  const session = await getServerSession(authOptions);
-  
   const collection = await getIIIFCollection(userId, collectionId);
   if (!collection) {
     return { allowed: false, error: 'Collection not found' };
   }
 
   const accessInfo = collection['x-access'];
-  
+
   // Public collections don't require authentication
   if (accessInfo?.isPublic) {
     return { allowed: true };
   }
 
   // Private collections require authentication
-  if (!session?.user?.id) {
+  if (!requestUserId) {
     return { allowed: false, error: 'Authentication required' };
   }
 
   // Check if user has access
-  const hasAccess = await checkCollectionAccess(userId, collectionId, session.user.id);
-  
+  const hasAccess = await checkCollectionAccess(userId, collectionId, requestUserId);
+
   if (!hasAccess) {
     return { allowed: false, error: 'Access denied' };
   }

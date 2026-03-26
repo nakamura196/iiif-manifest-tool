@@ -1,15 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getAuthUser } from '@/lib/auth-helpers';
 import { uploadToS3 } from '@/lib/s3';
 import { v4 as uuidv4 } from 'uuid';
 import sharp from 'sharp';
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
-    
-    if (!session?.user?.email) {
+    const user = await getAuthUser(request);
+
+    if (!user?.email) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -30,8 +29,8 @@ export async function POST(request: NextRequest) {
     // Generate unique filename
     const fileExtension = file.name.split('.').pop();
     const fileName = `${uuidv4()}.${fileExtension}`;
-    const key = `images/${session.user.id}/${fileName}`;
-    const thumbnailKey = `images/${session.user.id}/thumbnails/${fileName}`;
+    const key = `images/${user.id}/${fileName}`;
+    const thumbnailKey = `images/${user.id}/thumbnails/${fileName}`;
 
     // Create thumbnail (max 400px on longest side, maintaining aspect ratio)
     const thumbnailBuffer = await sharp(buffer)

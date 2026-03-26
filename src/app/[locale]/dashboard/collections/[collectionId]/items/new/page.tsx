@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, use } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/FirebaseAuthProvider';
+import { apiFetch } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { FiArrowLeft, FiUpload, FiInfo, FiLoader } from 'react-icons/fi';
@@ -30,7 +31,8 @@ interface UploadedImage {
 
 export default function NewItemPage({ params }: NewItemPageProps) {
   const resolvedParams = use(params);
-  const { status } = useSession();
+  const { user, loading: authLoading } = useAuth();
+  const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
   const router = useRouter();
   const t = useTranslations();
   const [creating, setCreating] = useState(false);
@@ -47,7 +49,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload', {
+      const response = await apiFetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -386,7 +388,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
     setCreating(true);
     setCreatingMessage('アイテムを作成中...');
     try {
-      const response = await fetch(`/api/collections/${resolvedParams.collectionId}/items`, {
+      const response = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -407,7 +409,7 @@ export default function NewItemPage({ params }: NewItemPageProps) {
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // 作成されたことを確認
-        const checkResponse = await fetch(`/api/collections/${resolvedParams.collectionId}/items/${newItem.id}`);
+        const checkResponse = await apiFetch(`/api/collections/${resolvedParams.collectionId}/items/${newItem.id}`);
         if (checkResponse.ok) {
           setCreatingMessage('編集ページへ移動中...');
           // 作成が確認できたら編集ページへ遷移
