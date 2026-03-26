@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getIIIFCollection } from '@/lib/iiif-collection';
 import { getAuthUser } from '@/lib/auth-helpers';
+import { buildCollectionUrl, normalizeCollectionItems } from '@/lib/iiif-ids';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -147,44 +148,12 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Update IDs to match new URL structure
+    // Update IDs using shared utility
     const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
-    collection.id = `${baseUrl}/api/iiif/3/collection/${id}`;
-    
-    // Update item references
+    collection.id = buildCollectionUrl(baseUrl, userId, collectionId, 3);
+
     if (collection.items) {
-      collection.items = collection.items.map((item) => {
-        let manifestId = item.manifestId;
-        
-        // If no manifestId, extract from the S3 URL
-        if (!manifestId && item.id) {
-          const match = item.id.match(/\/items\/([^\/]+)\/manifest\.json/);
-          if (match) {
-            manifestId = match[1];
-          }
-        }
-        
-        // Fallback to extracting from the end of the URL
-        if (!manifestId) {
-          manifestId = item.id.split('/').pop()?.replace('.json', '') || item.id;
-        }
-        
-        // Check if manifestId already contains the full combined ID format
-        let combinedId: string;
-        if (manifestId.includes('_') && manifestId.split('_').length === 3) {
-          // Already in combined format, use as is
-          combinedId = manifestId;
-        } else {
-          // Just the item ID, need to create combined format
-          combinedId = `${userId}_${collectionId}_${manifestId}`;
-        }
-        
-        return {
-          id: `${baseUrl}/api/iiif/${combinedId}/manifest`,
-          type: 'Manifest',
-          label: item.label
-        };
-      });
+      collection.items = normalizeCollectionItems(collection.items, userId, collectionId, baseUrl);
     }
 
     // Remove internal access control fields before converting
