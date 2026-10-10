@@ -39,7 +39,7 @@
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-react": "^5.33.0",
     "uuid": "^11.1.0"
