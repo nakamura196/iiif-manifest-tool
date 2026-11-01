@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth-helpers';
 import { ListObjectsV2Command, ListObjectsV2CommandOutput, GetObjectCommand } from '@aws-sdk/client-s3';
 import { s3Client } from '@/lib/s3';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import { Readable } from 'stream';
 
 // Admin users list (add your admin email addresses here)
@@ -90,7 +90,7 @@ async function downloadAllFiles() {
       async start(controller) {
         try {
           // Create zip archive
-          const archive = archiver('zip', {
+          const archive = new ZipArchive({
             zlib: { level: 9 } // Maximum compression
           });
 
