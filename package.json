@@ -24,7 +24,7 @@
     "@types/uuid": "^11.0.0",
     "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
-    "firebase": "^12.1.0",
+    "firebase": "^13.1.0",
     "firebase-admin": "^14.5.0",
     "jsonwebtoken": "^9.0.3",
     "maplibre-gl": "^6.15.0",
